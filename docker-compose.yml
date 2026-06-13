@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: banyan
+      POSTGRES_PASSWORD: banyan
+      POSTGRES_DB: banyanboard
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U banyan"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - banyan
+
+  api:
+    build:
+      context: ./backend
+      target: development
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://banyan:banyan@postgres:5432/banyanboard
+      NODE_ENV: development
+      PORT: 3000
+      LOG_LEVEL: debug
+      LOG_FORMAT: pretty
+    networks:
+      - banyan
+
+networks:
+  banyan:
+    driver: bridge
+
+volumes:
+  postgres_data:
