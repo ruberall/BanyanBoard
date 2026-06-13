@@ -1,9 +1,11 @@
-// Phase 1: Health route wired. Phase 2: add middleware, remaining routes, errorHandler.
 import express, { Express } from 'express';
 import type { Config } from './config';
 import type { Pool } from 'pg';
 import type { Logger } from 'pino';
-import { createHealthRouter } from './routes/health';
+import { createRouter } from './routes/index';
+import { errorHandler } from './middleware/errorHandler';
+import { requestContext } from './middleware/requestContext';
+import { createHttpLogger } from './logger';
 
 interface AppDeps {
   config: Config;
@@ -11,15 +13,19 @@ interface AppDeps {
   pool: Pool;
 }
 
-export function createApp(_deps: AppDeps): Express {
+export function createApp(deps: AppDeps): Express {
+  const { logger: _logger } = deps;
   const app = express();
 
   app.use(express.json());
+  app.use(requestContext);
+  app.use(createHttpLogger());
 
-  // Health route — wired in Phase 1 so tests pass immediately
-  app.use(createHealthRouter());
+  // Feature routes
+  app.use(createRouter());
 
-  // Phase 2: wire requestContext middleware, remaining routes, errorHandler
+  // Terminal error handler (must be last)
+  app.use(errorHandler);
 
   return app;
 }
