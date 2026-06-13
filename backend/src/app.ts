@@ -21,8 +21,8 @@ export function createApp(deps: AppDeps): Express {
   app.use(requestContext);
   app.use(createHttpLogger());
 
-  // Feature routes
-  app.use(createRouter());
+  // Feature routes — pool passed as Queryable for repository injection
+  app.use(createRouter(deps.pool));
 
   // Terminal error handler (must be last)
   app.use(errorHandler);
