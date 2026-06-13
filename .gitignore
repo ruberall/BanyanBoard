@@ -1,3 +1,9 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+
 # Session logs (generated, may contain sensitive info)
 .agent-logs/sessions/
 
