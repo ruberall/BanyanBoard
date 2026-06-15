@@ -5,6 +5,7 @@
 | Task | Feature | Completed | Branch | Archive |
 |------|---------|-----------|--------|---------|
 | TASK-001 | FEAT-001: Express API with TypeScript Scaffold | 2026-06-13 | feature/FEAT-001-express-api-scaffold | [archive-TASK-001.md](archive/archive-TASK-001.md) |
+| TASK-002 | FEAT-002: Board & Column API | 2026-06-15 | feature/FEAT-002-board-column-api | [archive-TASK-002.md](archive/archive-TASK-002.md) |
 
 ## 2026-06-15 — TASK-002 Phase 1: Database schema, migration, and repository layer — COMPLETE
 
