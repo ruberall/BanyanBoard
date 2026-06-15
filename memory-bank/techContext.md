@@ -33,9 +33,8 @@ No clever abstractions. No microservices. One Express app.
 │   ├── src/
 │   │   ├── routes/     # Express route definitions
 │   │   ├── services/   # Business logic
-│   │   ├── repositories/ # DB access
-│   │   ├── models/     # TypeScript types/interfaces
-│   │   └── db/         # DB connection + migrations
+│   │   ├── repositories/ # DB access + domain types (types co-located with their repo)
+│   │   └── db/         # DB connection + queryable interface
 │   └── package.json
 ├── docker-compose.yml  # Full stack orchestration
 └── memory-bank/
@@ -91,8 +90,9 @@ Key variables:
 ## Database
 
 - **Engine**: PostgreSQL 15+
-- **Migrations**: [To be decided — node-pg-migrate or similar]
+- **Migrations**: node-pg-migrate — JS migration files in `backend/migrations/`; filenames are `<epoch-ms>_<description>.js` (e.g., `1749916800000_create-boards-and-columns.js`); run automatically on startup via `RUN_MIGRATIONS_ON_START=true`
 - **Schema**: boards → columns → cards (ordered); users; board_members
+- **UUID primary keys**: all tables use `gen_random_uuid()` (PostgreSQL built-in, no extension required)
 - **Local**: Managed by Docker Compose (`postgres` service); data persisted in Docker volume
 
 ## External Services

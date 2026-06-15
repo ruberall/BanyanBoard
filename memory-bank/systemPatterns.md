@@ -32,8 +32,9 @@ routes/ → services/ → repositories/ → db/pool.ts → PostgreSQL
 - **Real DB** for integration tests — no mocking the database (mock/prod divergence causes failures)
 
 ### File Organization
-- All test files in `backend/src/__tests__/`
-- One test file per concern: `health.test.ts`, `db.test.ts`, `logger.test.ts`, `repository.test.ts`
+- Infrastructure/cross-cutting tests in `backend/src/__tests__/` (e.g., `health.test.ts`, `db.test.ts`, `logger.test.ts`)
+- Domain tests co-located under `backend/src/[module]/__tests__/` (e.g., `repositories/__tests__/board.repository.test.ts`)
+- One test file per concern; co-location is preferred for domain modules to keep tests close to the code they cover
 
 ### Test Structure
 - Arrange / Act / Assert pattern
@@ -102,3 +103,11 @@ describeIfDb('MyRepo (integration)', () => {
 4. Create route in `src/routes/` using `asyncHandler` + `AppError`
 5. Mount router in `src/routes/index.ts` extending `createRouter(db: Queryable)`
 6. Write tests: unit (mock Queryable), integration (real Postgres, `describeIfDb`)
+
+### Domain Type Placement
+
+Types for a domain (entity, aggregate, projection) are defined at the top of the repository file that owns them — **not** in a separate `models/` file. This keeps the type and the queries that produce it co-located and avoids an extra indirection layer for a small codebase.
+
+Example: `Board`, `Column`, and `BoardWithColumns` interfaces are all exported from `board.repository.ts`.
+
+Use a dedicated `models/` or `types/` file only if a type needs to be shared across multiple repositories without creating a circular dependency.
