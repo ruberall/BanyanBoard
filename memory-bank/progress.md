@@ -60,6 +60,17 @@
 
 ## Phase Summary
 
+---
+
+## Task Archive: TASK-002
+
+**Task**: Board & Column API
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-15
+**Archive**: `memory-bank/archive/archive-TASK-002.md`
+
+---
+
 ### v0.1.0 Foundation (1/6 features complete)
 
 - [x] FEAT-001: Express API with TypeScript Scaffold — Express + TypeScript backend, Docker Compose, PostgreSQL pool, node-pg-migrate, pino logging, 3-layer clean architecture

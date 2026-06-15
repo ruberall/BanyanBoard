@@ -51,11 +51,11 @@
 ### FEAT-002: Board & Column API
 
 - **Version**: v0.1.0
-- **Status**: planned
+- **Status**: complete
 - **Priority**: high
 - **Complexity**: Level 2
 - **Description**: REST endpoints for board CRUD (create, read, list, delete). Each board is created with three fixed columns seeded automatically: To Do, In Progress, Done. Includes the boards and columns DB schema (migration), repository, service, and routes. No user-configurable columns for MVP.
-- **Linked Tasks**: TASK-002 (INITIALIZED)
+- **Linked Tasks**: TASK-002 (COMPLETE)
 - **Branch**: feature/FEAT-002-board-column-api
 - **Created**: 2026-06-13
 
