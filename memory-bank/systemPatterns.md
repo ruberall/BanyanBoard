@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-13 (TASK-001 — Express API Scaffold)
+**Last updated**: 2026-06-15 (TASK-002 Phase 2 — Board & Column API)
 
 ## Architecture
 
@@ -32,8 +32,9 @@ routes/ → services/ → repositories/ → db/pool.ts → PostgreSQL
 - **Real DB** for integration tests — no mocking the database (mock/prod divergence causes failures)
 
 ### File Organization
-- All test files in `backend/src/__tests__/`
-- One test file per concern: `health.test.ts`, `db.test.ts`, `logger.test.ts`, `repository.test.ts`
+- Infrastructure/cross-cutting tests in `backend/src/__tests__/` (e.g., `health.test.ts`, `db.test.ts`, `logger.test.ts`)
+- Domain tests co-located under `backend/src/[module]/__tests__/` (e.g., `repositories/__tests__/board.repository.test.ts`)
+- One test file per concern; co-location is preferred for domain modules to keep tests close to the code they cover
 
 ### Test Structure
 - Arrange / Act / Assert pattern
@@ -94,11 +95,19 @@ describeIfDb('MyRepo (integration)', () => {
 - **Fields**: OTel-aligned — `service`, `version`, `environment` on base; `requestId`, `traceId` in request scope
 - **NEVER** use `console.log` in production code (only allowed in config.ts startup validation and server.ts fatal error before logger is ready)
 
-## Adding a New Feature (FEAT-002+ pattern)
+## Adding a New Feature (proven pattern — first used in FEAT-002 Board API)
 
 1. Create migration in `backend/migrations/` (node-pg-migrate JS format)
 2. Create repository in `src/repositories/` using `Queryable` interface
 3. Create service in `src/services/` using repository type
-4. Create route in `src/routes/` using `asyncHandler` + `AppError`
+4. Create route factory in `src/routes/` using `asyncHandler` + `AppError`; export as `createXyzRouter(db: Queryable)`
 5. Mount router in `src/routes/index.ts` extending `createRouter(db: Queryable)`
-6. Write tests: unit (mock Queryable), integration (real Postgres, `describeIfDb`)
+6. Write tests: service unit tests (mock repo), route integration tests (mock pool via supertest)
+
+### Domain Type Placement
+
+Types for a domain (entity, aggregate, projection) are defined at the top of the repository file that owns them — **not** in a separate `models/` file. This keeps the type and the queries that produce it co-located and avoids an extra indirection layer for a small codebase.
+
+Example: `Board`, `Column`, and `BoardWithColumns` interfaces are all exported from `board.repository.ts`.
+
+Use a dedicated `models/` or `types/` file only if a type needs to be shared across multiple repositories without creating a circular dependency.

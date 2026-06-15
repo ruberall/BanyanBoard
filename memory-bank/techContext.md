@@ -31,11 +31,17 @@ No clever abstractions. No microservices. One Express app.
 │   └── package.json
 ├── backend/            # Express + TypeScript API
 │   ├── src/
-│   │   ├── routes/     # Express route definitions
-│   │   ├── services/   # Business logic
-│   │   ├── repositories/ # DB access
-│   │   ├── models/     # TypeScript types/interfaces
-│   │   └── db/         # DB connection + migrations
+│   │   ├── routes/
+│   │   │   ├── index.ts          # createRouter — mounts all sub-routers
+│   │   │   ├── health.ts         # GET /health
+│   │   │   └── boards.ts         # createBoardsRouter — CRUD for /boards
+│   │   ├── services/
+│   │   │   └── board.service.ts  # BoardService — input validation + business logic
+│   │   ├── repositories/
+│   │   │   └── board.repository.ts # BoardRepository — SQL + Board/Column types
+│   │   ├── lib/
+│   │   │   └── asyncHandler.ts   # Wraps async handlers to forward errors to next()
+│   │   └── db/         # DB connection + queryable interface
 │   └── package.json
 ├── docker-compose.yml  # Full stack orchestration
 └── memory-bank/
@@ -91,9 +97,24 @@ Key variables:
 ## Database
 
 - **Engine**: PostgreSQL 15+
-- **Migrations**: [To be decided — node-pg-migrate or similar]
+- **Migrations**: node-pg-migrate — JS migration files in `backend/migrations/`; filenames are `<epoch-ms>_<description>.js` (e.g., `1749916800000_create-boards-and-columns.js`); run automatically on startup via `RUN_MIGRATIONS_ON_START=true`
 - **Schema**: boards → columns → cards (ordered); users; board_members
+- **UUID primary keys**: all tables use `gen_random_uuid()` (PostgreSQL built-in, no extension required)
 - **Local**: Managed by Docker Compose (`postgres` service); data persisted in Docker volume
+
+## API Endpoints
+
+All endpoints are prefixed by the Express mount path. The app currently exposes:
+
+| Method | Path | Description | Response |
+|--------|------|-------------|----------|
+| `GET` | `/health` | Liveness probe | `200 { status: "ok" }` |
+| `GET` | `/boards` | List all boards | `200 Board[]` |
+| `GET` | `/boards/:id` | Get board with columns | `200 BoardWithColumns` or `404` |
+| `POST` | `/boards` | Create board (`{ name }` body) | `201 Board` or `400` |
+| `DELETE` | `/boards/:id` | Delete board | `204` or `404` |
+
+Error shape for all non-2xx responses: `{ error: string, message: string }`.
 
 ## External Services
 
