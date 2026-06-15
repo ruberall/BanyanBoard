@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-13 (TASK-001 — Express API Scaffold)
+**Last updated**: 2026-06-15 (TASK-002 Phase 2 — Board & Column API)
 
 ## Architecture
 
@@ -95,14 +95,14 @@ describeIfDb('MyRepo (integration)', () => {
 - **Fields**: OTel-aligned — `service`, `version`, `environment` on base; `requestId`, `traceId` in request scope
 - **NEVER** use `console.log` in production code (only allowed in config.ts startup validation and server.ts fatal error before logger is ready)
 
-## Adding a New Feature (FEAT-002+ pattern)
+## Adding a New Feature (proven pattern — first used in FEAT-002 Board API)
 
 1. Create migration in `backend/migrations/` (node-pg-migrate JS format)
 2. Create repository in `src/repositories/` using `Queryable` interface
 3. Create service in `src/services/` using repository type
-4. Create route in `src/routes/` using `asyncHandler` + `AppError`
+4. Create route factory in `src/routes/` using `asyncHandler` + `AppError`; export as `createXyzRouter(db: Queryable)`
 5. Mount router in `src/routes/index.ts` extending `createRouter(db: Queryable)`
-6. Write tests: unit (mock Queryable), integration (real Postgres, `describeIfDb`)
+6. Write tests: service unit tests (mock repo), route integration tests (mock pool via supertest)
 
 ### Domain Type Placement
 

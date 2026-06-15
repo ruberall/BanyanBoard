@@ -31,12 +31,39 @@
 
 ---
 
+## 2026-06-15 — TASK-002 Phase 2: Service layer and Express routes — COMPLETE
+
+### What Was Built
+- `backend/src/services/board.service.ts`: BoardService — createBoard (trim+validate+log), getAllBoards, getBoardById, deleteBoard; delegates to BoardRepository
+- `backend/src/routes/boards.ts`: Express router — GET /boards, GET /boards/:id, POST /boards, DELETE /boards/:id; uses asyncHandler, errors propagate to errorHandler
+- `backend/src/routes/index.ts`: boards router mounted at `/boards`
+
+### Test Summary
+- Tests: 26/26 passing (7 skipped — integration, expected)
+- Batches: 2 parallel (board-service + board-routes), both green on first run
+- Code Review: APPROVED WITH NOTES — route try/catch removed, name trim+length validation added, structured logging added
+
+### Files Changed
+- `backend/src/services/board.service.ts` (new)
+- `backend/src/routes/boards.ts` (new)
+- `backend/src/routes/index.ts` (modified)
+- `backend/src/services/__tests__/board.service.test.ts` (new)
+- `backend/src/routes/__tests__/boards.routes.test.ts` (new)
+- `memory-bank/techContext.md` (updated — component structure, API endpoints table)
+- `memory-bank/systemPatterns.md` (updated — router factory convention, test guidance)
+
+### Notes
+- OpenAPI spec deferred — no toolchain scaffolded yet; recommended before column endpoints
+- Board name trimmed before DB write; 255-char limit enforced at service layer
+
+---
+
 ## Phase Summary
 
 ### v0.1.0 Foundation (1/6 features complete)
 
 - [x] FEAT-001: Express API with TypeScript Scaffold — Express + TypeScript backend, Docker Compose, PostgreSQL pool, node-pg-migrate, pino logging, 3-layer clean architecture
-- [ ] FEAT-002: Board & Column API — Phase 1/2 complete (in progress)
+- [x] FEAT-002: Board & Column API — BUILD_COMPLETE (both phases)
 - [ ] FEAT-003: Card Management API — planned
 - [ ] FEAT-004: Card Move & Ordering — planned
 - [ ] FEAT-005: React Frontend Scaffold — planned

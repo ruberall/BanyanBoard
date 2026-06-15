@@ -1,7 +1,7 @@
 # TASK-002: Board & Column API
 
 **Complexity**: Level 2
-**Status**: INITIALIZED
+**Status**: BUILD_COMPLETE
 **Roadmap**: FEAT-002
 **Branch**: feature/FEAT-002-board-column-api
 **Worktree**: N/A
@@ -68,7 +68,9 @@ REST endpoints for board CRUD (create, read, list, delete). Each board is create
 - [x] Phase 1: Database schema, migration, and repository layer ✓
   - **Test Results**: 14/14 passing (7 skipped — integration, expected)
   - **Code Review**: APPROVED WITH NOTES (all in-sprint fixes applied)
-- [ ] Phase 2: Service layer and Express routes
+- [x] Phase 2: Service layer and Express routes ✓
+  - **Test Results**: 26/26 passing (7 skipped — integration, expected)
+  - **Code Review**: APPROVED WITH NOTES (all in-sprint fixes applied)
 
 ## Creative Phases
 
@@ -78,10 +80,10 @@ N/A (Level 2, clear requirements)
 
 ## Execution State
 
-**Build Status**: RUNNING
-**Current Build**: Phase 1: Database schema, migration, and repository layer (TASK-002)
+**Build Status**: COMPLETE
+**Current Build**: Phase 2: Service layer and Express routes (TASK-002)
 **Build Started**: 2026-06-15
-**Phase Number**: 1 of 2
+**Phase Number**: 2 of 2
 **Is Multi-Phase**: YES
 
 ### Current Build Step
