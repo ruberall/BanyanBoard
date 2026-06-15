@@ -19,3 +19,18 @@ Chronological record of all pattern extraction events.
 ### systemPatterns.md Updates
 
 - None (patterns already captured in initial systemPatterns.md write during TASK-001 build)
+
+---
+
+## 2026-06-15 — TASK-002 Reflection
+
+### Extracted Patterns
+
+- **data-integrity** → created `agent-rules/_learned/data-integrity.md` (evidence count: 1)
+  - Always wrap multi-statement writes in an explicit transaction
+- **api-design** → created `agent-rules/_learned/api-design.md` (evidence count: 1)
+  - Return full parent+children shape in 201 when create auto-seeds child records
+
+### systemPatterns.md Updates
+
+- None
