@@ -2,7 +2,7 @@
 
 ## Summary
 
-- **Total Features**: 6
+- **Total Features**: 7
 - **Released Versions**: 0
 - **Active Versions**: 0
 - **Planning Versions**: 1
@@ -28,7 +28,8 @@
 ### next (Planning)
 
 - **Status**: planning
-- **Features**: None
+- **Features**:
+  - FEAT-007: Pagination for list endpoints (planned) [Level 2]
 
 ---
 
@@ -97,6 +98,19 @@
 - **Linked Tasks**: None
 - **Branch**: feature/FEAT-005-react-frontend-scaffold
 - **Created**: 2026-06-13
+
+---
+
+### FEAT-007: Pagination for list endpoints
+
+- **Version**: next
+- **Status**: planned
+- **Priority**: medium
+- **Complexity**: Level 2
+- **Description**: Add `?page=1&limit=20` query parameter support to list endpoints (initially `GET /boards`). Returns a paginated envelope `{ data, total, page, limit }`. Uses LIMIT/OFFSET at the repository layer. Validates `page` ≥ 1, `limit` 1–100, with sensible defaults (page=1, limit=20).
+- **Linked Tasks**: TASK-006 (PLANNING_COMPLETE)
+- **Branch**: feature/FEAT-007-pagination-list-endpoints
+- **Created**: 2026-06-16
 
 ---
 
