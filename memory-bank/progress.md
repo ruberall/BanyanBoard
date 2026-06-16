@@ -104,3 +104,38 @@
 - [ ] FEAT-004: Card Move & Ordering — planned
 - [ ] FEAT-005: React Frontend Scaffold — planned
 - [ ] FEAT-006: User Authentication — planned
+
+---
+
+## 2026-06-16 — TASK-005: CORS Configuration — BUILD_COMPLETE
+
+### What Was Built
+- `backend/src/middleware/cors.ts`: `corsMiddleware()` factory — reads `CORS_ORIGINS`, `CORS_METHODS`, `CORS_HEADERS` from env; safe default = deny all cross-origin when `CORS_ORIGINS` unset; wildcard `*` is explicit opt-in
+- `backend/src/app.ts`: `corsMiddleware()` mounted first (before body-parser/routes); also brought in `createRequestLogger` from TASK-004 (branch cut from master pre-TASK-004-merge)
+- `backend/src/middleware/requestLogger.ts`: carried forward from TASK-004
+
+### Test Summary
+- Tests: 45/45 passing (7 skipped — integration, expected); 9 new tests in cors.test.ts
+- tsc: clean
+
+### Dependency Audit
+- `cors` 2.x: clean (no vulnerabilities)
+- 21 pre-existing vulns in node-pg-migrate (glob CLI) and Jest/ts-jest (js-yaml DoS) — deferred to dedicated security task
+
+### Files Changed
+- `backend/src/middleware/cors.ts` (new)
+- `backend/src/middleware/__tests__/cors.test.ts` (new, 9 tests)
+- `backend/src/middleware/requestLogger.ts` (new — TASK-004 carry-forward)
+- `backend/src/app.ts` (corsMiddleware + requestLogger)
+- `backend/package.json`, `package-lock.json` (cors + @types/cors)
+
+---
+
+## Task Archive: TASK-005
+
+**Task**: Add CORS configuration
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-16
+**Archive**: `memory-bank/archive/archive-TASK-005.md`
+
+---

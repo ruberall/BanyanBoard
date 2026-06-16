@@ -6,6 +6,7 @@ import { createRouter } from './routes/index';
 import { errorHandler } from './middleware/errorHandler';
 import { requestContext } from './middleware/requestContext';
 import { createRequestLogger } from './middleware/requestLogger';
+import { corsMiddleware } from './middleware/cors';
 
 interface AppDeps {
   config: Config;
@@ -16,6 +17,7 @@ interface AppDeps {
 export function createApp(deps: AppDeps): Express {
   const app = express();
 
+  app.use(corsMiddleware());
   app.use(express.json());
   app.use(requestContext);
   app.use(createRequestLogger());
