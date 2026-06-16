@@ -51,7 +51,7 @@ function validateCardInput(body: Record<string, unknown>, requireTitle: boolean)
  */
 export function createColumnCardsRouter(db: Queryable): Router {
   const repo = new CardRepository(db);
-  const service = new CardService(repo);
+  const service = new CardService(repo, db);
   const router = Router();
 
   router.post('/:columnId/cards', asyncHandler(async (req, res) => {
@@ -77,7 +77,7 @@ export function createColumnCardsRouter(db: Queryable): Router {
  */
 export function createCardsRouter(db: Queryable): Router {
   const repo = new CardRepository(db);
-  const service = new CardService(repo);
+  const service = new CardService(repo, db);
   const router = Router();
 
   router.get('/:id', asyncHandler(async (req, res) => {

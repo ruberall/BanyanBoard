@@ -108,6 +108,20 @@ export class CardRepository {
     return result.rows[0];
   }
 
+  async moveCard(id: string, columnId: string, position: number): Promise<Card> {
+    const result = await this.db.query<Card>(
+      `UPDATE cards
+       SET column_id = $2, position = $3, updated_at = now()
+       WHERE id = $1
+       RETURNING id, column_id, title, description, due_date, labels, position, created_at, updated_at`,
+      [id, columnId, position],
+    );
+    if (result.rows.length === 0) {
+      throw new NotFoundError('Card not found');
+    }
+    return result.rows[0];
+  }
+
   async deleteCard(id: string): Promise<void> {
     const result = await this.db.query(
       'DELETE FROM cards WHERE id = $1',

@@ -211,6 +211,37 @@ describe('CardRepository', () => {
     });
 
     // -------------------------------------------------------------------------
+    // moveCard
+    // -------------------------------------------------------------------------
+    describe('moveCard(id, columnId, position)', () => {
+      it('AC-MOVE: executes UPDATE with column_id, position, updated_at and returns Card', async () => {
+        const moved = { ...BASE_CARD, column_id: 'col-uuid-2', position: 1.5 };
+        const mockDb = makeMockDb([{ rows: [moved], rowCount: 1 }]);
+        const { CardRepository } = await import('../card.repository');
+        const repo = new CardRepository(mockDb);
+
+        const card = await repo.moveCard('card-uuid-1', 'col-uuid-2', 1.5);
+
+        expect(card.column_id).toBe('col-uuid-2');
+        expect(card.position).toBe(1.5);
+        const [sql, values] = mockDb.query.mock.calls[0] as [string, unknown[]];
+        expect(sql.toUpperCase()).toContain('UPDATE');
+        expect(values).toContain('card-uuid-1');
+        expect(values).toContain('col-uuid-2');
+        expect(values).toContain(1.5);
+      });
+
+      it('AC-MOVE-5: throws NotFoundError when card does not exist', async () => {
+        const mockDb = makeMockDb([{ rows: [], rowCount: 0 }]);
+        const { CardRepository } = await import('../card.repository');
+        const { NotFoundError } = await import('../../errors');
+        const repo = new CardRepository(mockDb);
+
+        await expect(repo.moveCard('ghost-id', 'col-uuid-1', 1.0)).rejects.toThrow(NotFoundError);
+      });
+    });
+
+    // -------------------------------------------------------------------------
     // deleteCard
     // -------------------------------------------------------------------------
     describe('deleteCard(id)', () => {
