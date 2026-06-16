@@ -21,7 +21,7 @@
   - FEAT-001: Express API with TypeScript Scaffold (complete) [Level 3]
   - FEAT-002: Board & Column API (planned) [Level 2]
   - FEAT-003: Card Management API (planned) [Level 2]
-  - FEAT-004: Card Move & Ordering (planned) [Level 2]
+  - FEAT-004: Card Move & Ordering (complete) [Level 2]
   - FEAT-005: React Frontend Scaffold (planned) [Level 3]
   - FEAT-006: User Authentication (planned) [Level 3]
 
@@ -83,7 +83,9 @@
 - **Priority**: high
 - **Complexity**: Level 2
 - **Description**: API endpoint to move a card to a different column and update its sort position within that column. Uses a float/fractional ordering strategy to avoid rewriting all positions on every move. Includes position field on cards schema and a PATCH /cards/:id/move endpoint.
-- **Linked Tasks**: TASK-008 (INITIALIZED)
+- **Status**: complete
+- **Linked Tasks**: TASK-008 (COMPLETE)
+- **Completed**: 2026-06-16
 - **Branch**: feature/FEAT-004-card-move-ordering
 - **Created**: 2026-06-13
 

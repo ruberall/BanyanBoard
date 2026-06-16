@@ -1,7 +1,7 @@
 # TASK-008: Card Move & Ordering
 
 **Complexity**: Level 2 (inherited from FEAT-004)
-**Status**: REFLECTION_COMPLETE
+**Status**: COMPLETE
 **Roadmap**: FEAT-004
 **Branch**: feature/FEAT-004-card-move-ordering
 **Worktree**: .claude-worktrees/FEAT-004
