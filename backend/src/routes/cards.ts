@@ -51,7 +51,7 @@ function validateCardInput(body: Record<string, unknown>, requireTitle: boolean)
  */
 export function createColumnCardsRouter(db: Queryable): Router {
   const repo = new CardRepository(db);
-  const service = new CardService(repo);
+  const service = new CardService(repo, db);
   const router = Router();
 
   router.post('/:columnId/cards', asyncHandler(async (req, res) => {
@@ -77,11 +77,33 @@ export function createColumnCardsRouter(db: Queryable): Router {
  */
 export function createCardsRouter(db: Queryable): Router {
   const repo = new CardRepository(db);
-  const service = new CardService(repo);
+  const service = new CardService(repo, db);
   const router = Router();
 
   router.get('/:id', asyncHandler(async (req, res) => {
     const card = await service.getCardById(req.params.id);
+    res.json(card);
+  }));
+
+  // MUST be registered before PATCH /:id — prevents Express matching "move" as a card UUID
+  router.patch('/:id/move', asyncHandler(async (req, res) => {
+    const body: Record<string, unknown> = req.body ?? {};
+
+    const columnId = body['column_id'];
+    if (!columnId || typeof columnId !== 'string' || (columnId as string).trim().length === 0) {
+      throw new ValidationError('column_id is required');
+    }
+
+    const rawAfterCardId = body['after_card_id'];
+    let afterCardId: string | null = null;
+    if (rawAfterCardId !== undefined && rawAfterCardId !== null) {
+      if (typeof rawAfterCardId !== 'string' || (rawAfterCardId as string).trim().length === 0) {
+        throw new ValidationError('after_card_id must be a non-empty string');
+      }
+      afterCardId = rawAfterCardId as string;
+    }
+
+    const card = await service.moveCard(req.params.id, columnId as string, afterCardId);
     res.json(card);
   }));
 
