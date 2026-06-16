@@ -105,3 +105,14 @@
 - `backend/src/middleware/requestLogger.ts` (new — TASK-004 carry-forward)
 - `backend/src/app.ts` (corsMiddleware + requestLogger)
 - `backend/package.json`, `package-lock.json` (cors + @types/cors)
+
+---
+
+## Task Archive: TASK-005
+
+**Task**: Add CORS configuration
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-16
+**Archive**: `memory-bank/archive/archive-TASK-005.md`
+
+---
