@@ -4,6 +4,17 @@ Chronological record of all pattern extraction events.
 
 ---
 
+## 2026-06-16 - TASK-007 Reflection
+
+### Extracted Patterns
+- **testing-patterns** → amended `agent-rules/_learned/testing-patterns.md` (evidence count: 4) — `as unknown as jest.Mocked<T>` cast for service test mocks
+- **api-design** → amended `agent-rules/_learned/api-design.md` (evidence count: 3) — dual URL prefix → two named router factories
+
+### systemPatterns.md Updates
+- None (no novel architectural patterns)
+
+---
+
 ## 2026-06-13 — TASK-001 Reflection
 
 ### Extracted Patterns

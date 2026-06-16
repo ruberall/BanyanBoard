@@ -8,4 +8,4 @@
 | TASK-004 | Add request logging middleware | ARCHIVE | COMPLETE | N/A |
 | TASK-005 | Add CORS configuration | ARCHIVE | COMPLETE | N/A |
 | TASK-006 | Pagination for list endpoints | ARCHIVE | COMPLETE | FEAT-007 |
-| TASK-007 | Card Management API | BUILD | BUILD_COMPLETE | FEAT-003 |
+| TASK-007 | Card Management API | REFLECT | REFLECTION_COMPLETE | FEAT-003 |
