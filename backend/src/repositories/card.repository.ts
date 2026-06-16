@@ -31,13 +31,20 @@ export class CardRepository {
   constructor(private readonly db: Queryable) {}
 
   async createCard(columnId: string, input: CardInput): Promise<Card> {
-    const result = await this.db.query<Card>(
-      `INSERT INTO cards (column_id, title, description, due_date, labels)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, column_id, title, description, due_date, labels, position, created_at, updated_at`,
-      [columnId, input.title, input.description ?? null, input.due_date ?? null, input.labels ?? []],
-    );
-    return result.rows[0];
+    try {
+      const result = await this.db.query<Card>(
+        `INSERT INTO cards (column_id, title, description, due_date, labels)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id, column_id, title, description, due_date, labels, position, created_at, updated_at`,
+        [columnId, input.title, input.description ?? null, input.due_date ?? null, input.labels ?? []],
+      );
+      return result.rows[0];
+    } catch (err: unknown) {
+      if ((err as { code?: string }).code === '23503') {
+        throw new NotFoundError('Column not found');
+      }
+      throw err;
+    }
   }
 
   async findCardsByColumnId(columnId: string): Promise<Card[]> {
