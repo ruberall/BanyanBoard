@@ -65,11 +65,12 @@
 ### FEAT-003: Card Management API
 
 - **Version**: v0.1.0
-- **Status**: planned
+- **Status**: complete
 - **Priority**: high
 - **Complexity**: Level 2
 - **Description**: REST endpoints for card CRUD within a column (create, read, update, delete). Cards have title (required), description (optional), due date (optional), and labels (optional array of strings — card-scoped, free-form). Includes cards DB schema (migration), repository, service, and routes.
-- **Linked Tasks**: TASK-007 (INITIALIZED)
+- **Linked Tasks**: TASK-007 (COMPLETE)
+- **Completed**: 2026-06-16
 - **Branch**: feature/FEAT-003-card-management-api
 - **Created**: 2026-06-13
 
