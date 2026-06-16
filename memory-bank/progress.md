@@ -83,6 +83,31 @@
 
 ---
 
+## 2026-06-16 — TASK-007 Phase 1: Migration, CardRepository, and CardService — COMPLETE
+
+### What Was Built
+- `backend/migrations/1750003200000_create-cards.js`: cards table with uuid PK, column_id FK (CASCADE), title, description, due_date, labels (text[]), position (default 0), created_at, updated_at
+- `backend/src/repositories/card.repository.ts`: CardRepository — createCard, findCardsByColumnId, findCardById (NotFoundError), updateCard (dynamic SET, NotFoundError), deleteCard (NotFoundError); exports Card, CardInput, CardUpdate interfaces
+- `backend/src/services/card.service.ts`: CardService — thin pass-through with structured logging (card.created, card.updated, card.deleted)
+
+### Test Summary
+- Tests: 77/77 passing (8 skipped — describeIfDb integration guards, expected)
+- tsc: clean
+- No regressions in existing suite
+
+### Files Changed
+- `backend/migrations/1750003200000_create-cards.js` (new)
+- `backend/src/repositories/card.repository.ts` (new)
+- `backend/src/repositories/__tests__/card.repository.test.ts` (new)
+- `backend/src/services/card.service.ts` (new)
+- `backend/src/services/__tests__/card.service.test.ts` (new)
+
+### Notes
+- updateCard uses dynamic SQL field building; always appends `updated_at = now()` to every PATCH
+- Service test mock pattern: `jest.Mocked<CardRepository>` cast via `as unknown as jest.Mocked<CardRepository>` (matches board.service.test.ts convention)
+
+---
+
 ## Phase Summary
 
 ---

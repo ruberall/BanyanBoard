@@ -4,7 +4,7 @@
 **Status**: PLANNING_COMPLETE
 **Roadmap**: FEAT-003
 **Branch**: feature/FEAT-003-card-management-api
-**Worktree**: N/A
+**Worktree**: .claude-worktrees/FEAT-003
 
 ## Task Description
 
@@ -244,7 +244,7 @@ Specification is concrete — proceed to implementation planning.
 
 ## Implementation Roadmap
 
-- [ ] Phase 1: Migration, CardRepository, and CardService
+- [x] Phase 1: Migration, CardRepository, and CardService
 - [ ] Phase 2: Route handlers, validation, and index.ts mounting
 
 ## Creative Phases
@@ -256,11 +256,23 @@ None required.
 ## Execution State
 
 **Build Status**: IDLE
-**Current Phase**: BUILD
+**Current Build**: Phase 1 COMPLETE — awaiting Phase 2
+**Phase Number**: 1 of 2 COMPLETE
+**Is Multi-Phase**: YES
 **Can Resume**: NO
 
-### Active Sub-Agents
-(none)
+### Current Build Step
+**Step**: Phase 1 COMPLETE
+**Status**: COMPLETE
+**Completed**: 2026-06-16
 
 ### Completed Steps
-(none)
+- Step 0.5 Git Setup: COMPLETE (2026-06-16) - Worktree created at .claude-worktrees/FEAT-003
+- Step 3 Test Writer: COMPLETE (2026-06-16) - card.repository.test.ts (14 tests), card.service.test.ts (5 tests)
+- Step 4 Coding Agent: COMPLETE (2026-06-16) - migration + CardRepository + CardService
+- Step 6 Test Execution: COMPLETE (2026-06-16) - 77/77 passing (8 skipped)
+- Step 7 Integration Verification: COMPLETE (2026-06-16) - tsc clean, no regressions
+- Step 11 Git Commit: COMPLETE (2026-06-16)
+
+### Sub-Agents
+(none — orchestrator-direct build)
