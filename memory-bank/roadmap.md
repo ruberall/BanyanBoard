@@ -83,7 +83,7 @@
 - **Priority**: high
 - **Complexity**: Level 2
 - **Description**: API endpoint to move a card to a different column and update its sort position within that column. Uses a float/fractional ordering strategy to avoid rewriting all positions on every move. Includes position field on cards schema and a PATCH /cards/:id/move endpoint.
-- **Linked Tasks**: None
+- **Linked Tasks**: TASK-008 (INITIALIZED)
 - **Branch**: feature/FEAT-004-card-move-ordering
 - **Created**: 2026-06-13
 
