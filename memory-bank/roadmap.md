@@ -29,7 +29,7 @@
 
 - **Status**: planning
 - **Features**:
-  - FEAT-007: Pagination for list endpoints (planned) [Level 2]
+  - FEAT-007: Pagination for list endpoints (complete) [Level 2]
 
 ---
 
@@ -108,7 +108,9 @@
 - **Priority**: medium
 - **Complexity**: Level 2
 - **Description**: Add `?page=1&limit=20` query parameter support to list endpoints (initially `GET /boards`). Returns a paginated envelope `{ data, total, page, limit }`. Uses LIMIT/OFFSET at the repository layer. Validates `page` ≥ 1, `limit` 1–100, with sensible defaults (page=1, limit=20).
-- **Linked Tasks**: TASK-006 (PLANNING_COMPLETE)
+- **Status**: complete
+- **Linked Tasks**: TASK-006 (COMPLETE)
+- **Completed**: 2026-06-16
 - **Branch**: feature/FEAT-007-pagination-list-endpoints
 - **Created**: 2026-06-16
 

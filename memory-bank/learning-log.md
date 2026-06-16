@@ -49,3 +49,13 @@ Chronological record of all pattern extraction events.
 ### systemPatterns.md Updates
 
 - None (learnings are coding/testing practices, not novel architectural patterns)
+
+---
+
+## 2026-06-16 — Consolidation (during TASK-006 archive)
+
+- Files before: 5, Files after: 5
+- Merged: 0 files
+- Expired: 0 bullets
+- Promoted: 1 file to medium priority (`testing-patterns.md` — 3 evidence entries)
+- Pruned: 0 excess bullets

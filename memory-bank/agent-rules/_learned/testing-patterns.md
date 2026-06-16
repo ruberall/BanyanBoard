@@ -2,7 +2,7 @@
 name: "Learned: Testing Patterns"
 globs: ["**/*.test.ts", "**/*.test.js", "**/jest.config.*", "**/__tests__/**"]
 topics: ["testing", "jest", "db-integration", "ci"]
-priority: low
+priority: medium
 evidence_count: 3
 last_updated: 2026-06-16
 auto_generated: true

@@ -180,3 +180,12 @@
 **Archive**: `memory-bank/archive/archive-TASK-005.md`
 
 ---
+
+## Task Archive: TASK-006
+
+**Task**: Pagination for list endpoints
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-16
+**Archive**: `memory-bank/archive/archive-TASK-006.md`
+
+---
