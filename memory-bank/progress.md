@@ -107,6 +107,47 @@
 
 ---
 
+## 2026-06-16 — TASK-006 Phase 1: Pagination — Repository and Service layer — COMPLETE
+
+### What Was Built
+- `PaginatedResult<T>` interface in `board.repository.ts` — reusable envelope type
+- `findAllBoards(page, limit)`: parallel COUNT(*) + SELECT LIMIT/OFFSET queries
+- `getAllBoards(page, limit)` in `board.service.ts`: transparent pass-through
+- Phase 1 route shim in `boards.ts` (hardcoded page=1, limit=20): keeps codebase compilable; replaced in Phase 2
+
+### Test Summary
+- Tests: 53/53 passing (7 skipped — integration guards); 6 new/updated tests
+- tsc: clean
+
+### Files Changed
+- `backend/src/repositories/board.repository.ts` (PaginatedResult<T> type, findAllBoards signature)
+- `backend/src/services/board.service.ts` (getAllBoards signature + PaginatedResult import)
+- `backend/src/routes/boards.ts` (Phase 1 shim)
+- `backend/src/repositories/__tests__/board.repository.test.ts` (pagination tests, integration updated)
+- `backend/src/services/__tests__/board.service.test.ts` (getAllBoards pagination tests)
+- `backend/src/routes/__tests__/boards.routes.test.ts` (AC-COMPAT-1: updated for new envelope)
+
+---
+
+## 2026-06-16 — TASK-006 Phase 2: Pagination — Route query-param parsing and validation — COMPLETE
+
+### What Was Built
+- `parsePagination(query)` helper in `boards.ts`: validates page ≥ 1, limit 1–100, non-numeric → ValidationError
+- `GET /boards` wired to real `page`/`limit` from query string; defaults page=1, limit=20
+- Phase 1 route shim removed
+
+### Test Summary
+- Tests: 59/59 passing (7 skipped — integration guards); 7 new route tests
+- tsc: clean
+
+### Files Changed
+- `backend/src/routes/boards.ts` (parsePagination helper, route updated, shim removed)
+- `backend/src/routes/__tests__/boards.routes.test.ts` (7 new pagination tests)
+
+### Status: BUILD_COMPLETE
+
+---
+
 ## 2026-06-16 — TASK-005: CORS Configuration — BUILD_COMPLETE
 
 ### What Was Built
@@ -137,5 +178,14 @@
 **Status**: ✅ ARCHIVED
 **Date**: 2026-06-16
 **Archive**: `memory-bank/archive/archive-TASK-005.md`
+
+---
+
+## Task Archive: TASK-006
+
+**Task**: Pagination for list endpoints
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-16
+**Archive**: `memory-bank/archive/archive-TASK-006.md`
 
 ---

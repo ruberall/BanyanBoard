@@ -1,4 +1,4 @@
-import type { BoardRepository, Board, BoardWithColumns } from '../repositories/board.repository';
+import type { BoardRepository, Board, BoardWithColumns, PaginatedResult } from '../repositories/board.repository';
 import { ValidationError } from '../errors';
 import { logger } from '../logger';
 
@@ -20,8 +20,8 @@ export class BoardService {
     return board;
   }
 
-  async getAllBoards(): Promise<Board[]> {
-    return this.repo.findAllBoards();
+  async getAllBoards(page: number, limit: number): Promise<PaginatedResult<Board>> {
+    return this.repo.findAllBoards(page, limit);
   }
 
   async getBoardById(id: string): Promise<BoardWithColumns> {

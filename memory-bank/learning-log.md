@@ -34,3 +34,28 @@ Chronological record of all pattern extraction events.
 ### systemPatterns.md Updates
 
 - None
+
+---
+
+## 2026-06-16 — TASK-006 Reflection
+
+### Extracted Patterns
+
+- **testing-patterns** → amended `agent-rules/_learned/testing-patterns.md` (evidence count: 3)
+  - Multi-query stub mismatch: use `mockResolvedValueOnce` per query, not a single `mockResolvedValue`
+- **api-design** → amended `agent-rules/_learned/api-design.md` (evidence count: 2)
+  - Add AC-COMPAT-1 for breaking shape changes and update route tests at the same phase
+
+### systemPatterns.md Updates
+
+- None (learnings are coding/testing practices, not novel architectural patterns)
+
+---
+
+## 2026-06-16 — Consolidation (during TASK-006 archive)
+
+- Files before: 5, Files after: 5
+- Merged: 0 files
+- Expired: 0 bullets
+- Promoted: 1 file to medium priority (`testing-patterns.md` — 3 evidence entries)
+- Pruned: 0 excess bullets

@@ -111,22 +111,83 @@ describe('POST /boards', () => {
 // GET /boards
 // ---------------------------------------------------------------------------
 
-describe('GET /boards', () => {
-  it('AC-HAPPY-2: returns 200 with an array of all boards', async () => {
-    // Arrange — stub pool for: SELECT boards
-    const stubPool = {
-      query: jest.fn().mockResolvedValue({ rows: [fixBoard], rowCount: 1 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+/** Stub pool that returns valid paginated data for GET /boards */
+function makeListPool(boards = [fixBoard], total = 1) {
+  return {
+    query: jest.fn()
+      .mockResolvedValueOnce({ rows: [{ count: String(total) }], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: boards, rowCount: boards.length }),
+  } as any;
+}
 
-    // Act
+describe('GET /boards', () => {
+  it('AC-HAPPY-1: no query params → defaults page=1 limit=20, returns envelope', async () => {
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool() });
+
     const response = await request(app).get('/boards');
 
-    // Assert
     expect(response.status).toBe(200);
-    expect(Array.isArray(response.body)).toBe(true);
-    expect(response.body).toHaveLength(1);
-    expect(response.body[0]).toMatchObject({ id: BOARD_ID, name: BOARD_NAME });
+    expect(response.body).toMatchObject({
+      data: [{ id: BOARD_ID, name: BOARD_NAME }],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+    expect(Array.isArray(response.body.data)).toBe(true);
+  });
+
+  it('AC-HAPPY-2: explicit ?page=2&limit=5 → forwarded to service', async () => {
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool([], 10) });
+
+    const response = await request(app).get('/boards?page=2&limit=5');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ page: 2, limit: 5 });
+  });
+
+  it('AC-ERROR-1: ?page=0 → 400 VALIDATION_ERROR', async () => {
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool() });
+
+    const response = await request(app).get('/boards?page=0');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('VALIDATION_ERROR');
+  });
+
+  it('AC-ERROR-1: ?limit=0 → 400 VALIDATION_ERROR', async () => {
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool() });
+
+    const response = await request(app).get('/boards?limit=0');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('VALIDATION_ERROR');
+  });
+
+  it('AC-ERROR-1: ?limit=101 → 400 VALIDATION_ERROR (max is 100)', async () => {
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool() });
+
+    const response = await request(app).get('/boards?limit=101');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('VALIDATION_ERROR');
+  });
+
+  it('AC-ERROR-2: ?page=abc → 400 VALIDATION_ERROR (non-numeric)', async () => {
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool() });
+
+    const response = await request(app).get('/boards?page=abc');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('VALIDATION_ERROR');
+  });
+
+  it('AC-ERROR-2: ?limit=foo → 400 VALIDATION_ERROR (non-numeric)', async () => {
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool() });
+
+    const response = await request(app).get('/boards?limit=foo');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('VALIDATION_ERROR');
   });
 });
 
