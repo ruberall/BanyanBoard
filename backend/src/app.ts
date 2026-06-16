@@ -5,7 +5,7 @@ import type { Logger } from 'pino';
 import { createRouter } from './routes/index';
 import { errorHandler } from './middleware/errorHandler';
 import { requestContext } from './middleware/requestContext';
-import { createHttpLogger } from './logger';
+import { createRequestLogger } from './middleware/requestLogger';
 
 interface AppDeps {
   config: Config;
@@ -14,12 +14,11 @@ interface AppDeps {
 }
 
 export function createApp(deps: AppDeps): Express {
-  const { logger: _logger } = deps;
   const app = express();
 
   app.use(express.json());
   app.use(requestContext);
-  app.use(createHttpLogger());
+  app.use(createRequestLogger());
 
   // Feature routes — pool passed as Queryable for repository injection
   app.use(createRouter(deps.pool));

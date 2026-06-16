@@ -7,6 +7,29 @@
 | TASK-001 | FEAT-001: Express API with TypeScript Scaffold | 2026-06-13 | feature/FEAT-001-express-api-scaffold | [archive-TASK-001.md](archive/archive-TASK-001.md) |
 | TASK-002 | FEAT-002: Board & Column API | 2026-06-15 | feature/FEAT-002-board-column-api | [archive-TASK-002.md](archive/archive-TASK-002.md) |
 | TASK-003 | Input validation middleware (Level 1) | 2026-06-16 | task/003-input-validation-middleware | [archive-TASK-003.md](archive/archive-TASK-003.md) |
+| TASK-004 | Request logging middleware (Level 1) | 2026-06-16 | task/004-add-request-logging-middleware | [archive-TASK-004.md](archive/archive-TASK-004.md) |
+
+## 2026-06-16 — TASK-004: Request Logging Middleware — BUILD_COMPLETE
+
+### What Was Built
+- `backend/src/middleware/requestLogger.ts`: `createRequestLogger(logger?: Logger)` — wraps pino-http; optional logger param for testability; used by app.ts
+- `backend/src/logger.ts`: removed `createHttpLogger` and `pino-http` import (concern separation)
+- `backend/src/app.ts`: now imports from `./middleware/requestLogger`; mounts `createRequestLogger()` using module-level pino singleton
+
+### Test Summary
+- Tests: 41/41 passing (7 skipped — integration, expected); 5 new tests in requestLogger.test.ts
+- tsc: clean
+
+### Files Changed
+- `backend/src/middleware/requestLogger.ts` (new)
+- `backend/src/middleware/__tests__/requestLogger.test.ts` (new)
+- `backend/src/logger.ts` (removed createHttpLogger + pino-http import)
+- `backend/src/app.ts` (updated import, removed unused _logger destructure)
+
+### Notes
+- Root cause of mid-build regression: pino-http validates its logger arg as a real pino instance; passing a jest stub logger crashed. Fixed by calling createRequestLogger() with no args in app.ts — uses the module-level singleton which is always a real pino instance.
+
+---
 
 ## 2026-06-15 — TASK-002 Phase 1: Database schema, migration, and repository layer — COMPLETE
 
