@@ -1,10 +1,12 @@
 # TASK-004: Add request logging middleware
 
 **Complexity**: Level 1
-**Status**: INITIALIZED
+**Status**: COMPLETE
 **Roadmap**: N/A
 **Branch**: task/004-add-request-logging-middleware
 **Worktree**: N/A (Level 1 uses direct branch, not worktree)
+**Archived**: memory-bank/archive/archive-TASK-004.md
+**Completed**: 2026-06-16
 
 ## Task Description
 
@@ -24,11 +26,9 @@ Add request logging middleware that logs the HTTP method, path, status code, and
 
 ## Execution State
 
-**Build Status**: RUNNING
-**Current Build**: Single phase — Request Logger Middleware (TASK-004)
-**Build Started**: 2026-06-16
-**Phase Number**: 1 of 1
-**Is Multi-Phase**: NO
+**Build Status**: IDLE
+**Current Phase**: COMPLETE
+**Can Resume**: NO
 
 ### Current Build Step
 **Step**: Step 11 — Git Commit

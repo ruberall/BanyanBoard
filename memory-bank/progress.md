@@ -7,6 +7,7 @@
 | TASK-001 | FEAT-001: Express API with TypeScript Scaffold | 2026-06-13 | feature/FEAT-001-express-api-scaffold | [archive-TASK-001.md](archive/archive-TASK-001.md) |
 | TASK-002 | FEAT-002: Board & Column API | 2026-06-15 | feature/FEAT-002-board-column-api | [archive-TASK-002.md](archive/archive-TASK-002.md) |
 | TASK-003 | Input validation middleware (Level 1) | 2026-06-16 | task/003-input-validation-middleware | [archive-TASK-003.md](archive/archive-TASK-003.md) |
+| TASK-004 | Request logging middleware (Level 1) | 2026-06-16 | task/004-add-request-logging-middleware | [archive-TASK-004.md](archive/archive-TASK-004.md) |
 
 ## 2026-06-16 — TASK-004: Request Logging Middleware — BUILD_COMPLETE
 
