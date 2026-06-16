@@ -4,6 +4,28 @@ import { BoardRepository } from '../repositories/board.repository';
 import { BoardService } from '../services/board.service';
 import { asyncHandler } from '../lib/asyncHandler';
 import { requireFields } from '../middleware/validate';
+import { ValidationError } from '../errors';
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
+
+function parsePagination(query: Record<string, unknown>): { page: number; limit: number } {
+  const rawPage = query['page'];
+  const rawLimit = query['limit'];
+
+  const page = rawPage === undefined ? DEFAULT_PAGE : Number(rawPage);
+  const limit = rawLimit === undefined ? DEFAULT_LIMIT : Number(rawLimit);
+
+  if (!Number.isInteger(page) || page < 1) {
+    throw new ValidationError('page must be an integer ≥ 1');
+  }
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT) {
+    throw new ValidationError(`limit must be an integer between 1 and ${MAX_LIMIT}`);
+  }
+
+  return { page, limit };
+}
 
 /**
  * Factory for the /boards router.
@@ -15,9 +37,9 @@ export function createBoardsRouter(db: Queryable): Router {
   const service = new BoardService(repo);
   const router = Router();
 
-  router.get('/', asyncHandler(async (_req, res) => {
-    // Phase 1 shim: hardcoded defaults — replaced with query-param parsing in Phase 2
-    const result = await service.getAllBoards(1, 20);
+  router.get('/', asyncHandler(async (req, res) => {
+    const { page, limit } = parsePagination(req.query as Record<string, unknown>);
+    const result = await service.getAllBoards(page, limit);
     res.json(result);
   }));
 

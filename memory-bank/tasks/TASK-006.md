@@ -123,7 +123,7 @@ This is a **breaking change** to the existing `GET /boards` response shape; docu
 ## Implementation Roadmap
 
 - [x] Phase 1: Pagination at repository and service layer
-- [ ] Phase 2: Route query-param parsing, validation, and response envelope
+- [x] Phase 2: Route query-param parsing, validation, and response envelope
 
 ## Creative Phases
 
@@ -134,9 +134,9 @@ None required.
 ## Execution State
 
 **Build Status**: IDLE
-**Current Build**: Phase 1: Repository and Service layer (TASK-006) — COMPLETE
+**Current Build**: Phase 2: Route query-param parsing and validation — COMPLETE
 **Build Started**: 2026-06-16
-**Phase Number**: 1 of 2 COMPLETE
+**Phase Number**: 2 of 2 COMPLETE
 **Is Multi-Phase**: YES
 
 ### Current Build Step
@@ -156,4 +156,9 @@ None required.
 - Step 4 Coding Agent: COMPLETE — PaginatedResult<T>, findAllBoards(page,limit), getAllBoards(page,limit), Phase 1 route shim
 - Step 6 Test Batches: COMPLETE — 53/53 passing (7 skipped)
 - Step 7 Integration Verify: COMPLETE — tsc clean, all tests green
-- Step 8 Code Review: APPROVED
+- Step 8 Code Review: APPROVED (Phase 1)
+- Step 3 Test Writer (Phase 2): COMPLETE — 7 new route tests
+- Step 4 Coding Agent (Phase 2): COMPLETE — parsePagination(), route wired up, shim removed
+- Step 6 Test Batches (Phase 2): COMPLETE — 59/59 passing
+- Step 7 Integration Verify (Phase 2): COMPLETE — tsc clean
+- Step 8 Code Review (Phase 2): APPROVED

@@ -129,6 +129,25 @@
 
 ---
 
+## 2026-06-16 — TASK-006 Phase 2: Pagination — Route query-param parsing and validation — COMPLETE
+
+### What Was Built
+- `parsePagination(query)` helper in `boards.ts`: validates page ≥ 1, limit 1–100, non-numeric → ValidationError
+- `GET /boards` wired to real `page`/`limit` from query string; defaults page=1, limit=20
+- Phase 1 route shim removed
+
+### Test Summary
+- Tests: 59/59 passing (7 skipped — integration guards); 7 new route tests
+- tsc: clean
+
+### Files Changed
+- `backend/src/routes/boards.ts` (parsePagination helper, route updated, shim removed)
+- `backend/src/routes/__tests__/boards.routes.test.ts` (7 new pagination tests)
+
+### Status: BUILD_COMPLETE
+
+---
+
 ## 2026-06-16 — TASK-005: CORS Configuration — BUILD_COMPLETE
 
 ### What Was Built
