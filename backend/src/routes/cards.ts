@@ -85,6 +85,28 @@ export function createCardsRouter(db: Queryable): Router {
     res.json(card);
   }));
 
+  // MUST be registered before PATCH /:id — prevents Express matching "move" as a card UUID
+  router.patch('/:id/move', asyncHandler(async (req, res) => {
+    const body: Record<string, unknown> = req.body ?? {};
+
+    const columnId = body['column_id'];
+    if (!columnId || typeof columnId !== 'string' || (columnId as string).trim().length === 0) {
+      throw new ValidationError('column_id is required');
+    }
+
+    const rawAfterCardId = body['after_card_id'];
+    let afterCardId: string | null = null;
+    if (rawAfterCardId !== undefined && rawAfterCardId !== null) {
+      if (typeof rawAfterCardId !== 'string' || (rawAfterCardId as string).trim().length === 0) {
+        throw new ValidationError('after_card_id must be a non-empty string');
+      }
+      afterCardId = rawAfterCardId as string;
+    }
+
+    const card = await service.moveCard(req.params.id, columnId as string, afterCardId);
+    res.json(card);
+  }));
+
   router.patch('/:id', asyncHandler(async (req, res) => {
     const body: Record<string, unknown> = req.body ?? {};
 

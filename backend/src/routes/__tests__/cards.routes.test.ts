@@ -327,6 +327,129 @@ describe('PATCH /cards/:id', () => {
 });
 
 // ---------------------------------------------------------------------------
+// PATCH /cards/:id/move
+// ---------------------------------------------------------------------------
+
+describe('PATCH /cards/:id/move', () => {
+  const COL_ID_2 = 'col-uuid-2222-3333-4444-555555555555';
+
+  function makeMovedCard(position: number) {
+    return { ...fixCard, column_id: COL_ID_2, position };
+  }
+
+  it('AC-MOVE-1: returns 200 with card JSON — no after_card_id (insert at top)', async () => {
+    const movedCard = makeMovedCard(0.5);
+    // findCardById → column check → findCardsByColumnId → moveCard
+    const stubPool = {
+      query: jest.fn()
+        .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 })       // findCardById
+        .mockResolvedValueOnce({ rows: [{ id: COL_ID_2 }], rowCount: 1 }) // column check
+        .mockResolvedValueOnce({ rows: [{ ...fixCard, position: 1.0 }], rowCount: 1 }) // findCardsByColumnId
+        .mockResolvedValueOnce({ rows: [movedCard], rowCount: 1 }),     // moveCard UPDATE
+    } as any;
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+
+    const res = await request(app)
+      .patch(`/cards/${CARD_ID}/move`)
+      .send({ column_id: COL_ID_2 });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ column_id: COL_ID_2 });
+    expect(typeof res.body.position).toBe('number');
+  });
+
+  it('AC-MOVE-2: returns 200 with card JSON when after_card_id provided', async () => {
+    const LAST_CARD_ID = 'card-last-1111-2222-3333-444444444444';
+    const lastCard = { ...fixCard, id: LAST_CARD_ID, position: 2.0 };
+    const movedCard = makeMovedCard(3.0);
+    const stubPool = {
+      query: jest.fn()
+        .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [{ id: COL_ID_2 }], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [lastCard], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [movedCard], rowCount: 1 }),
+    } as any;
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+
+    const res = await request(app)
+      .patch(`/cards/${CARD_ID}/move`)
+      .send({ column_id: COL_ID_2, after_card_id: LAST_CARD_ID });
+
+    expect(res.status).toBe(200);
+    expect(res.body.position).toBe(3.0);
+  });
+
+  it('AC-MOVE-7: returns 400 when column_id is missing', async () => {
+    const stubPool = { query: jest.fn() } as any;
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+
+    const res = await request(app)
+      .patch(`/cards/${CARD_ID}/move`)
+      .send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('VALIDATION_ERROR');
+  });
+
+  it('AC-MOVE-7: returns 400 when column_id is empty string', async () => {
+    const stubPool = { query: jest.fn() } as any;
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+
+    const res = await request(app)
+      .patch(`/cards/${CARD_ID}/move`)
+      .send({ column_id: '' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('VALIDATION_ERROR');
+  });
+
+  it('AC-MOVE-5: returns 404 when card does not exist', async () => {
+    const stubPool = {
+      query: jest.fn().mockResolvedValueOnce({ rows: [], rowCount: 0 }), // findCardById → NotFoundError
+    } as any;
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+
+    const res = await request(app)
+      .patch('/cards/nonexistent-card-id/move')
+      .send({ column_id: COL_ID_2 });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('NOT_FOUND');
+  });
+
+  it('AC-MOVE-6: returns 404 when destination column does not exist', async () => {
+    const stubPool = {
+      query: jest.fn()
+        .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 })  // findCardById
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }),         // column check → NotFoundError
+    } as any;
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+
+    const res = await request(app)
+      .patch(`/cards/${CARD_ID}/move`)
+      .send({ column_id: 'nonexistent-col' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('NOT_FOUND');
+  });
+
+  it('AC-MOVE-9: PATCH /cards/:id (title update) still works after move route added', async () => {
+    const updated = { ...fixCard, title: 'Non-regression title' };
+    const stubPool = {
+      query: jest.fn().mockResolvedValueOnce({ rows: [updated], rowCount: 1 }),
+    } as any;
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+
+    const res = await request(app)
+      .patch(`/cards/${CARD_ID}`)
+      .send({ title: 'Non-regression title' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe('Non-regression title');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // DELETE /cards/:id
 // ---------------------------------------------------------------------------
 
