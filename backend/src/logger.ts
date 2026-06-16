@@ -1,5 +1,4 @@
 import pino from 'pino';
-import pinoHttp from 'pino-http';
 import type { DestinationStream, Logger } from 'pino';
 
 interface LoggerOptions {
@@ -31,7 +30,3 @@ export function createLogger(opts: LoggerOptions = {}): Logger {
 }
 
 export const logger = createLogger();
-
-export function createHttpLogger() {
-  return pinoHttp({ logger });
-}
