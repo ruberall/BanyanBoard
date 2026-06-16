@@ -9,4 +9,4 @@
 | TASK-005 | Add CORS configuration | ARCHIVE | COMPLETE | N/A |
 | TASK-006 | Pagination for list endpoints | ARCHIVE | COMPLETE | FEAT-007 |
 | TASK-007 | Card Management API | ARCHIVE | COMPLETE | FEAT-003 |
-| TASK-008 | Card Move & Ordering | PLAN | PLANNING_COMPLETE | FEAT-004 |
+| TASK-008 | Card Move & Ordering | REFLECT | REFLECTION_COMPLETE | FEAT-004 |

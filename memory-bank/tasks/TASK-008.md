@@ -1,10 +1,10 @@
 # TASK-008: Card Move & Ordering
 
 **Complexity**: Level 2 (inherited from FEAT-004)
-**Status**: PLANNING_COMPLETE
+**Status**: REFLECTION_COMPLETE
 **Roadmap**: FEAT-004
 **Branch**: feature/FEAT-004-card-move-ordering
-**Worktree**: N/A
+**Worktree**: .claude-worktrees/FEAT-004
 
 ## Task Description
 
@@ -269,8 +269,8 @@ router.patch('/:id/move', asyncHandler(async (req, res) => {
 
 ## Implementation Roadmap
 
-- [ ] Phase 1: Migration, `CardRepository.moveCard`, and `CardService.moveCard` (with position algorithm)
-- [ ] Phase 2: Route handler (`PATCH /cards/:id/move`), validation, routing order fix
+- [x] Phase 1: Migration, `CardRepository.moveCard`, and `CardService.moveCard` (with position algorithm)
+- [x] Phase 2: Route handler (`PATCH /cards/:id/move`), validation, routing order fix
 
 ## Creative Phases
 
@@ -280,12 +280,21 @@ None required.
 
 ## Execution State
 
-**Build Status**: IDLE
-**Current Phase**: PLAN
+**Build Status**: BUILD_COMPLETE
+**Current Build**: All phases complete
+**Build Started**: 2026-06-16
+**Phase Number**: 2 of 2 COMPLETE
+**Is Multi-Phase**: YES
 **Can Resume**: NO
 
-### Active Sub-Agents
-(none)
+### Current Build Step
+**Step**: All phases complete — run /banyan-reflect TASK-008
+**Status**: IDLE
 
 ### Completed Steps
-(none)
+- Step 0.5 Git Setup: COMPLETE (2026-06-16) - Worktree created at .claude-worktrees/FEAT-004
+- Phase 1 Build: COMPLETE (2026-06-16) - Migration + CardRepository.moveCard + CardService.moveCard; 104/104 tests pass; tsc clean
+- Phase 2 Build: COMPLETE (2026-06-16) - PATCH /cards/:id/move route; 111/111 tests pass; tsc clean
+
+### Sub-Agents
+(none — orchestrator-direct build)
