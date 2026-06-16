@@ -3,6 +3,7 @@ import type { Queryable } from '../db/queryable';
 import { BoardRepository } from '../repositories/board.repository';
 import { BoardService } from '../services/board.service';
 import { asyncHandler } from '../lib/asyncHandler';
+import { requireFields } from '../middleware/validate';
 
 /**
  * Factory for the /boards router.
@@ -24,7 +25,7 @@ export function createBoardsRouter(db: Queryable): Router {
     res.json(board);
   }));
 
-  router.post('/', asyncHandler(async (req, res) => {
+  router.post('/', requireFields('name'), asyncHandler(async (req, res) => {
     const board = await service.createBoard(req.body?.name);
     res.status(201).json(board);
   }));
