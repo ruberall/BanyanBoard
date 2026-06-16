@@ -16,8 +16,9 @@ export function createBoardsRouter(db: Queryable): Router {
   const router = Router();
 
   router.get('/', asyncHandler(async (_req, res) => {
-    const boards = await service.getAllBoards();
-    res.json(boards);
+    // Phase 1 shim: hardcoded defaults — replaced with query-param parsing in Phase 2
+    const result = await service.getAllBoards(1, 20);
+    res.json(result);
   }));
 
   router.get('/:id', asyncHandler(async (req, res) => {

@@ -19,6 +19,13 @@ export interface BoardWithColumns extends Board {
   columns: Column[];
 }
 
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 const DEFAULT_COLUMNS = ['To Do', 'In Progress', 'Done'] as const;
 
 export class BoardRepository {
@@ -46,11 +53,21 @@ export class BoardRepository {
     return board;
   }
 
-  async findAllBoards(): Promise<Board[]> {
-    const result = await this.db.query<Board>(
-      'SELECT id, name, created_at FROM boards ORDER BY created_at ASC',
-    );
-    return result.rows;
+  async findAllBoards(page: number, limit: number): Promise<PaginatedResult<Board>> {
+    const offset = (page - 1) * limit;
+    const [countResult, dataResult] = await Promise.all([
+      this.db.query<{ count: string }>('SELECT COUNT(*) AS count FROM boards'),
+      this.db.query<Board>(
+        'SELECT id, name, created_at FROM boards ORDER BY created_at ASC LIMIT $1 OFFSET $2',
+        [limit, offset],
+      ),
+    ]);
+    return {
+      data: dataResult.rows,
+      total: parseInt(countResult.rows[0].count, 10),
+      page,
+      limit,
+    };
   }
 
   async findBoardById(id: string): Promise<BoardWithColumns> {

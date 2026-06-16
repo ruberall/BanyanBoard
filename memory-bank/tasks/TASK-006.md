@@ -122,7 +122,7 @@ This is a **breaking change** to the existing `GET /boards` response shape; docu
 
 ## Implementation Roadmap
 
-- [ ] Phase 1: Pagination at repository and service layer
+- [x] Phase 1: Pagination at repository and service layer
 - [ ] Phase 2: Route query-param parsing, validation, and response envelope
 
 ## Creative Phases
@@ -134,14 +134,26 @@ None required.
 ## Execution State
 
 **Build Status**: IDLE
-**Current Phase**: PLANNING_COMPLETE
-**Can Resume**: NO
+**Current Build**: Phase 1: Repository and Service layer (TASK-006) — COMPLETE
+**Build Started**: 2026-06-16
+**Phase Number**: 1 of 2 COMPLETE
+**Is Multi-Phase**: YES
+
+### Current Build Step
+**Step**: Step 11 - Git Commit
+**Status**: COMPLETE
+**Completed**: 2026-06-16
 
 ### Active Sub-Agents
 (none)
 
 ### Completed Steps
 - Step 0.1 Auto-provision: COMPLETE — TASK-006 created for FEAT-007
-- Step 3 Spec: COMPLETE — inline (Level 2, no ambiguity)
-- Step 4 Codebase analysis: COMPLETE — read board.repository.ts, board.service.ts, boards.ts
-- Step 5 Plan: COMPLETE
+- Step 0.5 Git Setup: COMPLETE — on feature/FEAT-007-pagination-list-endpoints
+- Step 1 Read Task Context: COMPLETE — Phase 1 identified (Repository + Service)
+- Step 2 Load Context: COMPLETE — Level 2 rules loaded
+- Step 3 Test Writer: COMPLETE — updated board.repository.test.ts (+4 tests), board.service.test.ts (+1 test), boards.routes.test.ts (AC-COMPAT-1 update)
+- Step 4 Coding Agent: COMPLETE — PaginatedResult<T>, findAllBoards(page,limit), getAllBoards(page,limit), Phase 1 route shim
+- Step 6 Test Batches: COMPLETE — 53/53 passing (7 skipped)
+- Step 7 Integration Verify: COMPLETE — tsc clean, all tests green
+- Step 8 Code Review: APPROVED

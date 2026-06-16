@@ -112,21 +112,27 @@ describe('POST /boards', () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /boards', () => {
-  it('AC-HAPPY-2: returns 200 with an array of all boards', async () => {
-    // Arrange — stub pool for: SELECT boards
+  it('AC-HAPPY-1: returns 200 with paginated envelope { data, total, page, limit }', async () => {
+    // Arrange — stub pool for two concurrent queries: COUNT(*) then SELECT with LIMIT/OFFSET
     const stubPool = {
-      query: jest.fn().mockResolvedValue({ rows: [fixBoard], rowCount: 1 }),
+      query: jest.fn()
+        .mockResolvedValueOnce({ rows: [{ count: '1' }], rowCount: 1 })  // COUNT(*)
+        .mockResolvedValueOnce({ rows: [fixBoard], rowCount: 1 }),         // SELECT boards
     } as any;
     const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
 
     // Act
     const response = await request(app).get('/boards');
 
-    // Assert
+    // Assert — new paginated envelope shape (AC-COMPAT-1: breaking change from bare array)
     expect(response.status).toBe(200);
-    expect(Array.isArray(response.body)).toBe(true);
-    expect(response.body).toHaveLength(1);
-    expect(response.body[0]).toMatchObject({ id: BOARD_ID, name: BOARD_NAME });
+    expect(response.body).toMatchObject({
+      data: [{ id: BOARD_ID, name: BOARD_NAME }],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+    expect(Array.isArray(response.body.data)).toBe(true);
   });
 });
 

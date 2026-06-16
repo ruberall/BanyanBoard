@@ -12,7 +12,7 @@
 import { BoardService } from '../board.service';
 import { BoardRepository } from '../../repositories/board.repository';
 import { NotFoundError } from '../../errors';
-import type { Board, BoardWithColumns } from '../../repositories/board.repository';
+import type { Board, BoardWithColumns, PaginatedResult } from '../../repositories/board.repository';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -78,16 +78,42 @@ describe('BoardService', () => {
   // ── getAllBoards ───────────────────────────────────────────────────────────
 
   describe('getAllBoards', () => {
-    it('calls repo.findAllBoards and returns the array', async () => {
+    it('AC-HAPPY-1: calls repo.findAllBoards with page/limit and returns PaginatedResult', async () => {
       // Arrange
-      repo.findAllBoards.mockResolvedValue([fixBoard]);
+      const paginated: PaginatedResult<Board> = {
+        data: [fixBoard],
+        total: 1,
+        page: 1,
+        limit: 20,
+      };
+      repo.findAllBoards.mockResolvedValue(paginated);
 
       // Act
-      const result = await service.getAllBoards();
+      const result = await service.getAllBoards(1, 20);
 
       // Assert
-      expect(repo.findAllBoards).toHaveBeenCalled();
-      expect(result).toEqual([fixBoard]);
+      expect(repo.findAllBoards).toHaveBeenCalledWith(1, 20);
+      expect(result).toEqual(paginated);
+    });
+
+    it('forwards page and limit arguments to the repository', async () => {
+      // Arrange
+      const paginated: PaginatedResult<Board> = {
+        data: [],
+        total: 50,
+        page: 3,
+        limit: 5,
+      };
+      repo.findAllBoards.mockResolvedValue(paginated);
+
+      // Act
+      const result = await service.getAllBoards(3, 5);
+
+      // Assert
+      expect(repo.findAllBoards).toHaveBeenCalledWith(3, 5);
+      expect(result.page).toBe(3);
+      expect(result.limit).toBe(5);
+      expect(result.total).toBe(50);
     });
   });
 

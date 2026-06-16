@@ -104,26 +104,13 @@ describe('BoardRepository', () => {
     });
 
     // -----------------------------------------------------------------------
-    // findAllBoards
+    // findAllBoards (paginated)
     // -----------------------------------------------------------------------
-    describe('findAllBoards()', () => {
-      it('AC-HAPPY-2: returns an empty array when the boards table has no rows', async () => {
-        // Arrange
-        const mockDb = makeMockDb([{ rows: [] }]);
-        const { BoardRepository } = await import('../board.repository');
-        const repo = new BoardRepository(mockDb);
-
-        // Act
-        const result = await repo.findAllBoards();
-
-        // Assert
-        expect(Array.isArray(result)).toBe(true);
-        expect(result).toHaveLength(0);
-      });
-
-      it('AC-HAPPY-2: returns an array of board objects when rows exist', async () => {
-        // Arrange
+    describe('findAllBoards(page, limit)', () => {
+      it('AC-HAPPY-1: returns PaginatedResult with data, total, page, limit', async () => {
+        // Arrange — two queries: COUNT then SELECT with LIMIT/OFFSET
         const mockDb = makeMockDb([
+          { rows: [{ count: '2' }] },
           {
             rows: [
               { id: 'board-1', name: 'Alpha', created_at: new Date('2026-01-01') },
@@ -135,12 +122,75 @@ describe('BoardRepository', () => {
         const repo = new BoardRepository(mockDb);
 
         // Act
-        const result = await repo.findAllBoards();
+        const result = await repo.findAllBoards(1, 20);
+
+        // Assert shape
+        expect(result.data).toHaveLength(2);
+        expect(result.total).toBe(2);
+        expect(result.page).toBe(1);
+        expect(result.limit).toBe(20);
+        expect(result.data[0]).toMatchObject({ id: 'board-1', name: 'Alpha' });
+        expect(result.data[1]).toMatchObject({ id: 'board-2', name: 'Beta' });
+      });
+
+      it('returns empty data array and total=0 when no boards exist', async () => {
+        // Arrange
+        const mockDb = makeMockDb([
+          { rows: [{ count: '0' }] },
+          { rows: [] },
+        ]);
+        const { BoardRepository } = await import('../board.repository');
+        const repo = new BoardRepository(mockDb);
+
+        // Act
+        const result = await repo.findAllBoards(1, 20);
 
         // Assert
-        expect(result).toHaveLength(2);
-        expect(result[0]).toMatchObject({ id: 'board-1', name: 'Alpha' });
-        expect(result[1]).toMatchObject({ id: 'board-2', name: 'Beta' });
+        expect(result.data).toHaveLength(0);
+        expect(result.total).toBe(0);
+        expect(result.page).toBe(1);
+        expect(result.limit).toBe(20);
+      });
+
+      it('AC-HAPPY-2: uses correct LIMIT and OFFSET for page=2, limit=5 (OFFSET=5)', async () => {
+        // Arrange
+        const mockDb = makeMockDb([
+          { rows: [{ count: '10' }] },
+          { rows: [] },
+        ]);
+        const { BoardRepository } = await import('../board.repository');
+        const repo = new BoardRepository(mockDb);
+
+        // Act
+        await repo.findAllBoards(2, 5);
+
+        // Assert — find the query that carries LIMIT/OFFSET params
+        const dataCall = mockDb.query.mock.calls.find(
+          (call: unknown[]) =>
+            typeof call[0] === 'string' &&
+            (call[0] as string).toUpperCase().includes('LIMIT'),
+        );
+        expect(dataCall).toBeDefined();
+        const values = dataCall![1] as number[];
+        expect(values[0]).toBe(5);  // LIMIT
+        expect(values[1]).toBe(5);  // OFFSET = (2-1)*5
+      });
+
+      it('total reflects full count even when the requested page has no results', async () => {
+        // Arrange
+        const mockDb = makeMockDb([
+          { rows: [{ count: '100' }] },
+          { rows: [] },
+        ]);
+        const { BoardRepository } = await import('../board.repository');
+        const repo = new BoardRepository(mockDb);
+
+        // Act
+        const result = await repo.findAllBoards(10, 20);
+
+        // Assert
+        expect(result.total).toBe(100);
+        expect(result.data).toHaveLength(0);
       });
     });
 
@@ -264,9 +314,12 @@ describe('BoardRepository', () => {
       const repo = new BoardRepository(pool);
 
       const board = await repo.createBoard('List Test Board');
-      const all = await repo.findAllBoards();
+      const result = await repo.findAllBoards(1, 100);
 
-      expect(all.some((b) => b.id === board.id)).toBe(true);
+      expect(result.data.some((b) => b.id === board.id)).toBe(true);
+      expect(typeof result.total).toBe('number');
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(100);
 
       // Cleanup
       await repo.deleteBoard(board.id);
