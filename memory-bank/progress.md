@@ -108,6 +108,30 @@
 
 ---
 
+## 2026-06-16 — TASK-007 Phase 2: Route handlers, validation, and index.ts mounting — COMPLETE
+
+### What Was Built
+- `backend/src/routes/cards.ts`: Two router factories — `createColumnCardsRouter(db)` (POST/GET at `/:columnId/cards`) and `createCardsRouter(db)` (GET/PATCH/DELETE at `/:id`). Validates title required/non-empty/≤255, due_date ISO format, labels array-of-strings, and empty PATCH body.
+- `backend/src/routes/index.ts`: Mounted both card routers — `/columns` and `/cards`.
+- `backend/src/repositories/card.repository.ts`: Updated `createCard` to catch PostgreSQL FK violation (code `23503`) and rethrow as `NotFoundError('Column not found')`.
+
+### Test Summary
+- Tests: 95/95 passing (8 skipped — describeIfDb integration guards, expected); 18 new HTTP integration tests
+- tsc: clean
+- No regressions in existing suite
+
+### Files Changed
+- `backend/src/routes/cards.ts` (new)
+- `backend/src/routes/__tests__/cards.routes.test.ts` (new)
+- `backend/src/routes/index.ts` (modified — added two card router mounts)
+- `backend/src/repositories/card.repository.ts` (modified — FK violation → NotFoundError in createCard)
+
+### Notes
+- Two router exports in one file (createColumnCardsRouter + createCardsRouter) avoids mount-prefix ambiguity while keeping card concerns co-located
+- FK violation (23503) caught at repository layer — consistent with where other NotFoundErrors are thrown
+
+---
+
 ## Phase Summary
 
 ---

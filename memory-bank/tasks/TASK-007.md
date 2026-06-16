@@ -245,7 +245,7 @@ Specification is concrete — proceed to implementation planning.
 ## Implementation Roadmap
 
 - [x] Phase 1: Migration, CardRepository, and CardService
-- [ ] Phase 2: Route handlers, validation, and index.ts mounting
+- [x] Phase 2: Route handlers, validation, and index.ts mounting
 
 ## Creative Phases
 
@@ -256,23 +256,24 @@ None required.
 ## Execution State
 
 **Build Status**: IDLE
-**Current Build**: Phase 1 COMPLETE — awaiting Phase 2
-**Phase Number**: 1 of 2 COMPLETE
+**Current Build**: ALL PHASES COMPLETE
+**Phase Number**: 2 of 2 COMPLETE
 **Is Multi-Phase**: YES
 **Can Resume**: NO
 
 ### Current Build Step
-**Step**: Phase 1 COMPLETE
+**Step**: BUILD COMPLETE
 **Status**: COMPLETE
 **Completed**: 2026-06-16
 
 ### Completed Steps
-- Step 0.5 Git Setup: COMPLETE (2026-06-16) - Worktree created at .claude-worktrees/FEAT-003
-- Step 3 Test Writer: COMPLETE (2026-06-16) - card.repository.test.ts (14 tests), card.service.test.ts (5 tests)
-- Step 4 Coding Agent: COMPLETE (2026-06-16) - migration + CardRepository + CardService
-- Step 6 Test Execution: COMPLETE (2026-06-16) - 77/77 passing (8 skipped)
-- Step 7 Integration Verification: COMPLETE (2026-06-16) - tsc clean, no regressions
-- Step 11 Git Commit: COMPLETE (2026-06-16)
+- Phase 1 Git Setup: COMPLETE (2026-06-16) - Worktree created at .claude-worktrees/FEAT-003
+- Phase 1 Tests: COMPLETE (2026-06-16) - card.repository.test.ts (14 tests), card.service.test.ts (5 tests)
+- Phase 1 Code: COMPLETE (2026-06-16) - migration + CardRepository + CardService
+- Phase 1 Execution: COMPLETE (2026-06-16) - 77/77 passing
+- Phase 2 Tests: COMPLETE (2026-06-16) - cards.routes.test.ts (18 tests)
+- Phase 2 Code: COMPLETE (2026-06-16) - cards.ts (two routers) + index.ts mount
+- Phase 2 Execution: COMPLETE (2026-06-16) - 95/95 passing, tsc clean
 
 ### Sub-Agents
 (none — orchestrator-direct build)
