@@ -11,6 +11,32 @@
 | TASK-007 | FEAT-003: Card Management API | 2026-06-16 | feature/FEAT-003-card-management-api | [archive-TASK-007.md](archive/archive-TASK-007.md) |
 | TASK-008 | FEAT-004: Card Move & Ordering | 2026-06-16 | feature/FEAT-004-card-move-ordering | [archive-TASK-008.md](archive/archive-TASK-008.md) |
 
+## 2026-06-16 — TASK-009: React Frontend Scaffold — Phase 1/5 COMPLETE
+
+### Phase 1: Project Scaffold & API Client
+
+**Files Created:**
+- `frontend/package.json` — Vite 8, React 19, TanStack Query v5, Vitest 3, TypeScript 6
+- `frontend/vite.config.ts` — build config with `@/` path alias
+- `frontend/vitest.config.ts` — test config (split to avoid Vite 8 / Vitest 3 type conflict)
+- `frontend/tsconfig.app.json` — strict mode, path aliases, erasable syntax
+- `frontend/eslint.config.js` — ESLint v10 flat config, no-console rule
+- `frontend/src/test-setup.ts` — jest-dom setup
+- `frontend/src/types/index.ts` — Board, Column, Card, BoardWithColumns, PaginatedResponse, ApiError
+- `frontend/src/api/client.ts` — `request<T>()` transport (per-call env read for vi.stubEnv compat)
+- `frontend/src/api/endpoints.ts` — 10 typed endpoint functions
+- `frontend/src/api/queryKeys.ts` — hierarchical key factory (boards + cards with `all` anchors)
+- `frontend/src/api/__tests__/client.test.ts` — 19 tests covering transport + VITE_API_URL + all 10 endpoints
+
+**Verification:** 19/19 tests PASS · build PASS (190KB bundle, 60KB gzip) · lint PASS
+
+**Key Design Decisions:**
+- `ApiError` lives in `src/types/index.ts`, NOT re-exported from `client.ts` — type layer independent of transport
+- `VITE_API_URL` read per-call inside `request<T>()` for `vi.stubEnv()` test compatibility
+- Config file split: `vite.config.ts` (build only) + `vitest.config.ts` (uses `mergeConfig` from `vitest/config`) — avoids Vite 8 / Vitest 3 Plugin type conflict
+
+---
+
 ## 2026-06-16 — TASK-004: Request Logging Middleware — BUILD_COMPLETE
 
 ### What Was Built

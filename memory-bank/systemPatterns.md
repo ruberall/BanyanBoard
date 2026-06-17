@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-15 (TASK-002 Phase 2 — Board & Column API)
+**Last updated**: 2026-06-16 (TASK-009 Phase 1 — Project Scaffold & API Client)
 
 ## Architecture
 
@@ -94,6 +94,62 @@ describeIfDb('MyRepo (integration)', () => {
 - **Per-request**: `requestContext` middleware creates child logger with `{ requestId, traceId }` on `req.log`
 - **Fields**: OTel-aligned — `service`, `version`, `environment` on base; `requestId`, `traceId` in request scope
 - **NEVER** use `console.log` in production code (only allowed in config.ts startup validation and server.ts fatal error before logger is ready)
+
+## Frontend API Client Pattern
+
+### 3-Layer API Architecture
+```
+frontend/src/
+├── types/index.ts              Domain types (Board, Column, Card, ApiError)
+├── api/
+│   ├── client.ts               request<T>() fetch transport with error handling
+│   ├── endpoints.ts            10 typed endpoint functions (listBoards, getBoard, createCard, etc.)
+│   └── queryKeys.ts            TanStack Query cache keys (boards.all, cards.byColumn, etc.)
+└── (pages, components, hooks)  Consume endpoints via useQuery/useMutation
+```
+
+- **Types**: Domain types are defined in `src/types/index.ts` and imported by endpoints
+- **Transport**: `request<T>()` is a generic fetch wrapper; handles JSON Content-Type, error responses, and 204 No Content
+- **Endpoints**: Each endpoint function is a typed wrapper around `request<T>()`; no business logic
+- **Cache Keys**: All TanStack Query cache keys centralized in `queryKeys.ts` using a factory pattern with hierarchical keys (`boards.all` → `boards.list()` → `boards.detail(id)`)
+
+**Why this pattern:**
+- **Separation of concerns**: Types → Transport → Endpoints keeps dependencies clear
+- **Testability**: Each layer can be tested independently; endpoints are pure functions
+- **Reusability**: `queryKeys` factory enables broad invalidation (`invalidateQueries({ queryKey: queryKeys.boards.all })`)
+- **Type safety**: Generic `request<T>()` maintains end-to-end type safety from endpoint call to response
+
+### TanStack Query Key Factory Pattern
+```typescript
+export const queryKeys = {
+  boards: {
+    all: ['boards'] as const,           // Root — enables broad invalidation
+    list: () => [...queryKeys.boards.all, 'list'] as const,  // Nested
+    detail: (id: string) => [...queryKeys.boards.all, id] as const,
+  },
+  cards: {
+    all: ['cards'] as const,
+    byColumn: (columnId: string) => ['cards', 'column', columnId] as const,
+    detail: (id: string) => ['cards', id] as const,
+  },
+}
+```
+
+Benefits:
+- **Hierarchical structure** — `queryKeys.boards.all` invalidates all board-related queries
+- **Type-safe** — `as const` ensures keys are const arrays for TanStack Query
+- **Centralized** — All cache keys live in one file; no scattered magic strings
+- **Scalable** — Easy to add new domains (e.g., `users`, `comments`)
+
+## Vite + Vitest Configuration Split Pattern
+
+**Problem**: Vite 8 + Vitest 3 have a version conflict (Vitest bundles an older Vite). Merging them in a single config file can cause import errors.
+
+**Solution**: Split into two files:
+- **`vite.config.ts`** — Build-only config (plugins, resolve aliases)
+- **`vitest.config.ts`** — Test-only config (environment, setup files); uses `mergeConfig(viteConfig, defineConfig({ test: {...} }))`
+
+This pattern allows each to use its own bundled dependency versions without conflicts. See `frontend/vitest.config.ts` for example.
 
 ## Adding a New Feature (proven pattern — first used in FEAT-002 Board API)
 

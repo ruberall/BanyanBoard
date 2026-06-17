@@ -4,7 +4,7 @@
 
 | Layer | Technology | Notes |
 |-------|-----------|-------|
-| Frontend | React + TypeScript | SPA; served separately in dev |
+| Frontend | React 19 + TypeScript + Vite 8 | SPA; served separately in dev; TanStack Query v5 for async state |
 | Backend | Node.js + TypeScript + Express | REST API; clean 3-layer architecture |
 | Database | PostgreSQL | Relational; Docker-managed in dev |
 | Infrastructure | Docker Compose | Single `docker compose up` for full stack |
@@ -22,12 +22,21 @@ No clever abstractions. No microservices. One Express app.
 
 ```
 /
-├── frontend/           # React + TypeScript SPA
+├── frontend/           # React + TypeScript SPA (Vite 8)
 │   ├── src/
+│   │   ├── types/      # Domain types (Board, Column, Card, ApiError)
 │   │   ├── components/ # UI components
 │   │   ├── pages/      # Route-level components
 │   │   ├── hooks/      # Custom React hooks
-│   │   └── api/        # API client (fetch wrappers)
+│   │   ├── api/        # API client
+│   │   │   ├── client.ts     # request<T>() fetch transport
+│   │   │   ├── endpoints.ts  # 10 typed endpoint functions
+│   │   │   └── queryKeys.ts  # TanStack Query key factory
+│   │   └── test-setup.ts  # jest-dom setup
+│   ├── vite.config.ts      # Build config with @/ path alias
+│   ├── vitest.config.ts    # Test config (separate from vite.config.ts due to Vite 8/Vitest 3 compatibility)
+│   ├── tsconfig.app.json   # TypeScript 6 strict config
+│   ├── eslint.config.js    # ESLint 10 flat config
 │   └── package.json
 ├── backend/            # Express + TypeScript API
 │   ├── src/
@@ -62,8 +71,14 @@ docker compose down
 # View logs
 docker compose logs -f
 
-# Frontend only (dev server with hot reload)
-cd frontend && npm run dev
+# Frontend dev server (Vite HMR on port 5173)
+npm --prefix frontend run dev
+
+# Frontend tests
+npm --prefix frontend run test
+
+# Frontend build
+npm --prefix frontend run build
 
 # Backend only (watch mode)
 cd backend && npm run dev
@@ -71,21 +86,18 @@ cd backend && npm run dev
 # Run backend tests
 cd backend && npm test
 
-# Run frontend tests
-cd frontend && npm test
-
 # Type check backend
 cd backend && npx tsc --noEmit
 
 # Type check frontend
-cd frontend && npx tsc --noEmit
+npm --prefix frontend run tsc
 ```
 
 ## Environment Setup
 
 All config via environment variables. See `.env.example` for the full list.
 
-Key variables:
+### Backend Variables
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | set in docker-compose.yml |
@@ -93,6 +105,32 @@ Key variables:
 | `JWT_SECRET` | Auth token signing key | must be set |
 | `LOG_LEVEL` | Log verbosity | `info` |
 | `NODE_ENV` | Environment | `development` |
+
+### Frontend Variables
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `VITE_API_URL` | Backend base URL | `http://localhost:3000` |
+
+## Frontend Configuration
+
+### Build Configuration (Vite 8)
+- **Config file**: `frontend/vite.config.ts`
+- **Path alias**: `@/` maps to `src/`
+- **HMR port**: 5173 (default)
+- **React plugin**: `@vitejs/plugin-react` with Fast Refresh
+
+### Test Configuration (Vitest 3)
+- **Config file**: `frontend/vitest.config.ts`
+- **Environment**: jsdom (DOM testing)
+- **Setup files**: `src/test-setup.ts` (imports jest-dom)
+- **Note**: Split from `vite.config.ts` due to Vite 8 + Vitest 3 compatibility (Vitest bundles older Vite; `mergeConfig` works around this)
+
+### TypeScript Configuration
+- **File**: `frontend/tsconfig.app.json`
+- **Target**: TypeScript 6
+- **Strict mode**: enabled (`strict: true`)
+- **Path aliases**: `@/` → `src/`
+- **Syntax-only emit**: `erasableSyntaxOnly` (removes type-only imports automatically)
 
 ## Database
 
