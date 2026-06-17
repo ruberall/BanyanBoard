@@ -4,6 +4,9 @@ dist/
 .env.local
 .env.*.local
 
+# UAT credential vault — never commit auth tokens
+.auth/
+
 # Session logs (generated, may contain sensitive info)
 .agent-logs/sessions/
 
