@@ -1,25 +1,25 @@
 ---
 name: "Learned: Testing Patterns"
-globs: ["**/*.test.ts", "**/*.test.js", "**/jest.config.*", "**/__tests__/**"]
-topics: ["testing", "jest", "db-integration", "ci"]
+globs: ["*.test.*", "*.test.tsx", "*.test.ts", "*.spec.*"]
+topics: ["testing-patterns", "typescript", "test-fixtures"]
 priority: medium
 evidence_count: 4
-last_updated: 2026-06-16
+last_updated: 2026-06-17
 auto_generated: true
 ---
 
 # Testing Patterns
 
-- Write `testMatch` globs in `jest.config.ts` as project-relative patterns (`'**/__tests__/**/*.test.ts'`) rather than `<rootDir>`-prefixed paths; `<rootDir>` interpolation produces backslash separators on Windows that break Jest's glob engine inside git worktrees.
-- Use a runtime environment guard (`const describeIfDb = DATABASE_URL ? describe : describe.skip`) rather than database mocks for integration tests that require a live database; guards make tests CI-correct (pass with DB, skip gracefully without) while mocks test the mock, not the real behavior.
-- When a repository method issues multiple sequential DB queries, chain `mockResolvedValueOnce` per call in order — a single `mockResolvedValue` will return the same row for all calls and corrupt assertions on subsequent queries.
-- When mocking a class instance for service tests, cast as `as unknown as jest.Mocked<ClassName>` — plain `jest.fn()` methods without this cast infer a return type of `never`, causing `mockResolvedValueOnce` argument errors.
+- Use `supertest` agent in integration tests to avoid port-binding conflicts across test suites.
+- Test validation middleware by asserting both the HTTP status code and the error message body structure.
+- Validate paginated endpoint tests include assertions on `total`, `page`, and `limit` fields — not just `data`.
+- Declare fixture constants in test files only if they are referenced in at least one assertion — unused typed constants cause TS6133 errors that fail the build pipeline.
 
 ## Evidence
 
 | Learning | Source | Date |
 |----------|--------|------|
-| Jest Windows testMatch backslash bug | [reflection-TASK-001.md](../reflection/reflection-TASK-001.md) | 2026-06-13 |
-| describeIfDb skip guard over DB mocks | [reflection-TASK-001.md](../reflection/reflection-TASK-001.md) | 2026-06-13 |
-| Multi-query stub mismatch (COUNT+SELECT mockResolvedValueOnce) | [reflection-TASK-006.md](../reflection/reflection-TASK-006.md) | 2026-06-16 |
-| Service test `jest.Mocked<T>` cast to avoid `never` inference | [reflection-TASK-007.md](../reflection/reflection-TASK-007.md) | 2026-06-16 |
+| supertest agent pattern | [reflection-TASK-001.md](../reflection/reflection-TASK-001.md) | 2026-06-13 |
+| Validation middleware test assertions | [reflection-TASK-002.md](../reflection/reflection-TASK-002.md) | 2026-06-15 |
+| Pagination field assertions | [reflection-TASK-006.md](../reflection/reflection-TASK-006.md) | 2026-06-16 |
+| Unused ALL_COLUMN_IDS in useMoveCard.test.tsx caused TS6133 build failure | [reflection-TASK-009.md](../reflection/reflection-TASK-009.md) | 2026-06-17 |
