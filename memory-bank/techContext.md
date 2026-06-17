@@ -162,6 +162,24 @@ React Router v6 (`BrowserRouter`) wraps the app in `main.tsx`. Routes are declar
 - **UUID primary keys**: all tables use `gen_random_uuid()` (PostgreSQL built-in, no extension required)
 - **Local**: Managed by Docker Compose (`postgres` service); data persisted in Docker volume
 
+## Frontend Auth
+
+Auth state is managed entirely via **TanStack Query** — no separate AuthContext or Zustand store.
+
+| Layer | Location | Purpose |
+|-------|----------|---------|
+| Hook | `frontend/src/hooks/useCurrentUser.ts` | `useQuery` for `GET /auth/me`; `retry: false`, `staleTime: 0` |
+| Mutations | `frontend/src/hooks/useLogin.ts`, `useLogout.ts`, `useRegister.ts` | Auth mutation hooks |
+| Route guard | `frontend/src/components/PrivateRoute/PrivateRoute.tsx` | 4-state guard: loading→spinner, error→ErrorBanner, unauthenticated→`/login?next=…`, authenticated→`AppHeader + Outlet` |
+| App shell | `frontend/src/components/AppHeader/AppHeader.tsx` | Persistent header with app name + Sign out button |
+| Pages | `frontend/src/pages/LoginPage/`, `frontend/src/pages/RegisterPage/` | Public auth pages |
+| Fetch client | `frontend/src/api/client.ts` | All requests include `credentials: 'include'` |
+| Query key | `frontend/src/api/queryKeys.ts` `auth.me` | `['auth', 'me']` |
+| Auth endpoints | `frontend/src/api/endpoints.ts` | `fetchMe`, `login`, `logout`, `register` |
+| User type | `frontend/src/types/index.ts` | `User { id: string; email: string }` |
+
+Routing (in `App.tsx`): `/login` and `/register` are public; all other routes wrapped in `<PrivateRoute>`.
+
 ## Authentication
 
 Session-based authentication using `express-session` backed by a PostgreSQL session store (`connect-pg-simple`).

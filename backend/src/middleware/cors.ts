@@ -11,7 +11,9 @@ export function corsMiddleware() {
     // No origins configured — deny all cross-origin requests (safe default)
     origin = false;
   } else if (rawOrigins === '*') {
-    origin = '*';
+    // Wildcard '*' is incompatible with credentials: true (browser rejects the response).
+    // Reflect the request origin so cookies work while still permitting all origins in dev.
+    origin = (requestOrigin, callback) => callback(null, requestOrigin ?? true);
   } else {
     const allowList = rawOrigins.split(',').map((o) => o.trim());
     origin = (requestOrigin, callback) => {
@@ -23,5 +25,5 @@ export function corsMiddleware() {
     };
   }
 
-  return cors({ origin, methods, allowedHeaders });
+  return cors({ origin, methods, allowedHeaders, credentials: true });
 }

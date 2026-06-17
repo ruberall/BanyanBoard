@@ -264,7 +264,7 @@ Questions requiring creative exploration:
 - `requireAuth` middleware (`backend/src/middleware/requireAuth.ts`) applied in `routes/index.ts` before domain routers
 - Tests: `UserRepository` unit tests (mock `Queryable`), `AuthService` unit tests, auth route integration tests (supertest)
 
-**Phase 2 — Frontend Auth Shell**
+**Phase 2 — Frontend Auth Shell** ✅ COMPLETE (2026-06-17)
 - `AuthContext` (`frontend/src/context/AuthContext.tsx`) with `currentUser`, `isLoading`, `login`, `logout`, `register` — backed by `GET /auth/me` via TanStack Query
 - `LoginPage` (`frontend/src/pages/LoginPage/`)
 - `RegisterPage` (`frontend/src/pages/RegisterPage/`)
@@ -375,14 +375,14 @@ New endpoints (all under `/auth` prefix, mounted in `routes/index.ts`):
 
 ## Execution State
 
-**Build Status**: IDLE
-**Current Build**: Phase 1: Backend Auth Foundation (TASK-011) — COMPLETE
+**Build Status**: RUNNING
+**Current Build**: Phase 2: Frontend Auth Shell (TASK-011)
 **Build Started**: 2026-06-17
 **Phase Number**: 1 of 4
 **Is Multi-Phase**: YES
 
 ### Current Build Step
-**Step**: Phase 1 COMPLETE
+**Step**: Phase 2 COMPLETE
 **Status**: COMPLETE
 **Completed**: 2026-06-17
 

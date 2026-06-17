@@ -1,5 +1,5 @@
 import { request } from './client'
-import type { Board, BoardWithColumns, Card, PaginatedResponse } from '@/types'
+import type { Board, BoardWithColumns, Card, PaginatedResponse, User } from '@/types'
 
 // Board endpoints
 
@@ -47,6 +47,24 @@ export function updateCard(
 
 export function deleteCard(cardId: string): Promise<void> {
   return request<void>('DELETE', `/cards/${cardId}`)
+}
+
+// Auth endpoints
+
+export function fetchMe(): Promise<User> {
+  return request<User>('GET', '/auth/me')
+}
+
+export function login(data: { email: string; password: string }): Promise<User> {
+  return request<User>('POST', '/auth/login', { body: JSON.stringify(data) })
+}
+
+export function logout(): Promise<void> {
+  return request<void>('POST', '/auth/logout')
+}
+
+export function register(data: { email: string; password: string }): Promise<User> {
+  return request<User>('POST', '/auth/register', { body: JSON.stringify(data) })
 }
 
 export function moveCard(

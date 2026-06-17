@@ -370,6 +370,35 @@
 
 ---
 
+## 2026-06-17 — TASK-011: User Authentication — Phase 2 COMPLETE
+
+### Phase 2: Frontend Auth Shell
+
+**Files Created:**
+- `frontend/src/hooks/useCurrentUser.ts` — TanStack Query hook for `GET /auth/me` (retry: false, staleTime: 0); single source of auth truth
+- `frontend/src/hooks/useLogin.ts`, `useLogout.ts`, `useRegister.ts` — auth mutation hooks
+- `frontend/src/components/PrivateRoute/PrivateRoute.tsx` — 4-state route guard (loading/error/unauthenticated/authenticated)
+- `frontend/src/components/AppHeader/AppHeader.tsx` — persistent app shell header with Sign out button
+- `frontend/src/pages/LoginPage/LoginPage.tsx` — email/password form with `?next=` redirect
+- `frontend/src/pages/RegisterPage/RegisterPage.tsx` — email/password form; auto-redirects to `/` on success
+
+**Files Modified:**
+- `frontend/src/types/index.ts` — added `User { id: string; email: string }`
+- `frontend/src/api/client.ts` — added `credentials: 'include'` to all fetch calls
+- `frontend/src/api/endpoints.ts` — added `fetchMe`, `login`, `logout`, `register`
+- `frontend/src/api/queryKeys.ts` — added `auth: { me: ['auth', 'me'] as const }`
+- `frontend/src/App.tsx` — `/login` and `/register` public; existing routes wrapped in `<PrivateRoute>`
+- `backend/src/middleware/cors.ts` — `credentials: true`; wildcard `*` now reflects request `Origin` for credentials compatibility
+
+**Test Results:** 160 frontend tests passing · 147 backend tests passing · 0 failures
+
+**Key Decisions:**
+- TanStack Query `useCurrentUser` replaces AuthContext — no separate state library
+- `removeQueries` on logout (not `invalidateQueries`) prevents stale-cache flash
+- CORS origin-reflection pattern enables `credentials: true` without breaking dev permissiveness
+
+---
+
 ## 2026-06-17 — TASK-011: User Authentication — Phase 1 COMPLETE
 
 ### Phase 1: Backend Auth Foundation

@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-17 (TASK-011 Phase 1 — Backend Auth Foundation)
+**Last updated**: 2026-06-17 (TASK-011 Phase 2 — Frontend Auth Shell)
 
 ## Architecture
 
@@ -220,6 +220,24 @@ throw new UnauthorizedError('Invalid email or password');
 
 - **Why**: Returning distinct messages lets an attacker probe for valid accounts. The uniform message prevents distinguishing the two failure modes.
 - **Implementation**: `backend/src/services/auth.service.ts`
+
+### Frontend Auth Patterns
+
+#### PrivateRoute: 4-State Guard
+`frontend/src/components/PrivateRoute/PrivateRoute.tsx` handles four states in order:
+1. **Loading** → render `<LoadingSpinner>` (session check in flight)
+2. **Error** → render `<ErrorBanner>` (unexpected `/auth/me` error)
+3. **Unauthenticated** → `<Navigate to="/login?next=<current-path>" replace>`
+4. **Authenticated** → `<AppHeader> + <Outlet>`
+
+#### Auth State via TanStack Query
+`useCurrentUser()` (`frontend/src/hooks/useCurrentUser.ts`) wraps `useQuery` against `GET /auth/me` with `retry: false` and `staleTime: 0`. This is the single source of truth for session state — no AuthContext or global store needed.
+
+#### Logout: removeQueries Avoids Stale-Cache Flash
+`useLogout` calls `queryClient.removeQueries({ queryKey: queryKeys.auth.me })` (not `invalidateQueries`). Invalidation triggers a background refetch that could briefly re-render authenticated UI before the redirect. Removing the entry immediately cuts the cache, preventing the flash.
+
+#### CORS Credentials: Reflect Origin Instead of Wildcard
+When `credentials: true`, browsers reject `Access-Control-Allow-Origin: *`. `backend/src/middleware/cors.ts` reflects the incoming request's `Origin` header back in the response rather than echoing `*`. This preserves broad dev-mode permissiveness while satisfying the credentials constraint.
 
 ## Adding a New Feature (proven pattern — first used in FEAT-002 Board API)
 

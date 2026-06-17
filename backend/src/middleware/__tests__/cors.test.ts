@@ -74,13 +74,16 @@ describe('corsMiddleware', () => {
     expect(res.headers['access-control-allow-origin']).toBeUndefined();
   });
 
-  it('allows wildcard origin when CORS_ORIGINS=*', async () => {
+  it('allows any origin when CORS_ORIGINS=* by reflecting the request origin (credentials-compatible)', async () => {
     const app = await makeApp({ CORS_ORIGINS: '*' });
     const res = await request(app)
       .get('/ping')
       .set('Origin', 'http://anything.example.com');
 
-    expect(res.headers['access-control-allow-origin']).toBe('*');
+    // CORS_ORIGINS=* reflects the request origin instead of echoing '*' so that
+    // credentials: true is compatible (browsers reject Access-Control-Allow-Origin: *
+    // alongside Access-Control-Allow-Credentials: true).
+    expect(res.headers['access-control-allow-origin']).toBe('http://anything.example.com');
   });
 
   it('responds to preflight OPTIONS with 204 and allowed methods', async () => {
