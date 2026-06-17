@@ -10,6 +10,16 @@
 | TASK-004 | Request logging middleware (Level 1) | 2026-06-16 | task/004-add-request-logging-middleware | [archive-TASK-004.md](archive/archive-TASK-004.md) |
 | TASK-007 | FEAT-003: Card Management API | 2026-06-16 | feature/FEAT-003-card-management-api | [archive-TASK-007.md](archive/archive-TASK-007.md) |
 | TASK-008 | FEAT-004: Card Move & Ordering | 2026-06-16 | feature/FEAT-004-card-move-ordering | [archive-TASK-008.md](archive/archive-TASK-008.md) |
+| TASK-009 | FEAT-005: React Frontend Scaffold | 2026-06-17 | feature/FEAT-005-react-frontend-scaffold | [archive-TASK-009.md](archive/archive-TASK-009.md) |
+
+## Task Archive: TASK-009
+
+**Task**: React Frontend Scaffold
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-17
+**Archive**: `memory-bank/archive/archive-TASK-009.md`
+
+---
 
 ## 2026-06-17 — TASK-009: React Frontend Scaffold — BUILD_COMPLETE (All 5 Phases)
 

@@ -22,7 +22,7 @@
   - FEAT-002: Board & Column API (planned) [Level 2]
   - FEAT-003: Card Management API (planned) [Level 2]
   - FEAT-004: Card Move & Ordering (complete) [Level 2]
-  - FEAT-005: React Frontend Scaffold (planned) [Level 3]
+  - FEAT-005: React Frontend Scaffold (complete) [Level 3]
   - FEAT-006: User Authentication (planned) [Level 3]
 
 ### next (Planning)
@@ -94,13 +94,14 @@
 ### FEAT-005: React Frontend Scaffold
 
 - **Version**: v0.1.0
-- **Status**: planned
+- **Status**: complete
 - **Priority**: high
 - **Complexity**: Level 3
 - **Description**: Set up the React + TypeScript frontend. Includes Vite build tooling, component architecture decisions (folder structure, routing), typed API client (fetch wrappers with error handling), board view with kanban columns, card drag-and-drop (dnd-kit), and Docker Compose integration (frontend service with hot reload in dev). This establishes the UI patterns all future features follow.
-- **Linked Tasks**: None
+- **Linked Tasks**: TASK-009 (complete)
 - **Branch**: feature/FEAT-005-react-frontend-scaffold
 - **Created**: 2026-06-13
+- **Completed**: 2026-06-17
 
 ---
 
