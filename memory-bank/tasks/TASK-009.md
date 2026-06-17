@@ -1,7 +1,8 @@
 # TASK-009: React Frontend Scaffold
 
 **Complexity**: Level 3 (inherited from FEAT-005)
-**Status**: PLANNING_COMPLETE
+**Status**: IN_PROGRESS
+**Latest Commit**: fc57db7
 **Roadmap**: FEAT-005
 **Branch**: feature/FEAT-005-react-frontend-scaffold
 **Worktree**: .claude-worktrees/FEAT-005
@@ -260,11 +261,11 @@ UAT will walk the primary flow (board list → board view → drag card → veri
 - [x] Unit test API client with fetch mocks / msw
 - [x] Verify `VITE_API_URL` env var wiring
 
-### Phase 2 — Board List Page
-- Implement `BoardListPage` with list + empty state + create form
-- Implement `ErrorBanner` and `LoadingSpinner`
-- Unit tests for `BoardListPage`
-- React Router wiring (`/` route)
+### Phase 2 — Board List Page ✅ COMPLETE
+- [x] Implement `BoardListPage` with list + empty state + create form
+- [x] Implement `ErrorBanner` and `LoadingSpinner`
+- [x] Unit tests for `BoardListPage`
+- [x] React Router wiring (`/` route)
 
 ### Phase 3 — Board View & Kanban Layout
 - Implement `BoardPage`, `KanbanBoard`, `KanbanColumn`, `KanbanCard`
@@ -342,32 +343,28 @@ Decision output: `memory-bank/creative/TASK-009-dnd-optimistic-ux.md`
 ## Execution State
 
 **Build Status**: IDLE
-**Current Build**: Phase 1: Project Scaffold & API Client (TASK-009) — COMPLETE
-**Build Started**: 2026-06-16
-**Phase Number**: 1 of 5 COMPLETE
+**Current Build**: Phase 2: Board List Page (TASK-009) — COMPLETE
+**Build Started**: 2026-06-17
+**Phase Number**: 2 of 5 COMPLETE
 **Is Multi-Phase**: YES
 **Can Resume**: NO
 
 ### Current Build Step
 **Step**: Step 11 - Phase Git Completion
 **Status**: COMPLETE
-**Completed**: 2026-06-16
+**Completed**: 2026-06-17
 
 ### Completed Steps
-- Creative 1 (Component Architecture): COMPLETE (2026-06-16) — Output: memory-bank/creative/TASK-009-component-architecture.md
-- Creative 2 (API Client Design): COMPLETE (2026-06-16) — Output: memory-bank/creative/TASK-009-api-client-design.md
-- Creative 3 (Drag-and-Drop UX): COMPLETE (2026-06-16) — Output: memory-bank/creative/TASK-009-dnd-optimistic-ux.md
-- Step 0.5 Git Setup: COMPLETE (2026-06-16) — Worktree created at .claude-worktrees/FEAT-005
-- Step 1 Read Task Context: COMPLETE (2026-06-16) — Phase 1 of 5 identified
-- Step 2 Load Context: COMPLETE (2026-06-16) — Level 3 rules loaded
-- Step 3 Test Writer: COMPLETE (2026-06-16) — 19 tests in src/api/__tests__/client.test.ts
-- Step 4 Coding Agent: COMPLETE (2026-06-16) — src/types/index.ts, src/api/client.ts, src/api/endpoints.ts, src/api/queryKeys.ts
-- Step 6 Test Execution: COMPLETE (2026-06-16) — 19/19 PASS
-- Step 7 Integration Verification: COMPLETE (2026-06-16) — 19/19 tests PASS, build PASS, lint PASS
-- Step 8 Code Review: COMPLETE (2026-06-16) — 6 fixes applied; strict: true, canonical imports, config split, cards.all anchor, ESLint v10 script
-- Step 9 Documentation: COMPLETE (2026-06-16) — techContext.md + systemPatterns.md updated, inline comments added
-- Step 10 Memory Bank: COMPLETE (2026-06-16) — Phase 1 marked complete, tasks.md updated
-- Step 11 Git Commit: COMPLETE (2026-06-16) — Committed to feature/FEAT-005-react-frontend-scaffold
+- Creative 1 (Component Architecture): COMPLETE (2026-06-16)
+- Creative 2 (API Client Design): COMPLETE (2026-06-16)
+- Creative 3 (Drag-and-Drop UX): COMPLETE (2026-06-16)
+- Phase 1 Git Commit: COMPLETE (2026-06-16) — fc57db7, 19/19 tests, build PASS, lint PASS
+- Phase 2 Step 3 Test Writer: COMPLETE (2026-06-17) — 34 tests across 4 files
+- Phase 2 Step 4 Coding Agent: COMPLETE (2026-06-17) — hooks.ts, ErrorBanner, LoadingSpinner, BoardListPage, routing, QueryClientProvider
+- Phase 2 Step 7 Integration Verification: COMPLETE (2026-06-17) — 53/53 tests PASS, build PASS, lint PASS
+- Phase 2 Step 8 Code Review: COMPLETE (2026-06-17) — 4 fixes: error instanceof guard, logger always-emit, MutationMock interface, template literal
+- Phase 2 Step 9 Documentation: COMPLETE (2026-06-17) — techContext.md + systemPatterns.md updated, inline comments added
+- Phase 2 Step 11 Git Commit: COMPLETE (2026-06-17)
 
 ### Active Sub-Agents
 (none)

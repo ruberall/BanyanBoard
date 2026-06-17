@@ -11,6 +11,31 @@
 | TASK-007 | FEAT-003: Card Management API | 2026-06-16 | feature/FEAT-003-card-management-api | [archive-TASK-007.md](archive/archive-TASK-007.md) |
 | TASK-008 | FEAT-004: Card Move & Ordering | 2026-06-16 | feature/FEAT-004-card-move-ordering | [archive-TASK-008.md](archive/archive-TASK-008.md) |
 
+## 2026-06-17 — TASK-009: React Frontend Scaffold — Phase 2/5 COMPLETE
+
+### Phase 2: Board List Page
+
+**Files Created:**
+- `frontend/src/api/hooks.ts` — TanStack Query v5 hooks: useBoards, useBoard, useCards, useCreateBoard, useDeleteBoard, useCreateCard
+- `frontend/src/components/common/ErrorBanner/` — dismissable alert banner (role="alert", controlled + uncontrolled dismiss)
+- `frontend/src/components/common/LoadingSpinner/` — accessible spinner (role="status", visually-hidden label)
+- `frontend/src/pages/BoardListPage/` — board list page: loading/error/empty states, board links (AC-2/3), create form (AC-4/9/10)
+- `frontend/src/lib/logger.ts` — always-emit console wrapper (warn/error); ESLint disable intentional
+
+**Files Updated:**
+- `frontend/src/main.tsx` — QueryClientProvider + BrowserRouter wiring; QueryClient with staleTime:30s, refetchOnWindowFocus:false
+- `frontend/src/App.tsx` — React Router v6 routes: / → BoardListPage, * → 404 stub
+
+**Verification:** 53/53 tests PASS · build PASS (270KB, 85KB gzip) · lint PASS
+
+**Code review fixes applied:**
+1. `error instanceof Error` guard in BoardListPage (not unsafe cast)
+2. `logger.ts` always emits (never silences production errors)
+3. `MutationMock` interface replaces removed `buildMutationMock` helper
+4. Template literal for board URLs
+
+---
+
 ## 2026-06-16 — TASK-009: React Frontend Scaffold — Phase 1/5 COMPLETE
 
 ### Phase 1: Project Scaffold & API Client

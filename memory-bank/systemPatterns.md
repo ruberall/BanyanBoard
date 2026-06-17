@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-16 (TASK-009 Phase 1 — Project Scaffold & API Client)
+**Last updated**: 2026-06-17 (TASK-009 Phase 2 — Board List Page)
 
 ## Architecture
 
@@ -140,6 +140,19 @@ Benefits:
 - **Type-safe** — `as const` ensures keys are const arrays for TanStack Query
 - **Centralized** — All cache keys live in one file; no scattered magic strings
 - **Scalable** — Easy to add new domains (e.g., `users`, `comments`)
+
+## Error Display Pattern (Frontend)
+
+- `ApiError` is thrown by `request<T>()` in `api/client.ts` when the server returns a non-2xx status
+- TanStack Query catches the thrown error and surfaces it as `query.error`
+- Components read `error.message` for display; an `error instanceof Error` guard prevents unsafe casts
+- `ErrorBanner` renders the message in a `role="alert"` element; it supports controlled (`onDismiss` prop) and uncontrolled (internal `dismissed` state) usage
+
+## QueryClient Configuration Pattern
+
+- Single `QueryClient` instance created **outside the React tree** in `main.tsx` — survives re-renders and is accessible via `useQueryClient()` anywhere in the tree
+- Default query options: `staleTime: 30_000` (30 s), `refetchOnWindowFocus: false` (prevents optimistic-state clobber)
+- Default mutation option: `retry: false` (surface errors immediately without silent retries)
 
 ## Vite + Vitest Configuration Split Pattern
 

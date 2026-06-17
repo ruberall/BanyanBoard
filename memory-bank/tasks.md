@@ -10,4 +10,4 @@
 | TASK-006 | Pagination for list endpoints | ARCHIVE | COMPLETE | FEAT-007 |
 | TASK-007 | Card Management API | ARCHIVE | COMPLETE | FEAT-003 |
 | TASK-008 | Card Move & Ordering | ARCHIVE | COMPLETE | FEAT-004 |
-| TASK-009 | React Frontend Scaffold | BUILD | Phase 1/5 COMPLETE | FEAT-005 |
+| TASK-009 | React Frontend Scaffold | BUILD | Phase 2/5 COMPLETE | FEAT-005 |

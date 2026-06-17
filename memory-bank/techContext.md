@@ -4,7 +4,7 @@
 
 | Layer | Technology | Notes |
 |-------|-----------|-------|
-| Frontend | React 19 + TypeScript + Vite 8 | SPA; served separately in dev; TanStack Query v5 for async state |
+| Frontend | React 19 + TypeScript + Vite 8 | SPA; served separately in dev; TanStack Query v5 for async state; React Router v6 for client-side routing |
 | Backend | Node.js + TypeScript + Express | REST API; clean 3-layer architecture |
 | Database | PostgreSQL | Relational; Docker-managed in dev |
 | Infrastructure | Docker Compose | Single `docker compose up` for full stack |
@@ -25,12 +25,14 @@ No clever abstractions. No microservices. One Express app.
 ├── frontend/           # React + TypeScript SPA (Vite 8)
 │   ├── src/
 │   │   ├── types/      # Domain types (Board, Column, Card, ApiError)
-│   │   ├── components/ # UI components
-│   │   ├── pages/      # Route-level components
+│   │   ├── components/ # UI components (common/ for shared, feature-specific otherwise)
+│   │   ├── pages/      # Route-level components (BoardListPage, BoardPage, NotFoundPage)
 │   │   ├── hooks/      # Custom React hooks
+│   │   ├── lib/        # Shared utilities (logger.ts — warn/error only, always emit)
 │   │   ├── api/        # API client
 │   │   │   ├── client.ts     # request<T>() fetch transport
 │   │   │   ├── endpoints.ts  # 10 typed endpoint functions
+│   │   │   ├── hooks.ts      # TanStack Query hooks (useBoards, useBoard, useCreateBoard, etc.)
 │   │   │   └── queryKeys.ts  # TanStack Query key factory
 │   │   └── test-setup.ts  # jest-dom setup
 │   ├── vite.config.ts      # Build config with @/ path alias
@@ -110,6 +112,16 @@ All config via environment variables. See `.env.example` for the full list.
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `VITE_API_URL` | Backend base URL | `http://localhost:3000` |
+
+## Frontend Routing
+
+React Router v6 (`BrowserRouter`) wraps the app in `main.tsx`. Routes are declared in `App.tsx`:
+
+| Path | Component | Notes |
+|------|-----------|-------|
+| `/` | `BoardListPage` | Board list with create/delete |
+| `/boards/:boardId` | `BoardPage` | Board detail (Phase 3) |
+| `*` | `NotFoundPage` | Catch-all 404 |
 
 ## Frontend Configuration
 
