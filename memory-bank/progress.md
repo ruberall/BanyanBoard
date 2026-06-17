@@ -11,6 +11,32 @@
 | TASK-007 | FEAT-003: Card Management API | 2026-06-16 | feature/FEAT-003-card-management-api | [archive-TASK-007.md](archive/archive-TASK-007.md) |
 | TASK-008 | FEAT-004: Card Move & Ordering | 2026-06-16 | feature/FEAT-004-card-move-ordering | [archive-TASK-008.md](archive/archive-TASK-008.md) |
 
+## 2026-06-17 — TASK-009: React Frontend Scaffold — Phase 3/5 COMPLETE
+
+### Phase 3: Board View & Kanban Layout
+
+**Files Created:**
+- `frontend/src/components/board/KanbanCard/` — display-only card: title, labels, due-date chip, description (article element)
+- `frontend/src/components/board/KanbanColumn/` — self-fetches cards via `useCards(column.id)`; loading/error/empty states; renders CreateCardForm
+- `frontend/src/components/board/CreateCardForm/` — inline form with accessible label, validation, pending state, clears on success
+- `frontend/src/components/board/KanbanBoard/` — receives sorted columns prop, renders KanbanColumns in order
+- `frontend/src/pages/BoardPage/` — reads boardId from useParams, fetches board, sorts columns, delegates to KanbanBoard (AC-5, AC-9)
+- `frontend/src/pages/NotFoundPage/` — "Not Found" heading + Link to `/` (AC-11)
+
+**Files Updated:**
+- `frontend/src/App.tsx` — added `/boards/:boardId` → BoardPage and `*` → NotFoundPage routes
+
+**Verification:** 94/94 tests PASS · build PASS · lint PASS
+
+**Code review fixes applied:**
+1. `CreateCardForm`: input lacked accessible `<label>` — fixed with visually-hidden label + id linkage; mutation errors surfaced to UI
+
+**Key Patterns:**
+- Column-level self-fetch: each KanbanColumn calls `useCards(column.id)` for parallel React Query fetches and isolated loading states
+- Route params via `useParams<{ boardId: string }>()` with `?? ''` fallback for the `enabled` guard in `useBoard`
+
+---
+
 ## 2026-06-17 — TASK-009: React Frontend Scaffold — Phase 2/5 COMPLETE
 
 ### Phase 2: Board List Page

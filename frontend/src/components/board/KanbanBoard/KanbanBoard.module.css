@@ -1,0 +1,2 @@
+.board { display: flex; gap: 16px; align-items: flex-start; overflow-x: auto; padding: 16px; }
+.empty { color: #718096; font-size: 0.9rem; }

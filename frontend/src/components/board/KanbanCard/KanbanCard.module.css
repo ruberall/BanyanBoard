@@ -1,0 +1,12 @@
+.card {
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 8px 12px;
+  background: #fff;
+  margin-bottom: 8px;
+}
+.title { margin: 0 0 4px; font-size: 0.9rem; }
+.labels { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
+.label { background: #e2e8f0; border-radius: 12px; padding: 2px 8px; font-size: 0.75rem; }
+.dueDate { font-size: 0.75rem; color: #718096; display: block; margin-bottom: 4px; }
+.description { font-size: 0.85rem; color: #4a5568; margin: 4px 0 0; }
