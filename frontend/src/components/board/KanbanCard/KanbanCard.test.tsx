@@ -11,6 +11,14 @@
  *  - Renders description when present
  *  - Has accessible semantic element (article role)
  *  - Renders with minimal data (only required fields)
+ *
+ * Phase 4 — drag handle (accessible affordances).
+ *
+ * Covers:
+ *  - Renders a drag handle button
+ *  - Drag handle has correct aria-label (contains card title)
+ *  - Drag handle has aria-roledescription="draggable"
+ *  - Drag handle is a focusable, non-disabled button
  */
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -143,5 +151,48 @@ describe('KanbanCard — minimal data', () => {
 
     expect(() => render(<KanbanCard card={minimalCard} />)).not.toThrow()
     expect(screen.getByText('Minimal Card')).toBeInTheDocument()
+  })
+})
+
+// ===========================================================================
+// Phase 4 — Drag handle (accessible affordances)
+// ===========================================================================
+//
+// Note: We do NOT simulate actual drag-and-drop events here.
+// dnd-kit uses pointer events that do not behave correctly in jsdom.
+// Instead we verify the accessible affordances (aria attributes, button presence)
+// that are testable in a headless environment.
+// ===========================================================================
+
+describe('KanbanCard — drag handle (Phase 4)', () => {
+  it('renders a drag handle button', () => {
+    render(<KanbanCard card={makeCard({ title: 'Draggable Card' })} />)
+
+    // There should be a button specifically for drag reordering
+    const dragHandle = screen.queryByRole('button', { name: /reorder card/i })
+    expect(dragHandle).toBeInTheDocument()
+  })
+
+  it('drag handle aria-label contains the card title', () => {
+    render(<KanbanCard card={makeCard({ title: 'My Ticket' })} />)
+
+    // aria-label should be: "Reorder card: My Ticket"
+    const dragHandle = screen.queryByRole('button', { name: /reorder card.*my ticket/i })
+    expect(dragHandle).toBeInTheDocument()
+  })
+
+  it('drag handle has aria-roledescription of "draggable"', () => {
+    render(<KanbanCard card={makeCard({ title: 'Some Card' })} />)
+
+    const dragHandle = screen.queryByRole('button', { name: /reorder card/i })
+    expect(dragHandle).toHaveAttribute('aria-roledescription', 'draggable')
+  })
+
+  it('drag handle is a focusable button (not disabled)', () => {
+    render(<KanbanCard card={makeCard({ title: 'Focusable Card' })} />)
+
+    const dragHandle = screen.queryByRole('button', { name: /reorder card/i })
+    expect(dragHandle).not.toBeDisabled()
+    expect(dragHandle?.tagName.toLowerCase()).toBe('button')
   })
 })

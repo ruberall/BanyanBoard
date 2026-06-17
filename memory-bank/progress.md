@@ -11,6 +11,26 @@
 | TASK-007 | FEAT-003: Card Management API | 2026-06-16 | feature/FEAT-003-card-management-api | [archive-TASK-007.md](archive/archive-TASK-007.md) |
 | TASK-008 | FEAT-004: Card Move & Ordering | 2026-06-16 | feature/FEAT-004-card-move-ordering | [archive-TASK-008.md](archive/archive-TASK-008.md) |
 
+## 2026-06-17 — TASK-009: React Frontend Scaffold — Phase 4/5 COMPLETE
+
+### Phase 4: Drag-and-Drop
+
+**Files Modified:**
+- `frontend/src/api/hooks.ts` — added `useMoveCard(setBannerError)` hook: optimistic both-column cache rewrite in `onMutate`, snapshot restore + `ErrorBanner` in `onError`, both-column invalidation in `onSettled`; `findCardColumn` helper scans cache to locate card's column
+- `frontend/src/components/board/KanbanCard/KanbanCard.tsx` — upgraded with `useSortable({ id: card.id })`, accessible drag handle button (`aria-label="Reorder card: {title}"`, `aria-roledescription="draggable"`), `overlay` prop dims opacity during drag
+- `frontend/src/components/board/KanbanColumn/KanbanColumn.tsx` — added `useDroppable({ id: column.id })` for empty-column drop target + `SortableContext` wrapping card list
+- `frontend/src/pages/BoardPage/BoardPage.tsx` — wired `DndContext` (PointerSensor + KeyboardSensor), `DragOverlay` floating clone, `onDragEnd` with `after_card_id` derivation, `bannerError` state + `ErrorBanner`
+
+**Verification:** 115/115 tests PASS · build PASS · lint PASS (fixed unused `ALL_COLUMN_IDS` in test)
+
+**Code review:** 0 blocking issues — all Creative 3 decisions correctly implemented (after_card_id derivation, cache atomicity, no-op guard, accessibility)
+
+**Key Patterns:**
+- `after_card_id` = id of card immediately above resting slot with dragged card excluded; `undefined` = top insertion — matches backend fractional-position algorithm exactly
+- No-op guard: same-column same-position drops skip the mutation entirely (compares current neighbour-above vs new)
+
+---
+
 ## 2026-06-17 — TASK-009: React Frontend Scaffold — Phase 3/5 COMPLETE
 
 ### Phase 3: Board View & Kanban Layout

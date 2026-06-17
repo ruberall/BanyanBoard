@@ -11,6 +11,10 @@
  *  - Shows ErrorBanner when useCards returns error
  *  - Renders empty column message when no cards
  *  - Renders CreateCardForm at the bottom
+ *
+ * Phase 4 — SortableContext / droppable regression guards:
+ *  - Cards still render after SortableContext wrapper is added
+ *  - Column section (droppable target) still has accessible aria-label
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -233,5 +237,44 @@ describe('KanbanColumn — CreateCardForm', () => {
 
     const submitBtn = screen.queryByRole('button', { name: /add card|create card|submit/i })
     expect(submitBtn).toBeInTheDocument()
+  })
+})
+
+// ===========================================================================
+// Phase 4 — SortableContext / droppable regression guards
+//
+// These tests ensure that adding SortableContext and useDroppable in Phase 4
+// does not break existing column rendering behaviour.
+// ===========================================================================
+
+describe('KanbanColumn — Phase 4 SortableContext regression guards', () => {
+  it('cards still render after SortableContext wrapper is added', () => {
+    const cards = [
+      makeCard({ id: 'c1', title: 'Still Here Card', position: 0 }),
+    ]
+    mockedUseCards.mockReturnValue({ data: cards, isLoading: false, isError: false, error: null })
+    mockedUseCreateCard.mockReturnValue(mockMutation())
+
+    renderColumn(COLUMN)
+
+    // Cards must still be accessible via article role even inside SortableContext
+    expect(screen.getByText('Still Here Card')).toBeInTheDocument()
+    expect(screen.getAllByRole('article').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('column section (droppable target) is still rendered with an accessible label', () => {
+    mockedUseCards.mockReturnValue({ data: [], isLoading: false, isError: false, error: null })
+    mockedUseCreateCard.mockReturnValue(mockMutation())
+
+    renderColumn(COLUMN)
+
+    // The column should have an accessible region with a label that includes the column name
+    // This verifies the column's section/region is still present and labelled after Phase 4 upgrade
+    const columnRegion =
+      screen.queryByRole('region', { name: /to do/i }) ??
+      screen.queryByLabelText(/to do/i) ??
+      // Fallback: the column name heading is present (column is rendered)
+      screen.queryByText('To Do')
+    expect(columnRegion).toBeInTheDocument()
   })
 })

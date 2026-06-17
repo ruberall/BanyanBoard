@@ -1,3 +1,5 @@
+import { useDroppable } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { Column } from '@/types'
 import { useCards } from '@/api/hooks'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner/LoadingSpinner'
@@ -12,6 +14,7 @@ interface KanbanColumnProps {
 
 export function KanbanColumn({ column }: KanbanColumnProps) {
   const { data: cards, isLoading, isError, error } = useCards(column.id)
+  const { setNodeRef } = useDroppable({ id: column.id })
 
   if (isLoading) {
     return <LoadingSpinner label="Loading cards" />
@@ -28,13 +31,15 @@ export function KanbanColumn({ column }: KanbanColumnProps) {
   const sortedCards = [...(cards ?? [])].sort((a, b) => a.position - b.position)
 
   return (
-    <section aria-label={`Column: ${column.name}`} className={styles.column}>
+    <section ref={setNodeRef} aria-label={`Column: ${column.name}`} className={styles.column}>
       <h2 className={styles.heading}>{column.name}</h2>
-      {sortedCards.length === 0 ? (
-        <p className={styles.empty}>No cards yet</p>
-      ) : (
-        sortedCards.map((c) => <KanbanCard key={c.id} card={c} />)
-      )}
+      <SortableContext items={sortedCards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+        {sortedCards.length === 0 ? (
+          <p className={styles.empty}>No cards yet</p>
+        ) : (
+          sortedCards.map((c) => <KanbanCard key={c.id} card={c} />)
+        )}
+      </SortableContext>
       <CreateCardForm columnId={column.id} />
     </section>
   )

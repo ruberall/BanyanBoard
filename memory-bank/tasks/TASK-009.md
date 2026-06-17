@@ -343,9 +343,9 @@ Decision output: `memory-bank/creative/TASK-009-dnd-optimistic-ux.md`
 ## Execution State
 
 **Build Status**: RUNNING
-**Current Build**: Phase 3: Board View & Kanban Layout (TASK-009)
+**Current Build**: Phase 4: Drag-and-Drop (TASK-009)
 **Build Started**: 2026-06-17
-**Phase Number**: 3 of 5
+**Phase Number**: 4 of 5
 **Is Multi-Phase**: YES
 **Can Resume**: YES
 
