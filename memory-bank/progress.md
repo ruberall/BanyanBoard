@@ -10,6 +10,126 @@
 | TASK-004 | Request logging middleware (Level 1) | 2026-06-16 | task/004-add-request-logging-middleware | [archive-TASK-004.md](archive/archive-TASK-004.md) |
 | TASK-007 | FEAT-003: Card Management API | 2026-06-16 | feature/FEAT-003-card-management-api | [archive-TASK-007.md](archive/archive-TASK-007.md) |
 | TASK-008 | FEAT-004: Card Move & Ordering | 2026-06-16 | feature/FEAT-004-card-move-ordering | [archive-TASK-008.md](archive/archive-TASK-008.md) |
+| TASK-009 | FEAT-005: React Frontend Scaffold | 2026-06-17 | feature/FEAT-005-react-frontend-scaffold | [archive-TASK-009.md](archive/archive-TASK-009.md) |
+
+## Task Archive: TASK-009
+
+**Task**: React Frontend Scaffold
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-17
+**Archive**: `memory-bank/archive/archive-TASK-009.md`
+
+---
+
+## 2026-06-17 — TASK-009: React Frontend Scaffold — BUILD_COMPLETE (All 5 Phases)
+
+### Phase 5: Docker Compose & Production Build
+
+**Files Created/Modified:**
+- `frontend/Dockerfile` — multi-stage: `node:20-alpine` (npm ci + vite build) → `nginx:alpine` (serves `dist/`)
+- `frontend/nginx.conf` — SPA fallback (`try_files $uri $uri/ /index.html`), 1y cache for fingerprinted assets, no-cache for `index.html`
+- `docker-compose.yml` — added `frontend` service: `node:20-alpine` running `npm run dev -- --host`, port `5173:5173`, volume mount `./frontend:/app` + named `frontend_node_modules` volume (prevents Windows/Mac node_modules shadowing), `VITE_API_URL=http://localhost:3000`, `depends_on: api`
+
+**Verification:** 115/115 tests PASS · `npm run build` PASS (326 kB JS / 2.8 kB CSS) · lint PASS
+
+---
+
+## 2026-06-17 — TASK-009: React Frontend Scaffold — Phase 4/5 COMPLETE
+
+### Phase 4: Drag-and-Drop
+
+**Files Modified:**
+- `frontend/src/api/hooks.ts` — added `useMoveCard(setBannerError)` hook: optimistic both-column cache rewrite in `onMutate`, snapshot restore + `ErrorBanner` in `onError`, both-column invalidation in `onSettled`; `findCardColumn` helper scans cache to locate card's column
+- `frontend/src/components/board/KanbanCard/KanbanCard.tsx` — upgraded with `useSortable({ id: card.id })`, accessible drag handle button (`aria-label="Reorder card: {title}"`, `aria-roledescription="draggable"`), `overlay` prop dims opacity during drag
+- `frontend/src/components/board/KanbanColumn/KanbanColumn.tsx` — added `useDroppable({ id: column.id })` for empty-column drop target + `SortableContext` wrapping card list
+- `frontend/src/pages/BoardPage/BoardPage.tsx` — wired `DndContext` (PointerSensor + KeyboardSensor), `DragOverlay` floating clone, `onDragEnd` with `after_card_id` derivation, `bannerError` state + `ErrorBanner`
+
+**Verification:** 115/115 tests PASS · build PASS · lint PASS (fixed unused `ALL_COLUMN_IDS` in test)
+
+**Code review:** 0 blocking issues — all Creative 3 decisions correctly implemented (after_card_id derivation, cache atomicity, no-op guard, accessibility)
+
+**Key Patterns:**
+- `after_card_id` = id of card immediately above resting slot with dragged card excluded; `undefined` = top insertion — matches backend fractional-position algorithm exactly
+- No-op guard: same-column same-position drops skip the mutation entirely (compares current neighbour-above vs new)
+
+---
+
+## 2026-06-17 — TASK-009: React Frontend Scaffold — Phase 3/5 COMPLETE
+
+### Phase 3: Board View & Kanban Layout
+
+**Files Created:**
+- `frontend/src/components/board/KanbanCard/` — display-only card: title, labels, due-date chip, description (article element)
+- `frontend/src/components/board/KanbanColumn/` — self-fetches cards via `useCards(column.id)`; loading/error/empty states; renders CreateCardForm
+- `frontend/src/components/board/CreateCardForm/` — inline form with accessible label, validation, pending state, clears on success
+- `frontend/src/components/board/KanbanBoard/` — receives sorted columns prop, renders KanbanColumns in order
+- `frontend/src/pages/BoardPage/` — reads boardId from useParams, fetches board, sorts columns, delegates to KanbanBoard (AC-5, AC-9)
+- `frontend/src/pages/NotFoundPage/` — "Not Found" heading + Link to `/` (AC-11)
+
+**Files Updated:**
+- `frontend/src/App.tsx` — added `/boards/:boardId` → BoardPage and `*` → NotFoundPage routes
+
+**Verification:** 94/94 tests PASS · build PASS · lint PASS
+
+**Code review fixes applied:**
+1. `CreateCardForm`: input lacked accessible `<label>` — fixed with visually-hidden label + id linkage; mutation errors surfaced to UI
+
+**Key Patterns:**
+- Column-level self-fetch: each KanbanColumn calls `useCards(column.id)` for parallel React Query fetches and isolated loading states
+- Route params via `useParams<{ boardId: string }>()` with `?? ''` fallback for the `enabled` guard in `useBoard`
+
+---
+
+## 2026-06-17 — TASK-009: React Frontend Scaffold — Phase 2/5 COMPLETE
+
+### Phase 2: Board List Page
+
+**Files Created:**
+- `frontend/src/api/hooks.ts` — TanStack Query v5 hooks: useBoards, useBoard, useCards, useCreateBoard, useDeleteBoard, useCreateCard
+- `frontend/src/components/common/ErrorBanner/` — dismissable alert banner (role="alert", controlled + uncontrolled dismiss)
+- `frontend/src/components/common/LoadingSpinner/` — accessible spinner (role="status", visually-hidden label)
+- `frontend/src/pages/BoardListPage/` — board list page: loading/error/empty states, board links (AC-2/3), create form (AC-4/9/10)
+- `frontend/src/lib/logger.ts` — always-emit console wrapper (warn/error); ESLint disable intentional
+
+**Files Updated:**
+- `frontend/src/main.tsx` — QueryClientProvider + BrowserRouter wiring; QueryClient with staleTime:30s, refetchOnWindowFocus:false
+- `frontend/src/App.tsx` — React Router v6 routes: / → BoardListPage, * → 404 stub
+
+**Verification:** 53/53 tests PASS · build PASS (270KB, 85KB gzip) · lint PASS
+
+**Code review fixes applied:**
+1. `error instanceof Error` guard in BoardListPage (not unsafe cast)
+2. `logger.ts` always emits (never silences production errors)
+3. `MutationMock` interface replaces removed `buildMutationMock` helper
+4. Template literal for board URLs
+
+---
+
+## 2026-06-16 — TASK-009: React Frontend Scaffold — Phase 1/5 COMPLETE
+
+### Phase 1: Project Scaffold & API Client
+
+**Files Created:**
+- `frontend/package.json` — Vite 8, React 19, TanStack Query v5, Vitest 3, TypeScript 6
+- `frontend/vite.config.ts` — build config with `@/` path alias
+- `frontend/vitest.config.ts` — test config (split to avoid Vite 8 / Vitest 3 type conflict)
+- `frontend/tsconfig.app.json` — strict mode, path aliases, erasable syntax
+- `frontend/eslint.config.js` — ESLint v10 flat config, no-console rule
+- `frontend/src/test-setup.ts` — jest-dom setup
+- `frontend/src/types/index.ts` — Board, Column, Card, BoardWithColumns, PaginatedResponse, ApiError
+- `frontend/src/api/client.ts` — `request<T>()` transport (per-call env read for vi.stubEnv compat)
+- `frontend/src/api/endpoints.ts` — 10 typed endpoint functions
+- `frontend/src/api/queryKeys.ts` — hierarchical key factory (boards + cards with `all` anchors)
+- `frontend/src/api/__tests__/client.test.ts` — 19 tests covering transport + VITE_API_URL + all 10 endpoints
+
+**Verification:** 19/19 tests PASS · build PASS (190KB bundle, 60KB gzip) · lint PASS
+
+**Key Design Decisions:**
+- `ApiError` lives in `src/types/index.ts`, NOT re-exported from `client.ts` — type layer independent of transport
+- `VITE_API_URL` read per-call inside `request<T>()` for `vi.stubEnv()` test compatibility
+- Config file split: `vite.config.ts` (build only) + `vitest.config.ts` (uses `mergeConfig` from `vitest/config`) — avoids Vite 8 / Vitest 3 Plugin type conflict
+
+---
 
 ## 2026-06-16 — TASK-004: Request Logging Middleware — BUILD_COMPLETE
 
