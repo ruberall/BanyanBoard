@@ -25,9 +25,12 @@
  *   AC-ERROR-6 — 400 no valid fields on PATCH
  *   AC-ERROR-7 — 400 invalid due_date
  *   AC-ERROR-8 — 400 labels not an array
+ *
+ * Authentication: requireAuth middleware requires a session. Each describe block
+ * uses supertest.agent() + beforeAll login so all requests carry a session cookie.
  */
 
-import request from 'supertest';
+import supertest from 'supertest';
 import { createApp } from '../../app';
 import type { Config } from '../../config';
 import type { Logger } from 'pino';
@@ -58,7 +61,24 @@ const stubLogger = {
 } as unknown as Logger;
 
 // ---------------------------------------------------------------------------
-// Fixtures
+// Auth fixtures (shared for beforeAll login)
+// ---------------------------------------------------------------------------
+
+const USER_EMAIL    = 'test@example.com';
+const USER_PASSWORD = 'securepassword1';
+// Pre-computed bcrypt hash for USER_PASSWORD (cost 12):
+const USER_HASH     = '$2b$12$iza4wLD3eGM4F/q5nb.cHuLSVMRuZYcie.a3V6b6LwFdYO.LqLPie';
+const USER_ID       = 'user-uuid-aaaa-bbbb-cccc';
+
+const fixUserRow = {
+  id: USER_ID,
+  email: USER_EMAIL,
+  password_hash: USER_HASH,
+  created_at: '2026-06-17T00:00:00.000Z',
+};
+
+// ---------------------------------------------------------------------------
+// Domain fixtures
 // ---------------------------------------------------------------------------
 
 const COL_ID  = 'col-uuid-aaaa-bbbb-cccc-dddddddddddd';
@@ -78,17 +98,41 @@ const fixCard = {
 };
 
 // ---------------------------------------------------------------------------
+// Helper: create a describe-level agent that is already logged in
+// ---------------------------------------------------------------------------
+
+function makeAuthenticatedAgent(stubPool: { query: jest.Mock }) {
+  const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool as any });
+  return supertest.agent(app);
+}
+
+// ---------------------------------------------------------------------------
 // POST /columns/:columnId/cards
 // ---------------------------------------------------------------------------
 
 describe('POST /columns/:columnId/cards', () => {
-  it('AC-HAPPY-1: returns 201 with card JSON for title-only create', async () => {
-    const stubPool = {
-      query: jest.fn().mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+  const stubPool = { query: jest.fn() } as any;
+  const agent = makeAuthenticatedAgent(stubPool);
 
-    const res = await request(app)
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // AuthService.login: findByEmail
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+  });
+
+  it('AC-HAPPY-1: returns 201 with card JSON for title-only create', async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 });
+
+    const res = await agent
       .post(`/columns/${COL_ID}/cards`)
       .send({ title: 'Write tests' });
 
@@ -112,12 +156,10 @@ describe('POST /columns/:columnId/cards', () => {
       due_date: '2026-07-01T00:00:00.000Z',
       labels: ['backend', 'urgent'],
     };
-    const stubPool = {
-      query: jest.fn().mockResolvedValueOnce({ rows: [fullCard], rowCount: 1 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fullCard], rowCount: 1 });
 
-    const res = await request(app)
+    const res = await agent
       .post(`/columns/${COL_ID}/cards`)
       .send({ title: 'Ship v1', description: 'Tag and push', due_date: '2026-07-01T00:00:00Z', labels: ['backend', 'urgent'] });
 
@@ -127,10 +169,7 @@ describe('POST /columns/:columnId/cards', () => {
   });
 
   it('AC-ERROR-1: returns 400 when title is missing', async () => {
-    const stubPool = { query: jest.fn() } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
-
-    const res = await request(app)
+    const res = await agent
       .post(`/columns/${COL_ID}/cards`)
       .send({});
 
@@ -139,10 +178,7 @@ describe('POST /columns/:columnId/cards', () => {
   });
 
   it('AC-ERROR-1: returns 400 when title is empty string', async () => {
-    const stubPool = { query: jest.fn() } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
-
-    const res = await request(app)
+    const res = await agent
       .post(`/columns/${COL_ID}/cards`)
       .send({ title: '' });
 
@@ -151,10 +187,7 @@ describe('POST /columns/:columnId/cards', () => {
   });
 
   it('AC-ERROR-2: returns 400 when title exceeds 255 characters', async () => {
-    const stubPool = { query: jest.fn() } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
-
-    const res = await request(app)
+    const res = await agent
       .post(`/columns/${COL_ID}/cards`)
       .send({ title: 'x'.repeat(256) });
 
@@ -163,10 +196,7 @@ describe('POST /columns/:columnId/cards', () => {
   });
 
   it('AC-ERROR-7: returns 400 when due_date is not a valid ISO date', async () => {
-    const stubPool = { query: jest.fn() } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
-
-    const res = await request(app)
+    const res = await agent
       .post(`/columns/${COL_ID}/cards`)
       .send({ title: 'X', due_date: 'not-a-date' });
 
@@ -175,10 +205,7 @@ describe('POST /columns/:columnId/cards', () => {
   });
 
   it('AC-ERROR-8: returns 400 when labels is not an array', async () => {
-    const stubPool = { query: jest.fn() } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
-
-    const res = await request(app)
+    const res = await agent
       .post(`/columns/${COL_ID}/cards`)
       .send({ title: 'X', labels: 'urgent' });
 
@@ -188,12 +215,10 @@ describe('POST /columns/:columnId/cards', () => {
 
   it('AC-ERROR-3: returns 404 when column does not exist (FK violation)', async () => {
     const fkError = Object.assign(new Error('FK violation'), { code: '23503' });
-    const stubPool = {
-      query: jest.fn().mockRejectedValueOnce(fkError),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockRejectedValueOnce(fkError);
 
-    const res = await request(app)
+    const res = await agent
       .post(`/columns/nonexistent-col-id/cards`)
       .send({ title: 'X' });
 
@@ -207,14 +232,29 @@ describe('POST /columns/:columnId/cards', () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /columns/:columnId/cards', () => {
+  const stubPool = { query: jest.fn() } as any;
+  const agent = makeAuthenticatedAgent(stubPool);
+
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // AuthService.login: findByEmail
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+  });
+
   it('AC-HAPPY-3: returns 200 with array of cards', async () => {
     const cards = [fixCard, { ...fixCard, id: 'card-2', title: 'Second card' }];
-    const stubPool = {
-      query: jest.fn().mockResolvedValueOnce({ rows: cards, rowCount: 2 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: cards, rowCount: 2 });
 
-    const res = await request(app).get(`/columns/${COL_ID}/cards`);
+    const res = await agent.get(`/columns/${COL_ID}/cards`);
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
@@ -223,12 +263,10 @@ describe('GET /columns/:columnId/cards', () => {
   });
 
   it('returns 200 with empty array when column has no cards', async () => {
-    const stubPool = {
-      query: jest.fn().mockResolvedValueOnce({ rows: [], rowCount: 0 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
-    const res = await request(app).get(`/columns/${COL_ID}/cards`);
+    const res = await agent.get(`/columns/${COL_ID}/cards`);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
@@ -240,13 +278,28 @@ describe('GET /columns/:columnId/cards', () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /cards/:id', () => {
-  it('AC-HAPPY-4: returns 200 with full card object', async () => {
-    const stubPool = {
-      query: jest.fn().mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+  const stubPool = { query: jest.fn() } as any;
+  const agent = makeAuthenticatedAgent(stubPool);
 
-    const res = await request(app).get(`/cards/${CARD_ID}`);
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // AuthService.login: findByEmail
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+  });
+
+  it('AC-HAPPY-4: returns 200 with full card object', async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 });
+
+    const res = await agent.get(`/cards/${CARD_ID}`);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ id: CARD_ID, title: 'Write tests' });
@@ -254,12 +307,10 @@ describe('GET /cards/:id', () => {
   });
 
   it('AC-ERROR-4: returns 404 when card does not exist', async () => {
-    const stubPool = {
-      query: jest.fn().mockResolvedValueOnce({ rows: [], rowCount: 0 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
-    const res = await request(app).get('/cards/nonexistent-id');
+    const res = await agent.get('/cards/nonexistent-id');
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe('NOT_FOUND');
@@ -271,14 +322,29 @@ describe('GET /cards/:id', () => {
 // ---------------------------------------------------------------------------
 
 describe('PATCH /cards/:id', () => {
+  const stubPool = { query: jest.fn() } as any;
+  const agent = makeAuthenticatedAgent(stubPool);
+
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // AuthService.login: findByEmail
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+  });
+
   it('AC-HAPPY-5: returns 200 with updated card', async () => {
     const updated = { ...fixCard, title: 'Updated title', updated_at: '2026-06-16T01:00:00.000Z' };
-    const stubPool = {
-      query: jest.fn().mockResolvedValueOnce({ rows: [updated], rowCount: 1 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [updated], rowCount: 1 });
 
-    const res = await request(app)
+    const res = await agent
       .patch(`/cards/${CARD_ID}`)
       .send({ title: 'Updated title' });
 
@@ -288,10 +354,7 @@ describe('PATCH /cards/:id', () => {
   });
 
   it('AC-ERROR-5: returns 400 when title is empty string', async () => {
-    const stubPool = { query: jest.fn() } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
-
-    const res = await request(app)
+    const res = await agent
       .patch(`/cards/${CARD_ID}`)
       .send({ title: '' });
 
@@ -300,10 +363,7 @@ describe('PATCH /cards/:id', () => {
   });
 
   it('AC-ERROR-6: returns 400 when no valid fields provided', async () => {
-    const stubPool = { query: jest.fn() } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
-
-    const res = await request(app)
+    const res = await agent
       .patch(`/cards/${CARD_ID}`)
       .send({});
 
@@ -312,12 +372,10 @@ describe('PATCH /cards/:id', () => {
   });
 
   it('AC-ERROR-4: returns 404 when card does not exist', async () => {
-    const stubPool = {
-      query: jest.fn().mockResolvedValueOnce({ rows: [], rowCount: 0 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
-    const res = await request(app)
+    const res = await agent
       .patch('/cards/nonexistent-id')
       .send({ title: 'X' });
 
@@ -333,6 +391,23 @@ describe('PATCH /cards/:id', () => {
 describe('PATCH /cards/:id/move', () => {
   const COL_ID_2 = 'col-uuid-2222-3333-4444-555555555555';
 
+  const stubPool = { query: jest.fn() } as any;
+  const agent = makeAuthenticatedAgent(stubPool);
+
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // AuthService.login: findByEmail
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+  });
+
   function makeMovedCard(position: number) {
     return { ...fixCard, column_id: COL_ID_2, position };
   }
@@ -340,16 +415,13 @@ describe('PATCH /cards/:id/move', () => {
   it('AC-MOVE-1: returns 200 with card JSON — no after_card_id (insert at top)', async () => {
     const movedCard = makeMovedCard(0.5);
     // findCardById → column check → findCardsByColumnId → moveCard
-    const stubPool = {
-      query: jest.fn()
-        .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 })       // findCardById
-        .mockResolvedValueOnce({ rows: [{ id: COL_ID_2 }], rowCount: 1 }) // column check
-        .mockResolvedValueOnce({ rows: [{ ...fixCard, position: 1.0 }], rowCount: 1 }) // findCardsByColumnId
-        .mockResolvedValueOnce({ rows: [movedCard], rowCount: 1 }),     // moveCard UPDATE
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 })       // findCardById
+      .mockResolvedValueOnce({ rows: [{ id: COL_ID_2 }], rowCount: 1 }) // column check
+      .mockResolvedValueOnce({ rows: [{ ...fixCard, position: 1.0 }], rowCount: 1 }) // findCardsByColumnId
+      .mockResolvedValueOnce({ rows: [movedCard], rowCount: 1 });     // moveCard UPDATE
 
-    const res = await request(app)
+    const res = await agent
       .patch(`/cards/${CARD_ID}/move`)
       .send({ column_id: COL_ID_2 });
 
@@ -362,16 +434,13 @@ describe('PATCH /cards/:id/move', () => {
     const LAST_CARD_ID = 'card-last-1111-2222-3333-444444444444';
     const lastCard = { ...fixCard, id: LAST_CARD_ID, position: 2.0 };
     const movedCard = makeMovedCard(3.0);
-    const stubPool = {
-      query: jest.fn()
-        .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 })
-        .mockResolvedValueOnce({ rows: [{ id: COL_ID_2 }], rowCount: 1 })
-        .mockResolvedValueOnce({ rows: [lastCard], rowCount: 1 })
-        .mockResolvedValueOnce({ rows: [movedCard], rowCount: 1 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [{ id: COL_ID_2 }], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [lastCard], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [movedCard], rowCount: 1 });
 
-    const res = await request(app)
+    const res = await agent
       .patch(`/cards/${CARD_ID}/move`)
       .send({ column_id: COL_ID_2, after_card_id: LAST_CARD_ID });
 
@@ -380,10 +449,7 @@ describe('PATCH /cards/:id/move', () => {
   });
 
   it('AC-MOVE-7: returns 400 when column_id is missing', async () => {
-    const stubPool = { query: jest.fn() } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
-
-    const res = await request(app)
+    const res = await agent
       .patch(`/cards/${CARD_ID}/move`)
       .send({});
 
@@ -392,10 +458,7 @@ describe('PATCH /cards/:id/move', () => {
   });
 
   it('AC-MOVE-7: returns 400 when column_id is empty string', async () => {
-    const stubPool = { query: jest.fn() } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
-
-    const res = await request(app)
+    const res = await agent
       .patch(`/cards/${CARD_ID}/move`)
       .send({ column_id: '' });
 
@@ -404,12 +467,10 @@ describe('PATCH /cards/:id/move', () => {
   });
 
   it('AC-MOVE-5: returns 404 when card does not exist', async () => {
-    const stubPool = {
-      query: jest.fn().mockResolvedValueOnce({ rows: [], rowCount: 0 }), // findCardById → NotFoundError
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 }); // findCardById → NotFoundError
 
-    const res = await request(app)
+    const res = await agent
       .patch('/cards/nonexistent-card-id/move')
       .send({ column_id: COL_ID_2 });
 
@@ -418,14 +479,11 @@ describe('PATCH /cards/:id/move', () => {
   });
 
   it('AC-MOVE-6: returns 404 when destination column does not exist', async () => {
-    const stubPool = {
-      query: jest.fn()
-        .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 })  // findCardById
-        .mockResolvedValueOnce({ rows: [], rowCount: 0 }),         // column check → NotFoundError
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 })  // findCardById
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });         // column check → NotFoundError
 
-    const res = await request(app)
+    const res = await agent
       .patch(`/cards/${CARD_ID}/move`)
       .send({ column_id: 'nonexistent-col' });
 
@@ -435,12 +493,10 @@ describe('PATCH /cards/:id/move', () => {
 
   it('AC-MOVE-9: PATCH /cards/:id (title update) still works after move route added', async () => {
     const updated = { ...fixCard, title: 'Non-regression title' };
-    const stubPool = {
-      query: jest.fn().mockResolvedValueOnce({ rows: [updated], rowCount: 1 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [updated], rowCount: 1 });
 
-    const res = await request(app)
+    const res = await agent
       .patch(`/cards/${CARD_ID}`)
       .send({ title: 'Non-regression title' });
 
@@ -454,25 +510,38 @@ describe('PATCH /cards/:id/move', () => {
 // ---------------------------------------------------------------------------
 
 describe('DELETE /cards/:id', () => {
-  it('AC-HAPPY-8: returns 204 with no body', async () => {
-    const stubPool = {
-      query: jest.fn().mockResolvedValueOnce({ rows: [], rowCount: 1 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+  const stubPool = { query: jest.fn() } as any;
+  const agent = makeAuthenticatedAgent(stubPool);
 
-    const res = await request(app).delete(`/cards/${CARD_ID}`);
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // AuthService.login: findByEmail
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+  });
+
+  it('AC-HAPPY-8: returns 204 with no body', async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const res = await agent.delete(`/cards/${CARD_ID}`);
 
     expect(res.status).toBe(204);
     expect(res.body).toEqual({});
   });
 
   it('AC-ERROR-4: returns 404 when card does not exist', async () => {
-    const stubPool = {
-      query: jest.fn().mockResolvedValueOnce({ rows: [], rowCount: 0 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
-    const res = await request(app).delete('/cards/nonexistent-id');
+    const res = await agent.delete('/cards/nonexistent-id');
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe('NOT_FOUND');

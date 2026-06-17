@@ -369,3 +369,41 @@
 **Archive**: `memory-bank/archive/archive-TASK-008.md`
 
 ---
+
+## 2026-06-17 — TASK-011: User Authentication — Phase 1 COMPLETE
+
+### Phase 1: Backend Auth Foundation
+
+**Files Created:**
+- `backend/migrations/20260617120001_create-users.js` — users table migration
+- `backend/src/types/session.d.ts` — express-session SessionData augmentation
+- `backend/src/repositories/user.repository.ts` — UserRepository (createUser, findByEmail, findById)
+- `backend/src/services/auth.service.ts` — AuthService (register, login, getMe) with bcrypt cost 12
+- `backend/src/middleware/requireAuth.ts` — synchronous auth gate middleware
+- `backend/src/routes/auth.ts` — createAuthRouter (POST /auth/register, /auth/login, /auth/logout, GET /auth/me)
+- `backend/src/repositories/__tests__/user.repository.test.ts` — 8 tests
+- `backend/src/services/__tests__/auth.service.test.ts` — 9 tests
+- `backend/src/middleware/__tests__/requireAuth.test.ts` — 5 tests
+- `backend/src/routes/__tests__/auth.routes.test.ts` — 14 tests
+
+**Files Modified:**
+- `backend/src/config.ts` — SESSION_SECRET (optional, prod fail-fast), SESSION_COOKIE_MAX_AGE_MS, SESSION_SECURE
+- `backend/src/app.ts` — express-session wired after requestContext; prod guard for missing SESSION_SECRET
+- `backend/src/routes/index.ts` — auth router (public) + requireAuth gate before domain routes
+- `backend/src/routes/__tests__/boards.routes.test.ts` — added beforeAll session auth pattern
+- `backend/src/routes/__tests__/cards.routes.test.ts` — added beforeAll session auth pattern
+- `memory-bank/techContext.md` — auth section, new packages, API endpoints, env vars
+- `memory-bank/systemPatterns.md` — auth patterns section
+- `memory-bank/productBrief.md` — security NFR updated
+
+**Test Results:** 147 tests passing, 8 skipped, 0 failures
+**Build:** tsc — PASS
+
+**Key Decisions Applied:**
+- Group `requireAuth` in routes/index.ts (not per-router) — single declaration protects all domain routes
+- TanStack Query `useCurrentUser()` chosen for frontend (Phase 2 — not yet implemented)
+- `connect-pg-simple` wired but MemoryStore used in tests; production uses PG store (Phase 3 wiring)
+- Identical error for wrong password + unknown user (email enumeration prevention)
+- bcrypt cost 12; password max 72 chars (bcrypt Blowfish limit)
+
+---

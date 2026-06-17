@@ -14,6 +14,9 @@ const configSchema = z.object({
   RUN_MIGRATIONS_ON_START: z.coerce.boolean().default(true),
   OTEL_SDK_DISABLED: z.coerce.boolean().default(true),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
+  SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters').optional(),
+  SESSION_COOKIE_MAX_AGE_MS: z.coerce.number().default(7 * 24 * 60 * 60 * 1000),
+  SESSION_SECURE: z.coerce.boolean().default(false),
 });
 
 // Config exposes the 8 core fields as required (matching test stubs)
@@ -31,6 +34,9 @@ export type Config = {
   RUN_MIGRATIONS_ON_START?: boolean;
   OTEL_SDK_DISABLED?: boolean;
   OTEL_EXPORTER_OTLP_ENDPOINT?: string;
+  SESSION_SECRET?: string;
+  SESSION_COOKIE_MAX_AGE_MS?: number;
+  SESSION_SECURE?: boolean;
 };
 
 const parseResult = configSchema.safeParse(process.env);

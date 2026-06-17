@@ -103,11 +103,12 @@ Core capabilities this product provides:
 
 ### Security
 
-- **Authentication**: Session-based auth (username + password); no OAuth required for MVP
+- **Authentication**: Session-based auth (email + password) — **implemented** (TASK-011 Phase 1); express-session with PostgreSQL session store; bcrypt (cost 12) for password hashing; no OAuth required for MVP
 - **Authorization**: Board-level permissions — owner can invite members; members can read/write cards
 - **Compliance**: No specific compliance requirements for MVP (self-hosted, no PII beyond user accounts)
 - **Data Classification**: Internal — user-generated task data
 - **Encryption**: HTTPS in production (TLS termination at reverse proxy); passwords hashed with bcrypt
+- **Email Enumeration Protection**: Login returns identical error messages for unknown email and wrong password
 
 ### Availability & Reliability
 
@@ -218,7 +219,8 @@ Core capabilities this product provides:
 | Date | Author | Changes |
 |------|--------|---------|
 | 2026-06-13 | banyan-init | Initial creation from user-provided product brief |
+| 2026-06-17 | build-documentation-agent | Updated Security NFR to reflect TASK-011 Phase 1 auth implementation |
 
 ## Last Refreshed
 
-2026-06-13
+2026-06-17
