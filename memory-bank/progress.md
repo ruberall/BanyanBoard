@@ -11,6 +11,19 @@
 | TASK-007 | FEAT-003: Card Management API | 2026-06-16 | feature/FEAT-003-card-management-api | [archive-TASK-007.md](archive/archive-TASK-007.md) |
 | TASK-008 | FEAT-004: Card Move & Ordering | 2026-06-16 | feature/FEAT-004-card-move-ordering | [archive-TASK-008.md](archive/archive-TASK-008.md) |
 
+## 2026-06-17 — TASK-009: React Frontend Scaffold — BUILD_COMPLETE (All 5 Phases)
+
+### Phase 5: Docker Compose & Production Build
+
+**Files Created/Modified:**
+- `frontend/Dockerfile` — multi-stage: `node:20-alpine` (npm ci + vite build) → `nginx:alpine` (serves `dist/`)
+- `frontend/nginx.conf` — SPA fallback (`try_files $uri $uri/ /index.html`), 1y cache for fingerprinted assets, no-cache for `index.html`
+- `docker-compose.yml` — added `frontend` service: `node:20-alpine` running `npm run dev -- --host`, port `5173:5173`, volume mount `./frontend:/app` + named `frontend_node_modules` volume (prevents Windows/Mac node_modules shadowing), `VITE_API_URL=http://localhost:3000`, `depends_on: api`
+
+**Verification:** 115/115 tests PASS · `npm run build` PASS (326 kB JS / 2.8 kB CSS) · lint PASS
+
+---
+
 ## 2026-06-17 — TASK-009: React Frontend Scaffold — Phase 4/5 COMPLETE
 
 ### Phase 4: Drag-and-Drop
