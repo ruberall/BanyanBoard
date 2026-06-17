@@ -32,6 +32,7 @@ services:
       PORT: 3000
       LOG_LEVEL: debug
       LOG_FORMAT: pretty
+      CORS_ORIGINS: http://localhost:5173
     networks:
       - banyan
 
