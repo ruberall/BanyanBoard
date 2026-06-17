@@ -3,7 +3,7 @@ name: "Learned: Testing Patterns"
 globs: ["*.test.*", "*.test.tsx", "*.test.ts", "*.spec.*"]
 topics: ["testing-patterns", "typescript", "test-fixtures"]
 priority: medium
-evidence_count: 4
+evidence_count: 6
 last_updated: 2026-06-17
 auto_generated: true
 ---
@@ -14,6 +14,8 @@ auto_generated: true
 - Test validation middleware by asserting both the HTTP status code and the error message body structure.
 - Validate paginated endpoint tests include assertions on `total`, `page`, and `limit` fields — not just `data`.
 - Declare fixture constants in test files only if they are referenced in at least one assertion — unused typed constants cause TS6133 errors that fail the build pipeline.
+- In Playwright configs for suites sharing a live database, set `workers: 1` to prevent isolation race conditions unless each test namespaces its own data.
+- When testing TanStack Query error states in Playwright, wait for `[role="status"]` to disappear before asserting `[role="alert"]` — this spans the full retry cycle rather than racing against it.
 
 ## Evidence
 
@@ -23,3 +25,5 @@ auto_generated: true
 | Validation middleware test assertions | [reflection-TASK-002.md](../reflection/reflection-TASK-002.md) | 2026-06-15 |
 | Pagination field assertions | [reflection-TASK-006.md](../reflection/reflection-TASK-006.md) | 2026-06-16 |
 | Unused ALL_COLUMN_IDS in useMoveCard.test.tsx caused TS6133 build failure | [reflection-TASK-009.md](../reflection/reflection-TASK-009.md) | 2026-06-17 |
+| Playwright workers=1 for shared-DB suites | [reflection-TASK-010.md](../reflection/reflection-TASK-010.md) | 2026-06-17 |
+| TanStack Query retry cycle wait pattern | [reflection-TASK-010.md](../reflection/reflection-TASK-010.md) | 2026-06-17 |
