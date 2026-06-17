@@ -73,7 +73,7 @@ Covers:
 
 ## Implementation Roadmap
 
-- [ ] Phase 1: Playwright setup (install, config, test script, API helper)
+- [x] Phase 1: Playwright setup (install, config, test script, API helper)
 - [ ] Phase 2: Implement all 3 spec files from UAT spec
 
 ## Creative Phases
@@ -84,12 +84,25 @@ Covers:
 
 ## Execution State
 
-**Build Status**: IDLE
-**Current Phase**: INITIALIZED → BUILD
-**Can Resume**: NO
+**Build Status**: RUNNING
+**Current Build**: Phase 1: Playwright Setup (TASK-010)
+**Build Started**: 2026-06-17
+**Phase Number**: 1 of 2
+**Is Multi-Phase**: YES
+**Can Resume**: YES
 
-### Active Sub-Agents
-(none)
+### Current Build Step
+**Step**: Phase 1 COMPLETE
+**Status**: COMPLETE
+**Completed**: 2026-06-17
 
 ### Completed Steps
+- Step 0.5 Git Setup: COMPLETE (2026-06-17) - Branch feature/FEAT-008-e2e-test-suite-board-flow created
+- Step 1 Read Task Context: COMPLETE (2026-06-17) - Phase 1 identified (Playwright setup)
+- Step 4 Coding Phase 1: COMPLETE (2026-06-17) - playwright.config.ts, e2e/helpers/api.ts, package.json test:e2e script, @playwright/test installed
+
+### Sub-Agents
 (none)
+
+### Resumption Notes
+**Resume From**: Step 4 - Coding Agent Phase 1
