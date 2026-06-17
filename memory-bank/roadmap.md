@@ -30,7 +30,7 @@
 - **Status**: planning
 - **Features**:
   - FEAT-007: Pagination for list endpoints (complete) [Level 2]
-  - FEAT-008: E2E Test Suite for Board Flow (planned) [Level 2]
+  - FEAT-008: E2E Test Suite for Board Flow (in_progress) [Level 2]
 
 ---
 
@@ -128,7 +128,7 @@
 - **Priority**: medium
 - **Complexity**: Level 2
 - **Description**: Implement runnable E2E tests for the board flow using Playwright. Covers the full happy path (create board → open → add card → drag between columns → persist), negative paths (blank inputs, 404, invalid board UUID), and accessibility (keyboard DnD). Selectors and wait conditions are fully specified in `memory-bank/uat/spec-TASK-009-e2e.md` from the UAT run.
-- **Linked Tasks**: None
+- **Linked Tasks**: TASK-010 (in_progress)
 - **Branch**: feature/FEAT-008-e2e-test-suite-board-flow
 - **Created**: 2026-06-17
 
