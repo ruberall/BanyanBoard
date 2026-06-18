@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-17 (TASK-009 Phase 2 — Board List Page)
+**Last updated**: 2026-06-17 (TASK-011 Phase 2 — Frontend Auth Shell)
 
 ## Architecture
 
@@ -78,7 +78,7 @@ describeIfDb('MyRepo (integration)', () => {
 - **Single source**: `src/config.ts` is the ONLY file that reads `process.env`
 - **Validation**: zod schema with coercion; fails fast at startup with clear error
 - **Config type** `Config` (8 required fields): `PORT`, `NODE_ENV`, `DATABASE_URL`, `LOG_LEVEL`, `LOG_FORMAT`, `DB_POOL_MAX`, `DB_POOL_IDLE_TIMEOUT_MS`, `DB_POOL_CONNECTION_TIMEOUT_MS`
-- Extended optional fields: `MIGRATIONS_DIR`, `RUN_MIGRATIONS_ON_START`, `OTEL_SDK_DISABLED`, `OTEL_EXPORTER_OTLP_ENDPOINT`
+- Extended optional fields: `MIGRATIONS_DIR`, `RUN_MIGRATIONS_ON_START`, `OTEL_SDK_DISABLED`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `SESSION_SECRET`, `SESSION_COOKIE_MAX_AGE_MS`, `SESSION_SECURE`
 - In tests: use stub config object, never import config module (it triggers dotenv + process.exit)
 
 ## Error Handling
@@ -163,6 +163,81 @@ Benefits:
 - **`vitest.config.ts`** — Test-only config (environment, setup files); uses `mergeConfig(viteConfig, defineConfig({ test: {...} }))`
 
 This pattern allows each to use its own bundled dependency versions without conflicts. See `frontend/vitest.config.ts` for example.
+
+## Authentication Patterns
+
+### Auth Protection via Group Middleware
+
+All domain routes are protected by applying `requireAuth` as a single group middleware in `routes/index.ts`, **between** the public routes (health, auth) and the protected routers:
+
+```typescript
+router.use('/auth', createAuthRouter(db));  // public
+router.use(requireAuth);                    // gate
+router.use('/boards', createBoardsRouter(db)); // protected
+```
+
+- **Why**: One insertion point protects all current and future domain routes. Individual route guards are not needed.
+- **Order matters**: Public routes MUST be registered before `requireAuth`; otherwise the middleware fires before the public handlers can respond.
+- **Implementation**: `backend/src/routes/index.ts`
+
+### Session Type Augmentation Pattern
+
+`express-session`'s `SessionData` interface is extended in `backend/src/types/session.d.ts` using TypeScript module augmentation:
+
+```typescript
+declare module 'express-session' {
+  interface SessionData {
+    userId?: string;
+  }
+}
+```
+
+- **Why**: Avoids casting `req.session` to `any`; provides type safety on `req.session.userId` throughout the codebase.
+- **Pickup**: TypeScript auto-discovers `.d.ts` files included in `tsconfig.json`; no explicit import needed.
+
+### Auth-Safe Logging Pattern
+
+Auth event logs MUST include `userId` and MUST NOT include `email`, `password`, or any credential hash:
+
+```typescript
+// Correct
+req.log.info({ event: 'user.login', userId: user.id }, 'User logged in');
+
+// Never do this
+req.log.info({ email, password }, 'Login attempt'); // leaks credentials
+```
+
+- **Events**: `user.registered`, `user.login`, `user.logout`, `auth.unauthorized`
+- **Rationale**: Log aggregation pipelines may ship to third-party observability tools; credentials in logs are an incident waiting to happen.
+
+### Email Enumeration Prevention
+
+`AuthService.login` uses an identical error message for both "unknown email" and "wrong password":
+
+```typescript
+throw new UnauthorizedError('Invalid email or password');
+```
+
+- **Why**: Returning distinct messages lets an attacker probe for valid accounts. The uniform message prevents distinguishing the two failure modes.
+- **Implementation**: `backend/src/services/auth.service.ts`
+
+### Frontend Auth Patterns
+
+#### PrivateRoute: 4-State Guard
+`frontend/src/components/PrivateRoute/PrivateRoute.tsx` handles four states in order:
+1. **Loading** → render `<LoadingSpinner>` (session check in flight)
+2. **Error** → render `<ErrorBanner>` (unexpected `/auth/me` error)
+3. **Unauthenticated** → `<Navigate to="/login?next=<current-path>" replace>`
+4. **Authenticated** → `<AppHeader> + <Outlet>`
+
+#### Auth State via TanStack Query
+`useCurrentUser()` (`frontend/src/hooks/useCurrentUser.ts`) wraps `useQuery` against `GET /auth/me` with `retry: false` and `staleTime: 0`. This is the single source of truth for session state — no AuthContext or global store needed.
+
+#### Logout: removeQueries Avoids Stale-Cache Flash
+`useLogout` calls `queryClient.removeQueries({ queryKey: queryKeys.auth.me })` (not `invalidateQueries`). Invalidation triggers a background refetch that could briefly re-render authenticated UI before the redirect. Removing the entry immediately cuts the cache, preventing the flash.
+
+#### CORS Credentials: Reflect Origin Instead of Wildcard
+When `credentials: true`, browsers reject `Access-Control-Allow-Origin: *`. `backend/src/middleware/cors.ts` reflects the incoming request's `Origin` header back in the response rather than echoing `*`. This preserves broad dev-mode permissiveness while satisfying the credentials constraint.
 
 ## Adding a New Feature (proven pattern — first used in FEAT-002 Board API)
 

@@ -1,4 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { loginAsTestUser } from './helpers/auth.js';
+
+test.beforeEach(async ({ page }) => {
+  await loginAsTestUser(page.request);
+});
 
 test.describe('Error Pages', () => {
   test('unknown route renders NotFoundPage with back link', async ({ page }) => {

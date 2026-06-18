@@ -23,7 +23,7 @@
   - FEAT-003: Card Management API (planned) [Level 2]
   - FEAT-004: Card Move & Ordering (complete) [Level 2]
   - FEAT-005: React Frontend Scaffold (complete) [Level 3]
-  - FEAT-006: User Authentication (planned) [Level 3]
+  - FEAT-006: User Authentication (complete) [Level 3]
 
 ### next (Planning)
 
@@ -124,13 +124,14 @@
 ### FEAT-008: E2E Test Suite for Board Flow
 
 - **Version**: next
-- **Status**: planned
+- **Status**: complete
 - **Priority**: medium
 - **Complexity**: Level 2
 - **Description**: Implement runnable E2E tests for the board flow using Playwright. Covers the full happy path (create board → open → add card → drag between columns → persist), negative paths (blank inputs, 404, invalid board UUID), and accessibility (keyboard DnD). Selectors and wait conditions are fully specified in `memory-bank/uat/spec-TASK-009-e2e.md` from the UAT run.
-- **Linked Tasks**: TASK-010 (in_progress)
+- **Linked Tasks**: TASK-010 (COMPLETE)
 - **Branch**: feature/FEAT-008-e2e-test-suite-board-flow
 - **Created**: 2026-06-17
+- **Completed**: 2026-06-17
 
 ---
 
@@ -141,6 +142,8 @@
 - **Priority**: medium
 - **Complexity**: Level 3
 - **Description**: Session-based auth for the Express API. Register and login with email + password (bcrypt). Express-session with PostgreSQL session store. Auth middleware protecting all board/card routes. React login/register pages and session state management on the frontend. Users DB schema and migration.
-- **Linked Tasks**: None
+- **Status**: complete
+- **Linked Tasks**: TASK-011 (COMPLETE)
 - **Branch**: feature/FEAT-006-user-authentication
 - **Created**: 2026-06-13
+- **Completed**: 2026-06-18

@@ -11,6 +11,34 @@
 | TASK-007 | FEAT-003: Card Management API | 2026-06-16 | feature/FEAT-003-card-management-api | [archive-TASK-007.md](archive/archive-TASK-007.md) |
 | TASK-008 | FEAT-004: Card Move & Ordering | 2026-06-16 | feature/FEAT-004-card-move-ordering | [archive-TASK-008.md](archive/archive-TASK-008.md) |
 | TASK-009 | FEAT-005: React Frontend Scaffold | 2026-06-17 | feature/FEAT-005-react-frontend-scaffold | [archive-TASK-009.md](archive/archive-TASK-009.md) |
+| TASK-011 | FEAT-006: User Authentication | 2026-06-18 | feature/FEAT-006-user-authentication | [archive-TASK-011.md](archive/archive-TASK-011.md) |
+
+## TASK-011 Phase 4: E2E & Hardening (2026-06-18)
+
+**Phase**: 4 of 4 — BUILD_COMPLETE
+**Changes**:
+- `frontend/e2e/auth.spec.ts`: 11 Playwright E2E tests (unauthenticated redirect, login, register, logout, a11y)
+- `frontend/e2e/helpers/auth.ts`: auth helper using `page.request` to share session cookie
+- `frontend/e2e/helpers/api.ts`: refactored to `APIRequestContext` for auth-aware board CRUD
+- Existing E2E specs updated with `beforeEach` authentication
+- `frontend/vitest.config.ts`: excluded `e2e/**` from vitest (Playwright specs were polluting unit test runs)
+- Security checklist verified: bcrypt 12 rounds, HttpOnly cookie, no password_hash in any response, no email in logs
+- `memory-bank/techContext.md`: updated to reflect auth components, AuthContext, PrivateRoute, E2E structure
+**Test results**: 147 backend + 160 frontend unit tests passing; Playwright E2E requires running stack
+**Security**: All 4 checklist items PASS
+
+## TASK-011 Phase 3: Integration & Docker Compose Wiring (2026-06-18)
+
+**Phase**: 3 of 4
+**Status**: COMPLETE
+**Changes**:
+- `docker-compose.yml`: Added `SESSION_SECRET` env var to `api` service
+- `backend/src/app.ts`: Wired `connect-pg-simple` as PostgreSQL session store (`createTableIfMissing: true`); MemoryStore fallback for `NODE_ENV === 'test'`
+- `backend/src/routes/auth.ts`: Added `req.session.regenerate()` on register and login (session fixation hardening); auto-login on register
+- `backend/src/__tests__/auth.integration.test.ts`: 6 real-DB smoke tests (describeIfDb pattern): register → auto-login → boards → logout → re-login → /me
+- Frontend test lint fixes: replaced `require()` with ES imports in `LoginPage.test.tsx` and `RegisterPage.test.tsx`
+**Test results**: 147 backend + 160 frontend unit tests passing; 14 backend + real-DB skipped (no DATABASE_URL in CI)
+**Security**: Session fixation patched via `req.session.regenerate()` on privilege escalation
 
 ## Task Archive: TASK-009
 
@@ -367,5 +395,72 @@
 **Status**: ✅ ARCHIVED
 **Date**: 2026-06-16
 **Archive**: `memory-bank/archive/archive-TASK-008.md`
+
+---
+
+## 2026-06-17 — TASK-011: User Authentication — Phase 2 COMPLETE
+
+### Phase 2: Frontend Auth Shell
+
+**Files Created:**
+- `frontend/src/hooks/useCurrentUser.ts` — TanStack Query hook for `GET /auth/me` (retry: false, staleTime: 0); single source of auth truth
+- `frontend/src/hooks/useLogin.ts`, `useLogout.ts`, `useRegister.ts` — auth mutation hooks
+- `frontend/src/components/PrivateRoute/PrivateRoute.tsx` — 4-state route guard (loading/error/unauthenticated/authenticated)
+- `frontend/src/components/AppHeader/AppHeader.tsx` — persistent app shell header with Sign out button
+- `frontend/src/pages/LoginPage/LoginPage.tsx` — email/password form with `?next=` redirect
+- `frontend/src/pages/RegisterPage/RegisterPage.tsx` — email/password form; auto-redirects to `/` on success
+
+**Files Modified:**
+- `frontend/src/types/index.ts` — added `User { id: string; email: string }`
+- `frontend/src/api/client.ts` — added `credentials: 'include'` to all fetch calls
+- `frontend/src/api/endpoints.ts` — added `fetchMe`, `login`, `logout`, `register`
+- `frontend/src/api/queryKeys.ts` — added `auth: { me: ['auth', 'me'] as const }`
+- `frontend/src/App.tsx` — `/login` and `/register` public; existing routes wrapped in `<PrivateRoute>`
+- `backend/src/middleware/cors.ts` — `credentials: true`; wildcard `*` now reflects request `Origin` for credentials compatibility
+
+**Test Results:** 160 frontend tests passing · 147 backend tests passing · 0 failures
+
+**Key Decisions:**
+- TanStack Query `useCurrentUser` replaces AuthContext — no separate state library
+- `removeQueries` on logout (not `invalidateQueries`) prevents stale-cache flash
+- CORS origin-reflection pattern enables `credentials: true` without breaking dev permissiveness
+
+---
+
+## 2026-06-17 — TASK-011: User Authentication — Phase 1 COMPLETE
+
+### Phase 1: Backend Auth Foundation
+
+**Files Created:**
+- `backend/migrations/20260617120001_create-users.js` — users table migration
+- `backend/src/types/session.d.ts` — express-session SessionData augmentation
+- `backend/src/repositories/user.repository.ts` — UserRepository (createUser, findByEmail, findById)
+- `backend/src/services/auth.service.ts` — AuthService (register, login, getMe) with bcrypt cost 12
+- `backend/src/middleware/requireAuth.ts` — synchronous auth gate middleware
+- `backend/src/routes/auth.ts` — createAuthRouter (POST /auth/register, /auth/login, /auth/logout, GET /auth/me)
+- `backend/src/repositories/__tests__/user.repository.test.ts` — 8 tests
+- `backend/src/services/__tests__/auth.service.test.ts` — 9 tests
+- `backend/src/middleware/__tests__/requireAuth.test.ts` — 5 tests
+- `backend/src/routes/__tests__/auth.routes.test.ts` — 14 tests
+
+**Files Modified:**
+- `backend/src/config.ts` — SESSION_SECRET (optional, prod fail-fast), SESSION_COOKIE_MAX_AGE_MS, SESSION_SECURE
+- `backend/src/app.ts` — express-session wired after requestContext; prod guard for missing SESSION_SECRET
+- `backend/src/routes/index.ts` — auth router (public) + requireAuth gate before domain routes
+- `backend/src/routes/__tests__/boards.routes.test.ts` — added beforeAll session auth pattern
+- `backend/src/routes/__tests__/cards.routes.test.ts` — added beforeAll session auth pattern
+- `memory-bank/techContext.md` — auth section, new packages, API endpoints, env vars
+- `memory-bank/systemPatterns.md` — auth patterns section
+- `memory-bank/productBrief.md` — security NFR updated
+
+**Test Results:** 147 tests passing, 8 skipped, 0 failures
+**Build:** tsc — PASS
+
+**Key Decisions Applied:**
+- Group `requireAuth` in routes/index.ts (not per-router) — single declaration protects all domain routes
+- TanStack Query `useCurrentUser()` chosen for frontend (Phase 2 — not yet implemented)
+- `connect-pg-simple` wired but MemoryStore used in tests; production uses PG store (Phase 3 wiring)
+- Identical error for wrong password + unknown user (email enumeration prevention)
+- bcrypt cost 12; password max 72 chars (bcrypt Blowfish limit)
 
 ---

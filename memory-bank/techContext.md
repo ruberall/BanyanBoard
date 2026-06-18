@@ -24,17 +24,26 @@ No clever abstractions. No microservices. One Express app.
 /
 ├── frontend/           # React + TypeScript SPA (Vite 8)
 │   ├── src/
-│   │   ├── types/      # Domain types (Board, Column, Card, ApiError)
-│   │   ├── components/ # UI components (common/ for shared, feature-specific otherwise)
-│   │   ├── pages/      # Route-level components (BoardListPage, BoardPage, NotFoundPage)
-│   │   ├── hooks/      # Custom React hooks
+│   │   ├── types/      # Domain types (Board, Column, Card, User, ApiError)
+│   │   ├── context/    # React contexts (AuthContext — currentUser, login, logout, register via TanStack Query)
+│   │   ├── components/ # UI components (common/ for shared, feature-specific otherwise; PrivateRoute for auth guard)
+│   │   ├── pages/      # Route-level components (BoardListPage, BoardPage, LoginPage, RegisterPage, NotFoundPage)
+│   │   ├── hooks/      # Custom React hooks (useLogin, useRegister, useLogout, useCurrentUser)
 │   │   ├── lib/        # Shared utilities (logger.ts — warn/error only, always emit)
 │   │   ├── api/        # API client
-│   │   │   ├── client.ts     # request<T>() fetch transport
-│   │   │   ├── endpoints.ts  # 10 typed endpoint functions
+│   │   │   ├── client.ts     # request<T>() fetch transport (credentials: 'include'; 401 triggers redirect to /login)
+│   │   │   ├── endpoints.ts  # Typed endpoint functions (board CRUD + auth: loginUser, registerUser, logoutUser, getCurrentUser)
 │   │   │   ├── hooks.ts      # TanStack Query hooks (useBoards, useBoard, useCreateBoard, etc.)
-│   │   │   └── queryKeys.ts  # TanStack Query key factory
+│   │   │   └── queryKeys.ts  # TanStack Query key factory (queryKeys.auth.me + board keys)
 │   │   └── test-setup.ts  # jest-dom setup
+│   ├── e2e/            # Playwright E2E tests (requires running stack: docker compose up)
+│   │   ├── auth.spec.ts        # Auth flow: unauthenticated redirect, login, register, logout, a11y
+│   │   ├── board-list.spec.ts  # Board list CRUD (authenticated)
+│   │   ├── board-page.spec.ts  # Board/card interactions (authenticated)
+│   │   ├── error-pages.spec.ts # 404 and error states (authenticated)
+│   │   └── helpers/
+│   │       ├── auth.ts         # loginAsTestUser(page.request) — uses page.request to share session cookie
+│   │       └── api.ts          # createBoard/deleteBoard via APIRequestContext (authenticated)
 │   ├── vite.config.ts      # Build config with @/ path alias
 │   ├── vitest.config.ts    # Test config (separate from vite.config.ts due to Vite 8/Vitest 3 compatibility)
 │   ├── tsconfig.app.json   # TypeScript 6 strict config
@@ -42,14 +51,22 @@ No clever abstractions. No microservices. One Express app.
 │   └── package.json
 ├── backend/            # Express + TypeScript API
 │   ├── src/
+│   │   ├── types/
+│   │   │   └── session.d.ts      # express-session module augmentation (adds userId to SessionData)
 │   │   ├── routes/
-│   │   │   ├── index.ts          # createRouter — mounts all sub-routers
+│   │   │   ├── index.ts          # createRouter — mounts auth (public) then requireAuth then domain routes
 │   │   │   ├── health.ts         # GET /health
+│   │   │   ├── auth.ts           # createAuthRouter — POST /register (auto-login), /login, /logout; GET /me
 │   │   │   └── boards.ts         # createBoardsRouter — CRUD for /boards
 │   │   ├── services/
+│   │   │   ├── auth.service.ts   # AuthService — register, login, getMe (bcrypt cost 12, email-enum-safe)
 │   │   │   └── board.service.ts  # BoardService — input validation + business logic
 │   │   ├── repositories/
+│   │   │   ├── user.repository.ts  # UserRepository — SQL + User/PublicUser types (no password_hash in PublicUser)
 │   │   │   └── board.repository.ts # BoardRepository — SQL + Board/Column types
+│   │   ├── middleware/
+│   │   │   ├── requireAuth.ts    # Synchronous session guard; throws UnauthorizedError if no userId
+│   │   │   └── cors.ts           # CORS with credentials: true; reflects origin for wildcard dev config
 │   │   ├── lib/
 │   │   │   └── asyncHandler.ts   # Wraps async handlers to forward errors to next()
 │   │   └── db/         # DB connection + queryable interface
@@ -104,9 +121,12 @@ All config via environment variables. See `.env.example` for the full list.
 |----------|---------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | set in docker-compose.yml |
 | `PORT` | Express server port | `3000` |
-| `JWT_SECRET` | Auth token signing key | must be set |
 | `LOG_LEVEL` | Log verbosity | `info` |
+| `LOG_FORMAT` | Log output format (`json` or `pretty`) | `json` |
 | `NODE_ENV` | Environment | `development` |
+| `SESSION_SECRET` | Secret used to sign session cookies — **must be set in production** (≥ 32 chars) | dev fallback in `app.ts`; startup exits if missing in production |
+| `SESSION_COOKIE_MAX_AGE_MS` | Session cookie lifetime in milliseconds | `604800000` (7 days) |
+| `SESSION_SECURE` | Set `Secure` flag on session cookie (requires HTTPS) | `false` |
 
 ### Frontend Variables
 | Variable | Purpose | Default |
@@ -152,17 +172,58 @@ React Router v6 (`BrowserRouter`) wraps the app in `main.tsx`. Routes are declar
 - **UUID primary keys**: all tables use `gen_random_uuid()` (PostgreSQL built-in, no extension required)
 - **Local**: Managed by Docker Compose (`postgres` service); data persisted in Docker volume
 
+## Frontend Auth
+
+Auth state is managed entirely via **TanStack Query** — no separate AuthContext or Zustand store.
+
+| Layer | Location | Purpose |
+|-------|----------|---------|
+| Hook | `frontend/src/hooks/useCurrentUser.ts` | `useQuery` for `GET /auth/me`; `retry: false`, `staleTime: 0` |
+| Mutations | `frontend/src/hooks/useLogin.ts`, `useLogout.ts`, `useRegister.ts` | Auth mutation hooks |
+| Route guard | `frontend/src/components/PrivateRoute/PrivateRoute.tsx` | 4-state guard: loading→spinner, error→ErrorBanner, unauthenticated→`/login?next=…`, authenticated→`AppHeader + Outlet` |
+| App shell | `frontend/src/components/AppHeader/AppHeader.tsx` | Persistent header with app name + Sign out button |
+| Pages | `frontend/src/pages/LoginPage/`, `frontend/src/pages/RegisterPage/` | Public auth pages |
+| Fetch client | `frontend/src/api/client.ts` | All requests include `credentials: 'include'` |
+| Query key | `frontend/src/api/queryKeys.ts` `auth.me` | `['auth', 'me']` |
+| Auth endpoints | `frontend/src/api/endpoints.ts` | `fetchMe`, `login`, `logout`, `register` |
+| User type | `frontend/src/types/index.ts` | `User { id: string; email: string }` |
+
+Routing (in `App.tsx`): `/login` and `/register` are public; all other routes wrapped in `<PrivateRoute>`.
+
+## Authentication
+
+Session-based authentication using `express-session` backed by a PostgreSQL session store (`connect-pg-simple`).
+
+- **Session store**: `connect-pg-simple` writes session rows to the `session` table (created by the package's own `table.sql`; managed separately from node-pg-migrate migrations)
+- **Password hashing**: `bcrypt` with a cost factor of 12 (balances security and login latency)
+- **Session type augmentation**: `backend/src/types/session.d.ts` extends `express-session`'s `SessionData` to add `userId?: string`
+- **Auth middleware**: `requireAuth` (`backend/src/middleware/requireAuth.ts`) — applied as group middleware in `routes/index.ts` to protect all domain routes in one place
+
+### Auth Packages Added
+| Package | Purpose |
+|---------|---------|
+| `express-session` | Session management |
+| `connect-pg-simple` | PostgreSQL session store for express-session |
+| `bcrypt` | Password hashing |
+| `@types/express-session` | TypeScript types |
+| `@types/connect-pg-simple` | TypeScript types |
+| `@types/bcrypt` | TypeScript types |
+
 ## API Endpoints
 
 All endpoints are prefixed by the Express mount path. The app currently exposes:
 
-| Method | Path | Description | Response |
-|--------|------|-------------|----------|
-| `GET` | `/health` | Liveness probe | `200 { status: "ok" }` |
-| `GET` | `/boards` | List all boards | `200 Board[]` |
-| `GET` | `/boards/:id` | Get board with columns | `200 BoardWithColumns` or `404` |
-| `POST` | `/boards` | Create board (`{ name }` body) | `201 Board` or `400` |
-| `DELETE` | `/boards/:id` | Delete board | `204` or `404` |
+| Method | Path | Auth Required | Description | Response |
+|--------|------|---------------|-------------|----------|
+| `GET` | `/health` | No | Liveness probe | `200 { status: "ok" }` |
+| `POST` | `/auth/register` | No | Register a new user (`{ email, password }`) | `201 PublicUser` or `400`/`409` |
+| `POST` | `/auth/login` | No | Log in and establish a session (`{ email, password }`) | `200 PublicUser` or `400`/`401` |
+| `POST` | `/auth/logout` | No | Destroy the current session | `200 {}` |
+| `GET` | `/auth/me` | Yes | Return the authenticated user | `200 PublicUser` or `401` |
+| `GET` | `/boards` | Yes | List all boards | `200 Board[]` |
+| `GET` | `/boards/:id` | Yes | Get board with columns | `200 BoardWithColumns` or `404` |
+| `POST` | `/boards` | Yes | Create board (`{ name }` body) | `201 Board` or `400` |
+| `DELETE` | `/boards/:id` | Yes | Delete board | `204` or `404` |
 
 Error shape for all non-2xx responses: `{ error: string, message: string }`.
 

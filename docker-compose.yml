@@ -33,6 +33,7 @@ services:
       LOG_LEVEL: debug
       LOG_FORMAT: pretty
       CORS_ORIGINS: http://localhost:5173
+      SESSION_SECRET: dev_only_secret_replace_in_production_please_32chars
     networks:
       - banyan
 

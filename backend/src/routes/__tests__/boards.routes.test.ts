@@ -11,13 +11,11 @@
  * connection is required. The stub pool's query mock is shaped to satisfy
  * BoardRepository's SQL calls for each scenario.
  *
- * Tests will FAIL until the Coding Agent implements:
- *   src/services/board.service.ts     — BoardService
- *   src/routes/boards.ts              — boards router
- *   src/routes/index.ts               — mounts boards router
+ * Authentication: requireAuth middleware requires a session. Each describe block
+ * uses supertest.agent() + beforeAll login so all requests carry a session cookie.
  */
 
-import request from 'supertest';
+import supertest from 'supertest';
 import { createApp } from '../../app';
 import type { Config } from '../../config';
 import type { Logger } from 'pino';
@@ -48,7 +46,24 @@ const stubLogger = {
 } as unknown as Logger;
 
 // ---------------------------------------------------------------------------
-// Fixtures
+// Auth fixtures (shared for beforeAll login)
+// ---------------------------------------------------------------------------
+
+const USER_EMAIL    = 'test@example.com';
+const USER_PASSWORD = 'securepassword1';
+// Pre-computed bcrypt hash for USER_PASSWORD (cost 12):
+const USER_HASH     = '$2b$12$iza4wLD3eGM4F/q5nb.cHuLSVMRuZYcie.a3V6b6LwFdYO.LqLPie';
+const USER_ID       = 'user-uuid-aaaa-bbbb-cccc';
+
+const fixUserRow = {
+  id: USER_ID,
+  email: USER_EMAIL,
+  password_hash: USER_HASH,
+  created_at: '2026-06-17T00:00:00.000Z',
+};
+
+// ---------------------------------------------------------------------------
+// Domain fixtures
 // ---------------------------------------------------------------------------
 
 const BOARD_ID   = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
@@ -68,19 +83,34 @@ const fixColumns = [
 // ---------------------------------------------------------------------------
 
 describe('POST /boards', () => {
+  const stubPool = { query: jest.fn() } as any;
+  const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+  const agent = supertest.agent(app);
+
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // AuthService.login: findByEmail
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+  });
+
   it('AC-ENTRY-1 + AC-HAPPY-1: returns 201 with board JSON and auto-seeded columns', async () => {
     // Arrange — stub pool for: INSERT boards, 3x INSERT columns
-    const stubPool = {
-      query: jest.fn()
-        // First call: INSERT INTO boards → returns the new board row
-        .mockResolvedValueOnce({ rows: [fixBoard], rowCount: 1 })
-        // Next 3 calls: INSERT INTO columns → each returns nothing (rowCount = 1)
-        .mockResolvedValue({ rows: [], rowCount: 1 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      // First call: INSERT INTO boards → returns the new board row
+      .mockResolvedValueOnce({ rows: [fixBoard], rowCount: 1 })
+      // Next 3 calls: INSERT INTO columns → each returns nothing (rowCount = 1)
+      .mockResolvedValue({ rows: [], rowCount: 1 });
 
     // Act
-    const response = await request(app)
+    const response = await agent
       .post('/boards')
       .send({ name: BOARD_NAME });
 
@@ -91,12 +121,8 @@ describe('POST /boards', () => {
   });
 
   it('AC-ERROR-1: returns 400 with { error, message } when name is missing', async () => {
-    // Arrange — pool is never reached for invalid input
-    const stubPool = { query: jest.fn() } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
-
     // Act
-    const response = await request(app)
+    const response = await agent
       .post('/boards')
       .send({});
 
@@ -111,20 +137,31 @@ describe('POST /boards', () => {
 // GET /boards
 // ---------------------------------------------------------------------------
 
-/** Stub pool that returns valid paginated data for GET /boards */
-function makeListPool(boards = [fixBoard], total = 1) {
-  return {
-    query: jest.fn()
-      .mockResolvedValueOnce({ rows: [{ count: String(total) }], rowCount: 1 })
-      .mockResolvedValueOnce({ rows: boards, rowCount: boards.length }),
-  } as any;
-}
-
 describe('GET /boards', () => {
-  it('AC-HAPPY-1: no query params → defaults page=1 limit=20, returns envelope', async () => {
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool() });
+  const stubPool = { query: jest.fn() } as any;
+  const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+  const agent = supertest.agent(app);
 
-    const response = await request(app).get('/boards');
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // AuthService.login: findByEmail
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+  });
+
+  it('AC-HAPPY-1: no query params → defaults page=1 limit=20, returns envelope', async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [{ count: '1' }], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [fixBoard], rowCount: 1 });
+
+    const response = await agent.get('/boards');
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({
@@ -137,54 +174,46 @@ describe('GET /boards', () => {
   });
 
   it('AC-HAPPY-2: explicit ?page=2&limit=5 → forwarded to service', async () => {
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool([], 10) });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [{ count: '10' }], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
-    const response = await request(app).get('/boards?page=2&limit=5');
+    const response = await agent.get('/boards?page=2&limit=5');
 
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ page: 2, limit: 5 });
   });
 
   it('AC-ERROR-1: ?page=0 → 400 VALIDATION_ERROR', async () => {
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool() });
-
-    const response = await request(app).get('/boards?page=0');
+    const response = await agent.get('/boards?page=0');
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('VALIDATION_ERROR');
   });
 
   it('AC-ERROR-1: ?limit=0 → 400 VALIDATION_ERROR', async () => {
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool() });
-
-    const response = await request(app).get('/boards?limit=0');
+    const response = await agent.get('/boards?limit=0');
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('VALIDATION_ERROR');
   });
 
   it('AC-ERROR-1: ?limit=101 → 400 VALIDATION_ERROR (max is 100)', async () => {
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool() });
-
-    const response = await request(app).get('/boards?limit=101');
+    const response = await agent.get('/boards?limit=101');
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('VALIDATION_ERROR');
   });
 
   it('AC-ERROR-2: ?page=abc → 400 VALIDATION_ERROR (non-numeric)', async () => {
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool() });
-
-    const response = await request(app).get('/boards?page=abc');
+    const response = await agent.get('/boards?page=abc');
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('VALIDATION_ERROR');
   });
 
   it('AC-ERROR-2: ?limit=foo → 400 VALIDATION_ERROR (non-numeric)', async () => {
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: makeListPool() });
-
-    const response = await request(app).get('/boards?limit=foo');
+    const response = await agent.get('/boards?limit=foo');
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('VALIDATION_ERROR');
@@ -196,17 +225,32 @@ describe('GET /boards', () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /boards/:id', () => {
+  const stubPool = { query: jest.fn() } as any;
+  const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+  const agent = supertest.agent(app);
+
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // AuthService.login: findByEmail
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+  });
+
   it('AC-HAPPY-3: returns 200 with board and its columns array', async () => {
     // Arrange — stub pool for: SELECT board, SELECT columns
-    const stubPool = {
-      query: jest.fn()
-        .mockResolvedValueOnce({ rows: [fixBoard],   rowCount: 1 })   // board lookup
-        .mockResolvedValueOnce({ rows: fixColumns,   rowCount: 3 }),   // columns lookup
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixBoard],   rowCount: 1 })   // board lookup
+      .mockResolvedValueOnce({ rows: fixColumns,   rowCount: 3 });   // columns lookup
 
     // Act
-    const response = await request(app).get(`/boards/${BOARD_ID}`);
+    const response = await agent.get(`/boards/${BOARD_ID}`);
 
     // Assert
     expect(response.status).toBe(200);
@@ -218,13 +262,11 @@ describe('GET /boards/:id', () => {
 
   it('AC-ERROR-2: returns 404 with { error, message } for unknown board id', async () => {
     // Arrange — board lookup returns zero rows → repository throws NotFoundError
-    const stubPool = {
-      query: jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValue({ rows: [], rowCount: 0 });
 
     // Act
-    const response = await request(app).get('/boards/non-existent-id');
+    const response = await agent.get('/boards/non-existent-id');
 
     // Assert
     expect(response.status).toBe(404);
@@ -238,15 +280,31 @@ describe('GET /boards/:id', () => {
 // ---------------------------------------------------------------------------
 
 describe('DELETE /boards/:id', () => {
+  const stubPool = { query: jest.fn() } as any;
+  const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+  const agent = supertest.agent(app);
+
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // AuthService.login: findByEmail
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+  });
+
   it('AC-HAPPY-4: returns 204 with no body when board is deleted', async () => {
     // Arrange — DELETE query affects 1 row
-    const stubPool = {
-      query: jest.fn().mockResolvedValue({ rows: [], rowCount: 1 }),
-    } as any;
-    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    stubPool.query
+      .mockResolvedValue({ rows: [], rowCount: 1 });
 
     // Act
-    const response = await request(app).delete(`/boards/${BOARD_ID}`);
+    const response = await agent.delete(`/boards/${BOARD_ID}`);
 
     // Assert
     expect(response.status).toBe(204);

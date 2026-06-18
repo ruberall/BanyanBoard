@@ -3,8 +3,8 @@ name: "Learned: Testing Patterns"
 globs: ["*.test.*", "*.test.tsx", "*.test.ts", "*.spec.*"]
 topics: ["testing-patterns", "typescript", "test-fixtures"]
 priority: medium
-evidence_count: 6
-last_updated: 2026-06-17
+evidence_count: 8
+last_updated: 2026-06-18
 auto_generated: true
 ---
 
@@ -16,6 +16,8 @@ auto_generated: true
 - Declare fixture constants in test files only if they are referenced in at least one assertion — unused typed constants cause TS6133 errors that fail the build pipeline.
 - In Playwright configs for suites sharing a live database, set `workers: 1` to prevent isolation race conditions unless each test namespaces its own data.
 - When testing TanStack Query error states in Playwright, wait for `[role="status"]` to disappear before asserting `[role="alert"]` — this spans the full retry cycle rather than racing against it.
+- When wiring a PostgreSQL-backed middleware (e.g., `connect-pg-simple`) into `createApp`, add a `NODE_ENV === 'test'` conditional that substitutes an in-memory store to prevent the real store constructor from intercepting stub pool mock chains in route integration tests.
+- When adding Playwright E2E specs to a project that also uses vitest, add `exclude: ['e2e/**']` to `vitest.config.ts` before committing the first `.spec.ts` file to the `e2e/` directory.
 
 ## Evidence
 
@@ -27,3 +29,5 @@ auto_generated: true
 | Unused ALL_COLUMN_IDS in useMoveCard.test.tsx caused TS6133 build failure | [reflection-TASK-009.md](../reflection/reflection-TASK-009.md) | 2026-06-17 |
 | Playwright workers=1 for shared-DB suites | [reflection-TASK-010.md](../reflection/reflection-TASK-010.md) | 2026-06-17 |
 | TanStack Query retry cycle wait pattern | [reflection-TASK-010.md](../reflection/reflection-TASK-010.md) | 2026-06-17 |
+| MemoryStore fallback for stub-pool tests (connect-pg-simple) | [reflection-TASK-011.md](../reflection/reflection-TASK-011.md) | 2026-06-18 |
+| vitest/Playwright coexistence: exclude e2e/** | [reflection-TASK-011.md](../reflection/reflection-TASK-011.md) | 2026-06-18 |

@@ -11,7 +11,7 @@ export async function request<T>(
   const headers: HeadersInit = { 'Content-Type': 'application/json', ...options?.headers }
   let res: Response
   try {
-    res = await fetch(url, { ...options, method, headers })
+    res = await fetch(url, { ...options, method, headers, credentials: 'include' })
   } catch (err) {
     throw new ApiError(0, err instanceof Error ? err.message : 'Network error')
   }

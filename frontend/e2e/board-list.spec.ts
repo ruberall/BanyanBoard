@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { createBoard, deleteBoard } from './helpers/api.js';
+import { loginAsTestUser } from './helpers/auth.js';
+
+test.beforeEach(async ({ page }) => {
+  await loginAsTestUser(page.request);
+});
 
 test.describe('Board List Page', () => {
   test('renders heading and create board form', async ({ page }) => {
@@ -12,19 +17,14 @@ test.describe('Board List Page', () => {
   test('creates a board and shows it in the list', async ({ page }) => {
     let boardId: string | undefined;
 
-    await page.goto('/');
-    await page.getByRole('textbox', { name: 'Board name' }).fill('E2E Test Board');
-    await page.getByRole('button', { name: 'Create Board' }).click();
+    const boardId2 = await createBoard(page.request, 'E2E Test Board');
 
+    await page.goto('/');
     const boardLink = page.getByRole('link', { name: 'E2E Test Board' });
     await expect(boardLink).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Board name' })).toHaveValue('');
 
-    // Capture board ID from the href for cleanup
-    const href = await boardLink.getAttribute('href');
-    boardId = href?.split('/boards/')[1];
-
-    if (boardId) await deleteBoard(boardId);
+    boardId = boardId2;
+    if (boardId) await deleteBoard(page.request, boardId);
   });
 
   test('blank board name is a no-op — no request fires, list unchanged', async ({ page }) => {
