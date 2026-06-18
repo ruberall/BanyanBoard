@@ -2,6 +2,21 @@
 
 ---
 
+## 2026-06-18 - TASK-012 Reflection Learnings
+
+### Extracted Patterns
+- **testing-patterns** → amended `agent-rules/_learned/testing-patterns.md` (evidence count: 8 → 10)
+  - SSE endpoints require native `http.createServer` + `http.get()` — supertest 7 incompatible with long-lived streaming connections
+  - `tsconfig.json` must exclude `src/**/__tests__` (recursive) not just `src/__tests__`
+- **architecture** → amended `agent-rules/_learned/architecture-foundation.md` (evidence count: 1 → 3)
+  - Subscribe-before-flush ordering for SSE endpoints with history replay
+  - `DomainEventBus` as `Map<scopeId, Set<handler>>` vs Node.js `EventEmitter` singleton
+
+### systemPatterns.md Updates
+- Subscribe-before-flush SSE pattern added to Domain Event Pattern section (by Documentation Agent)
+
+---
+
 ## 2026-06-18 - Consolidation (during TASK-011 archive)
 
 - Files before: 10, Files after: 10

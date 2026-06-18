@@ -3,7 +3,7 @@ name: "Learned: Testing Patterns"
 globs: ["*.test.*", "*.test.tsx", "*.test.ts", "*.spec.*"]
 topics: ["testing-patterns", "typescript", "test-fixtures"]
 priority: medium
-evidence_count: 8
+evidence_count: 10
 last_updated: 2026-06-18
 auto_generated: true
 ---
@@ -18,6 +18,8 @@ auto_generated: true
 - When testing TanStack Query error states in Playwright, wait for `[role="status"]` to disappear before asserting `[role="alert"]` — this spans the full retry cycle rather than racing against it.
 - When wiring a PostgreSQL-backed middleware (e.g., `connect-pg-simple`) into `createApp`, add a `NODE_ENV === 'test'` conditional that substitutes an in-memory store to prevent the real store constructor from intercepting stub pool mock chains in route integration tests.
 - When adding Playwright E2E specs to a project that also uses vitest, add `exclude: ['e2e/**']` to `vitest.config.ts` before committing the first `.spec.ts` file to the `e2e/` directory.
+- Test SSE endpoints using native `http.createServer` + `http.get()` against a random bound port — supertest 7 blocks `server.close()` on open SSE connections and never sends `buffer(false)` requests.
+- Add `src/**/__tests__` (recursive glob) to `tsconfig.json` `exclude`, not just `src/__tests__` — nested test helper files cause TS2393 duplicate declaration errors when only the top-level directory is excluded.
 
 ## Evidence
 
@@ -31,3 +33,5 @@ auto_generated: true
 | TanStack Query retry cycle wait pattern | [reflection-TASK-010.md](../reflection/reflection-TASK-010.md) | 2026-06-17 |
 | MemoryStore fallback for stub-pool tests (connect-pg-simple) | [reflection-TASK-011.md](../reflection/reflection-TASK-011.md) | 2026-06-18 |
 | vitest/Playwright coexistence: exclude e2e/** | [reflection-TASK-011.md](../reflection/reflection-TASK-011.md) | 2026-06-18 |
+| SSE endpoints require native http.get, not supertest | [reflection-TASK-012.md](../reflection/reflection-TASK-012.md) | 2026-06-18 |
+| tsconfig exclude must use src/**/__tests__ recursive glob | [reflection-TASK-012.md](../reflection/reflection-TASK-012.md) | 2026-06-18 |
