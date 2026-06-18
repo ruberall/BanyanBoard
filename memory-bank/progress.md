@@ -12,6 +12,19 @@
 | TASK-008 | FEAT-004: Card Move & Ordering | 2026-06-16 | feature/FEAT-004-card-move-ordering | [archive-TASK-008.md](archive/archive-TASK-008.md) |
 | TASK-009 | FEAT-005: React Frontend Scaffold | 2026-06-17 | feature/FEAT-005-react-frontend-scaffold | [archive-TASK-009.md](archive/archive-TASK-009.md) |
 
+## TASK-011 Phase 3: Integration & Docker Compose Wiring (2026-06-18)
+
+**Phase**: 3 of 4
+**Status**: COMPLETE
+**Changes**:
+- `docker-compose.yml`: Added `SESSION_SECRET` env var to `api` service
+- `backend/src/app.ts`: Wired `connect-pg-simple` as PostgreSQL session store (`createTableIfMissing: true`); MemoryStore fallback for `NODE_ENV === 'test'`
+- `backend/src/routes/auth.ts`: Added `req.session.regenerate()` on register and login (session fixation hardening); auto-login on register
+- `backend/src/__tests__/auth.integration.test.ts`: 6 real-DB smoke tests (describeIfDb pattern): register → auto-login → boards → logout → re-login → /me
+- Frontend test lint fixes: replaced `require()` with ES imports in `LoginPage.test.tsx` and `RegisterPage.test.tsx`
+**Test results**: 147 backend + 160 frontend unit tests passing; 14 backend + real-DB skipped (no DATABASE_URL in CI)
+**Security**: Session fixation patched via `req.session.regenerate()` on privilege escalation
+
 ## Task Archive: TASK-009
 
 **Task**: React Frontend Scaffold

@@ -22,7 +22,7 @@ export function createAuthRouter(db: Queryable): Router {
   const service = new AuthService(repo);
   const router = Router();
 
-  router.post('/register', asyncHandler(async (req, res) => {
+  router.post('/register', asyncHandler(async (req, res, next) => {
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
       const firstError = parsed.error.errors[0];
@@ -30,11 +30,16 @@ export function createAuthRouter(db: Queryable): Router {
     }
     const { email, password } = parsed.data;
     const user = await service.register(email, password);
-    req.log.info({ event: 'user.registered', userId: user.id }, 'User registered');
-    res.status(201).json(user);
+    // Regenerate session ID before writing userId to prevent session fixation.
+    req.session.regenerate((err) => {
+      if (err) return next(err);
+      req.session.userId = user.id;
+      req.log.info({ event: 'user.registered', userId: user.id }, 'User registered');
+      res.status(201).json(user);
+    });
   }));
 
-  router.post('/login', asyncHandler(async (req, res) => {
+  router.post('/login', asyncHandler(async (req, res, next) => {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
       const firstError = parsed.error.errors[0];
@@ -42,9 +47,13 @@ export function createAuthRouter(db: Queryable): Router {
     }
     const { email, password } = parsed.data;
     const user = await service.login(email, password);
-    req.session.userId = user.id;
-    req.log.info({ event: 'user.login', userId: user.id }, 'User logged in');
-    res.json(user);
+    // Regenerate session ID before writing userId to prevent session fixation.
+    req.session.regenerate((err) => {
+      if (err) return next(err);
+      req.session.userId = user.id;
+      req.log.info({ event: 'user.login', userId: user.id }, 'User logged in');
+      res.json(user);
+    });
   }));
 
   router.post('/logout', (req, res, next) => {

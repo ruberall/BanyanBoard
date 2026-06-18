@@ -1,5 +1,6 @@
 import express, { Express } from 'express';
 import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
 import type { Config } from './config';
 import type { Pool } from 'pg';
 import type { Logger } from 'pino';
@@ -34,7 +35,16 @@ export function createApp(deps: AppDeps): Express {
     );
     process.exit(1);
   }
+
+  // Use PostgreSQL-backed session store in non-test environments.
+  // Route tests inject stub pools — using PgSession there would intercept
+  // pool.query calls before domain queries, breaking the mock chain.
+  const sessionStore = deps.config.NODE_ENV !== 'test'
+    ? new (connectPgSimple(session))({ pool: deps.pool, createTableIfMissing: true })
+    : undefined;
+
   app.use(session({
+    store: sessionStore,
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,

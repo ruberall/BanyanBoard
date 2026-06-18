@@ -26,6 +26,7 @@ import type { Mock } from 'vitest'
 
 import * as useLoginModule from '@/hooks/useLogin'
 import { LoginPage } from '@/pages/LoginPage/LoginPage'
+import { ApiError } from '@/types'
 
 vi.mock('@/hooks/useLogin')
 
@@ -227,7 +228,7 @@ describe('LoginPage — external ?next= ignored (AC-HAPPY-3)', () => {
 
 describe('LoginPage — 401 error (AC-ERROR-1)', () => {
   it('shows "Invalid email or password" ErrorBanner on 401', () => {
-    const { ApiError } = require('@/types')
+    // ApiError imported at top of file
     mockedUseLogin.mockReturnValue(
       mockMutation({
         isError: true,
@@ -249,7 +250,7 @@ describe('LoginPage — 401 error (AC-ERROR-1)', () => {
 
 describe('LoginPage — generic API error (AC-ERROR-2)', () => {
   it('shows ErrorBanner with server error message on non-401 error', () => {
-    const { ApiError } = require('@/types')
+    // ApiError imported at top of file
     mockedUseLogin.mockReturnValue(
       mockMutation({
         isError: true,

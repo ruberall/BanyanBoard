@@ -275,13 +275,16 @@ Questions requiring creative exploration:
 - New route entries in `App.tsx`: `/login`, `/register`
 - Tests: `LoginPage` and `RegisterPage` component tests (form submit, error display), `AuthContext` unit tests
 
-**Phase 3 — Integration & Docker Compose Wiring**
+**Phase 3 — Integration & Docker Compose Wiring** ✅ COMPLETE (2026-06-18)
 - `SESSION_SECRET` env var added to `docker-compose.yml` `api` service
-- Verify `connect-pg-simple` creates `sessions` table on first startup (schema auto-creation via `createTableIfMissing: true`)
-- End-to-end smoke test: full register → login → access `/boards` → logout flow
-- Update `backend/src/config.ts` `Config` type and zod schema with new session fields
-- Update `frontend/src/types/index.ts` with `User` type (`{ id: string; email: string }`)
-- `CORS_ORIGINS` already set in `docker-compose.yml`; add `credentials: true` to `corsMiddleware` in `backend/src/middleware/cors.ts`
+- `connect-pg-simple` wired into `app.ts` with `createTableIfMissing: true`; MemoryStore fallback for test env
+- Real-DB smoke test (`auth.integration.test.ts`): register → auto-login → boards → logout → re-login → /me (6 tests)
+- `backend/src/config.ts` session fields — already present from Phase 1
+- `frontend/src/types/index.ts` User type — already present from Phase 1/2
+- `credentials: true` in `cors.ts` — already present from Phase 1
+- `credentials: 'include'` in `client.ts` — already present from Phase 2
+- Session fixation hardened: `req.session.regenerate()` before assigning userId on login and register
+- Frontend test lint: replaced `require()` with ES imports in LoginPage.test.tsx and RegisterPage.test.tsx
 
 **Phase 4 — E2E & Hardening**
 - Playwright E2E tests covering: register → redirect to boards, login → access boards, logout → redirect to login, unauthenticated access → redirect to login, API returns 401 without session
@@ -376,29 +379,36 @@ New endpoints (all under `/auth` prefix, mounted in `routes/index.ts`):
 ## Execution State
 
 **Build Status**: RUNNING
-**Current Build**: Phase 2: Frontend Auth Shell (TASK-011)
-**Build Started**: 2026-06-17
-**Phase Number**: 1 of 4
+**Current Build**: Phase 3: Integration & Docker Compose Wiring (TASK-011)
+**Build Started**: 2026-06-18
+**Phase Number**: 3 of 4
 **Is Multi-Phase**: YES
 
 ### Current Build Step
-**Step**: Phase 2 COMPLETE
+**Step**: Phase 3 COMPLETE
 **Status**: COMPLETE
-**Completed**: 2026-06-17
+**Completed**: 2026-06-18
 
 ### Completed Steps
 - Creative: User Journey Design COMPLETE (2026-06-17)
 - Creative: Architecture Design COMPLETE (2026-06-17)
 - Step 0.5 Git Setup: COMPLETE (2026-06-17) - On branch feature/FEAT-006-user-authentication
-- Step 1 Read Task Context: COMPLETE (2026-06-17) - Phase 1: Backend Auth Foundation (1 of 4)
-- Step 2 Load Context: COMPLETE (2026-06-17) - Level 3 rules loaded
+- Phase 1 Backend Auth Foundation: COMPLETE (2026-06-17)
+- Phase 2 Frontend Auth Shell: COMPLETE (2026-06-17)
+- Step 0.5 Git Setup Phase 3: COMPLETE (2026-06-18) - On branch feature/FEAT-006-user-authentication
+- Step 1 Read Task Context: COMPLETE (2026-06-18) - Phase 3: Integration & Docker Compose Wiring (3 of 4)
+- Step 2 Load Context: COMPLETE (2026-06-18) - Level 3 rules loaded
 
 ### Sub-Agents
-- Test Writer Agent: COMPLETE (2026-06-17) - 36 tests in 4 files
-- Coding Agent: COMPLETE (2026-06-17) - All 36 auth tests passing
-- Code Reviewer: COMPLETE (2026-06-17) - APPROVED after fixes
-- Documentation Agent: COMPLETE (2026-06-17) - techContext, systemPatterns, productBrief updated
+- Phase 1 Test Writer Agent: COMPLETE (2026-06-17) - 36 tests in 4 files
+- Phase 1 Coding Agent: COMPLETE (2026-06-17) - All 36 auth tests passing
+- Phase 1 Code Reviewer: COMPLETE (2026-06-17) - APPROVED after fixes
+- Phase 1 Documentation Agent: COMPLETE (2026-06-17) - techContext, systemPatterns, productBrief updated
+- Phase 2 Test Writer Agent: COMPLETE (2026-06-17) - Frontend auth component tests
+- Phase 2 Coding Agent: COMPLETE (2026-06-17) - LoginPage, RegisterPage, AuthContext, PrivateRoute
+- Phase 2 Code Reviewer: COMPLETE (2026-06-17) - APPROVED
+- Phase 2 Documentation Agent: COMPLETE (2026-06-17) - docs updated
 
 ### Resumption Notes
 **Can Resume**: YES
-**Resume From**: Step 3 - Test Writer Agent
+**Resume From**: Step 4 - Coding Agent

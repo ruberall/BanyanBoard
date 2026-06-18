@@ -23,6 +23,7 @@ import type { Mock } from 'vitest'
 
 import * as useRegisterModule from '@/hooks/useRegister'
 import { RegisterPage } from '@/pages/RegisterPage/RegisterPage'
+import { ApiError } from '@/types'
 
 vi.mock('@/hooks/useRegister')
 
@@ -171,7 +172,7 @@ describe('RegisterPage — successful registration (AC-HAPPY-1)', () => {
 
 describe('RegisterPage — 409 conflict error (AC-ERROR-1)', () => {
   it('shows "Email already registered" ErrorBanner on 409 conflict', () => {
-    const { ApiError } = require('@/types')
+    // ApiError imported at top of file
     mockedUseRegister.mockReturnValue(
       mockMutation({
         isError: true,
@@ -193,7 +194,7 @@ describe('RegisterPage — 409 conflict error (AC-ERROR-1)', () => {
 
 describe('RegisterPage — 400 validation error (AC-ERROR-2)', () => {
   it('shows ErrorBanner with the server validation message on 400 error', () => {
-    const { ApiError } = require('@/types')
+    // ApiError imported at top of file
     mockedUseRegister.mockReturnValue(
       mockMutation({
         isError: true,
