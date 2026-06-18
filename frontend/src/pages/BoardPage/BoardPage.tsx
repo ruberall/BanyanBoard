@@ -18,6 +18,8 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner/LoadingSpinne
 import { ErrorBanner } from '@/components/common/ErrorBanner/ErrorBanner'
 import { KanbanBoard } from '@/components/board/KanbanBoard/KanbanBoard'
 import { KanbanCard } from '@/components/board/KanbanCard/KanbanCard'
+import { ActivityFeed } from '@/components/ActivityFeed/ActivityFeed'
+import { useActivityFeed } from '@/hooks/useActivityFeed'
 import type { Card } from '@/types'
 import styles from './BoardPage.module.css'
 
@@ -27,6 +29,7 @@ export function BoardPage() {
   const [activeCard, setActiveCard] = useState<Card | null>(null)
   const [bannerError, setBannerError] = useState<string | null>(null)
   const moveCard = useMoveCard(setBannerError)
+  const { events: activityEvents, connectionStatus } = useActivityFeed(boardId ?? '')
   const qc = useQueryClient()
 
   const sensors = useSensors(
@@ -122,6 +125,7 @@ export function BoardPage() {
           {activeCard ? <KanbanCard card={activeCard} overlay /> : null}
         </DragOverlay>
       </DndContext>
+      <ActivityFeed events={activityEvents} connectionStatus={connectionStatus} />
     </div>
   )
 }

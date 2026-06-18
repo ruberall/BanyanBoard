@@ -9,11 +9,13 @@ import { errorHandler } from './middleware/errorHandler';
 import { requestContext } from './middleware/requestContext';
 import { createRequestLogger } from './middleware/requestLogger';
 import { corsMiddleware } from './middleware/cors';
+import type { DomainEventBus } from './events/domain-event-bus';
 
 interface AppDeps {
   config: Config;
   logger: Logger;
   pool: Pool;
+  bus?: DomainEventBus;
 }
 
 export function createApp(deps: AppDeps): Express {
@@ -57,7 +59,7 @@ export function createApp(deps: AppDeps): Express {
   }));
 
   // Feature routes — pool passed as Queryable for repository injection
-  app.use(createRouter(deps.pool));
+  app.use(createRouter(deps.pool, deps.bus, deps.config));
 
   // Terminal error handler (must be last)
   app.use(errorHandler);
