@@ -19,6 +19,7 @@ Core capabilities this product provides:
 - Create cards with titles, descriptions, due dates, and labels
 - Drag-and-drop cards between columns
 - Invite team members and collaborate on shared boards
+- Real-time activity feed on the board page showing card movement events (SSE-based, collapsible sidebar)
 
 ## Markets Serviced
 
@@ -180,7 +181,7 @@ Core capabilities this product provides:
 - MVP scope: boards, columns, cards (titles, descriptions, due dates, labels)
 - Columns are **fixed per board**: To Do, In Progress, Done — not user-configurable in MVP
 - Labels are **card-scoped** (free-form strings per card) — no shared board-level label registry
-- No real-time updates (no WebSockets) — optimistic UI + manual refresh is sufficient for MVP
+- No WebSockets — real-time activity feed uses SSE (Server-Sent Events) for one-way event streaming; card/column mutations still use REST + optimistic UI
 - No billing, subscriptions, or usage limits in MVP
 - Must run entirely via `docker compose up`
 
@@ -195,7 +196,7 @@ Core capabilities this product provides:
 
 ### Assumptions
 
-- Teams are small enough that real-time collaboration (WebSockets) is not required for MVP; page refresh is acceptable
+- Teams are small enough that full bidirectional real-time collaboration (WebSockets) is not required for MVP; SSE activity feed provides lightweight one-way event streaming
 - Users are technical enough to run Docker Compose
 - A single PostgreSQL instance is sufficient for MVP scale
 
@@ -220,7 +221,8 @@ Core capabilities this product provides:
 |------|--------|---------|
 | 2026-06-13 | banyan-init | Initial creation from user-provided product brief |
 | 2026-06-17 | build-documentation-agent | Updated Security NFR to reflect TASK-011 Phase 1 auth implementation |
+| 2026-06-18 | build-documentation-agent | Added activity feed to Key Functionality; updated real-time constraint to reflect SSE (TASK-012 Phase 3) |
 
 ## Last Refreshed
 
-2026-06-17
+2026-06-18

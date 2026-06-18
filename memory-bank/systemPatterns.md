@@ -1,6 +1,25 @@
 # System Patterns
 
-**Last updated**: 2026-06-18 (added DB schema, query patterns, domain event pattern)
+**Last updated**: 2026-06-18 (added Guiding Principles, DB schema, query patterns, domain event pattern, SSE transport layer, subscribe-before-flush race hardening)
+
+## Guiding Principles
+
+These principles are enforced by the Code Reviewer Agent. Violations are **BLOCKING**.
+
+| # | Principle | Rule |
+|---|-----------|------|
+| 1 | **3-Layer Architecture** | Routes → Services → Repositories only. No layer reaches "up". No SQL in services or routes. No HTTP in services or repositories. |
+| 2 | **Dependency Injection** | All dependencies injected via constructor. No module-level singletons except logger. No `new Foo()` inside business logic. |
+| 3 | **Config via `config.ts` Only** | `process.env` read in exactly one place: `src/config.ts`. All other files receive a typed `Config` object. No hardcoded URLs, ports, or secrets anywhere. |
+| 4 | **No `console.log`** | All logging via pino. Use `req.log` in route handlers, module `logger` elsewhere. `console.error` permitted only in `server.ts` fatal startup error. |
+| 5 | **Parameterized SQL Only** | `$1, $2, ...` placeholders everywhere. No string interpolation into SQL. |
+| 6 | **`RETURNING` on INSERTs** | All INSERT statements return the created row directly. No separate SELECT after write. |
+| 7 | **`asyncHandler` on Async Routes** | Every async route handler is wrapped in `asyncHandler()` to forward rejections to Express error middleware. |
+| 8 | **`AppError` for Domain Errors** | Use `ValidationError`, `NotFoundError`, `UnauthorizedError`, etc. from `src/errors.ts`. Never throw plain `Error` from route or service layer. |
+| 9 | **No Sensitive Data in Logs** | `email`, `password`, credential hashes, session tokens, and PII must never appear in log entries. |
+| 10 | **Test Against Real Behaviour** | Repository tests use mock `Queryable`. Integration tests use a real DB (skip if `DATABASE_URL` absent). Never mock the full DB stack for integration tests. |
+| 11 | **Domain Types at Repository Layer** | Entity types defined at the top of the repository file that owns them. No shared `models/` folder unless a type crosses repository boundaries. |
+| 12 | **SSE / Streaming: Always Clean Up** | Long-lived connections (SSE, WebSocket) must register a `close` handler that cancels subscriptions, clears intervals, and releases resources to prevent memory leaks. |
 
 ## Architecture
 
@@ -248,6 +267,7 @@ When `credentials: true`, browsers reject `Access-Control-Allow-Origin: *`. `bac
 | `boards` | `id` uuid PK, `name` varchar, `created_at` timestamptz |
 | `columns` | `id` uuid PK, `board_id` FK → boards CASCADE DELETE, `name` varchar, `position` int, `created_at` timestamptz |
 | `cards` | `id` uuid PK, `column_id` FK → columns CASCADE DELETE, `title` varchar, `description` text?, `due_date` timestamptz?, `labels` text[]?, `position` float8 DEFAULT 1.0, `created_at`/`updated_at` timestamptz |
+| `card_events` | `id` uuid PK, `board_id` FK → boards CASCADE DELETE, `card_id` FK → cards SET NULL, `actor_id` FK → users SET NULL, `event_type` varchar, `payload` jsonb, `occurred_at` timestamptz DEFAULT now() |
 
 ## Query Patterns
 
@@ -262,6 +282,58 @@ When `credentials: true`, browsers reject `Access-Control-Allow-Origin: *`. `bac
 ## Domain Event Pattern
 
 Card actions (create, move, label, assign, delete) emit domain events. Consumers subscribe to event streams rather than polling. Events carry: timestamp, actor, action type, card ID, before/after state. In-process emitter for v1; designed for future message bus extraction.
+
+### Concrete Implementation (Phase 1 — TASK-012)
+
+**Interface** (`backend/src/events/domain-event-bus.ts`):
+- `DomainEventBus` — `publish(event): void | Promise<void>` and `subscribe(boardId, handler): () => void` (returns unsubscribe)
+- `DomainEvent` union type (currently `CardMovedEvent`); new event types extend the union
+- `CardMovedEvent` carries: `type`, `boardId`, `cardId`, `cardTitle?`, `actorId`, `actorEmail?`, `fromColumnId/Name?`, `toColumnId/Name?`, `occurredAt`
+
+**In-process implementation** (`backend/src/events/in-process-event-bus.ts`):
+- `InProcessEventBus` — `Map<boardId, Set<handler>>` for O(1) fan-out per board
+- Unsubscribe removes the handler from the Set; deletes the Map entry when the last subscriber for a board departs (prevents unbounded memory growth)
+- `_subscribers` is `readonly` but exposed for test memory-leak assertions
+
+**Service layer** (`backend/src/services/event.service.ts`):
+- `EventService.emitCardMoved(payload)` — persists to `card_events` via `EventRepository`, then publishes on the bus; returns the persisted event
+- Bus is optional in `AppDeps` (`bus?: DomainEventBus`); service skips publish when not provided (safe in contexts without SSE)
+
+**Wiring**:
+- `AppDeps` (in `app.ts`) extended with optional `bus?: DomainEventBus`
+- Production entry point constructs `InProcessEventBus` and passes it through `AppDeps`
+
+**DB Schema addition** (`backend/migrations/20260618120000_create-card-events.js`):
+
+| Table | Key Columns |
+|-------|-------------|
+| `card_events` | `id` uuid PK, `board_id` FK → boards CASCADE DELETE, `card_id` FK → cards SET NULL, `actor_id` FK → users SET NULL, `event_type` varchar, `payload` jsonb, `occurred_at` timestamptz DEFAULT now() |
+
+### SSE Transport Layer (Phase 2 — TASK-012)
+
+**Feed route** (`backend/src/routes/feed.ts`): `GET /boards/:boardId/events`
+- Protected by `requireAuth` (applied upstream in `routes/index.ts`)
+- Mounted at `router.use('/boards/:boardId/events', createFeedRouter(db, bus, config))`
+- Required SSE headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`, `X-Accel-Buffering: no` (last one prevents nginx from buffering frames)
+
+**SSE frame format**:
+```
+id: <eventId>\ndata: <json>\n\n
+```
+Each frame carries the full `EventRow` serialized as JSON; the `id` field enables browser-native reconnection tracking via `Last-Event-ID`.
+
+**Connect sequence**:
+1. Set SSE headers and flush
+2. If `Last-Event-ID` header present → `EventRepository.findAfterById(boardId, lastEventId)` and replay missed events oldest-first
+3. Otherwise → `EventRepository.findRecentByBoard(boardId, FEED_MAX_HISTORY)` reversed to oldest-first, then flush as initial history
+4. Subscribe to `DomainEventBus` for live events
+5. Start heartbeat interval (comment frame `": heartbeat\n\n"` every `FEED_SSE_HEARTBEAT_MS`)
+
+**Cleanup on disconnect** (`req.on('close')`): `clearInterval(heartbeat)` + call `unsubscribe()` from bus — implements Guiding Principle 12.
+
+**Subscribe-before-flush ordering (Phase 4 — TASK-012)**: The bus subscription must be registered _before_ flushing historical events to the client. A request-scoped buffer accumulates live events that arrive during the history flush; once the flush completes, buffered events are drained (with dedup against already-flushed IDs) before handing off to the normal live-publish path. Reversing the order (flush then subscribe) leaves a window between the last historical event and the first live event where events are silently lost — a race condition that only manifests under concurrent write load. Client-side, `useActivityFeed` maintains a `Set<string>` of seen `eventId`s scoped to the `useEffect` lifetime so that duplicate frames from SSE reconnection do not re-render.
+
+**`EventRepository.findAfterById`** (added in Phase 2): selects events for a board whose `occurred_at` is greater than the anchor event's `occurred_at` (correlated subquery), ordered `ASC` to deliver chronological replay.
 
 ## Adding a New Feature (proven pattern — first used in FEAT-002 Board API)
 

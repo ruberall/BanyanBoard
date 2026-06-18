@@ -24,11 +24,11 @@ No clever abstractions. No microservices. One Express app.
 /
 ├── frontend/           # React + TypeScript SPA (Vite 8)
 │   ├── src/
-│   │   ├── types/      # Domain types (Board, Column, Card, User, ApiError)
+│   │   ├── types/      # Domain types (Board, Column, Card, User, ApiError, CardMovedEvent)
 │   │   ├── context/    # React contexts (AuthContext — currentUser, login, logout, register via TanStack Query)
-│   │   ├── components/ # UI components (common/ for shared, feature-specific otherwise; PrivateRoute for auth guard)
+│   │   ├── components/ # UI components (common/ for shared, feature-specific otherwise; PrivateRoute for auth guard; ActivityFeed — collapsible right sidebar showing real-time card-move events, localStorage persistence for collapsed state)
 │   │   ├── pages/      # Route-level components (BoardListPage, BoardPage, LoginPage, RegisterPage, NotFoundPage)
-│   │   ├── hooks/      # Custom React hooks (useLogin, useRegister, useLogout, useCurrentUser)
+│   │   ├── hooks/      # Custom React hooks (useLogin, useRegister, useLogout, useCurrentUser, useActivityFeed — SSE client returning events[] + connectionStatus)
 │   │   ├── lib/        # Shared utilities (logger.ts — warn/error only, always emit)
 │   │   ├── api/        # API client
 │   │   │   ├── client.ts     # request<T>() fetch transport (credentials: 'include'; 401 triggers redirect to /login)
@@ -57,13 +57,15 @@ No clever abstractions. No microservices. One Express app.
 │   │   │   ├── index.ts          # createRouter — mounts auth (public) then requireAuth then domain routes
 │   │   │   ├── health.ts         # GET /health
 │   │   │   ├── auth.ts           # createAuthRouter — POST /register (auto-login), /login, /logout; GET /me
-│   │   │   └── boards.ts         # createBoardsRouter — CRUD for /boards
+│   │   │   ├── boards.ts         # createBoardsRouter — CRUD for /boards
+│   │   │   └── feed.ts           # createFeedRouter — GET /boards/:boardId/events (SSE activity feed)
 │   │   ├── services/
 │   │   │   ├── auth.service.ts   # AuthService — register, login, getMe (bcrypt cost 12, email-enum-safe)
 │   │   │   └── board.service.ts  # BoardService — input validation + business logic
 │   │   ├── repositories/
 │   │   │   ├── user.repository.ts  # UserRepository — SQL + User/PublicUser types (no password_hash in PublicUser)
-│   │   │   └── board.repository.ts # BoardRepository — SQL + Board/Column types
+│   │   │   ├── board.repository.ts # BoardRepository — SQL + Board/Column types
+│   │   │   └── event.repository.ts # EventRepository — insert/findRecentByBoard/findAfterById for card_events
 │   │   ├── middleware/
 │   │   │   ├── requireAuth.ts    # Synchronous session guard; throws UnauthorizedError if no userId
 │   │   │   └── cors.ts           # CORS with credentials: true; reflects origin for wildcard dev config
@@ -127,6 +129,8 @@ All config via environment variables. See `.env.example` for the full list.
 | `SESSION_SECRET` | Secret used to sign session cookies — **must be set in production** (≥ 32 chars) | dev fallback in `app.ts`; startup exits if missing in production |
 | `SESSION_COOKIE_MAX_AGE_MS` | Session cookie lifetime in milliseconds | `604800000` (7 days) |
 | `SESSION_SECURE` | Set `Secure` flag on session cookie (requires HTTPS) | `false` |
+| `FEED_MAX_HISTORY` | Maximum number of past events returned to a new SSE subscriber on connect | `20` |
+| `FEED_SSE_HEARTBEAT_MS` | Interval (ms) between SSE keep-alive comment frames | `15000` |
 
 ### Frontend Variables
 | Variable | Purpose | Default |
@@ -222,6 +226,7 @@ All endpoints are prefixed by the Express mount path. The app currently exposes:
 | `GET` | `/auth/me` | Yes | Return the authenticated user | `200 PublicUser` or `401` |
 | `GET` | `/boards` | Yes | List all boards | `200 Board[]` |
 | `GET` | `/boards/:id` | Yes | Get board with columns | `200 BoardWithColumns` or `404` |
+| `GET` | `/boards/:boardId/events` | Yes | SSE activity feed for a board; streams `EventRow` frames; supports `Last-Event-ID` header for missed-event replay | `text/event-stream` (long-lived) or `401` |
 | `POST` | `/boards` | Yes | Create board (`{ name }` body) | `201 Board` or `400` |
 | `DELETE` | `/boards/:id` | Yes | Delete board | `204` or `404` |
 
