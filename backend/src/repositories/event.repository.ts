@@ -69,4 +69,22 @@ export class EventRepository {
     );
     return result.rows;
   }
+
+  /**
+   * Find events for a board that occurred after the event with the given ID.
+   * Used for Last-Event-ID replay support in the SSE feed.
+   */
+  async findAfterById(boardId: string, afterEventId: string): Promise<EventRow[]> {
+    const result = await this.db.query<EventRow>(
+      `SELECT id, board_id, card_id, actor_id, event_type, from_column_id, to_column_id, payload, occurred_at
+       FROM card_events
+       WHERE board_id = $1
+         AND occurred_at > (
+           SELECT occurred_at FROM card_events WHERE id = $2
+         )
+       ORDER BY occurred_at ASC`,
+      [boardId, afterEventId],
+    );
+    return result.rows;
+  }
 }

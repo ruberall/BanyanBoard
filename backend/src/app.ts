@@ -59,7 +59,7 @@ export function createApp(deps: AppDeps): Express {
   }));
 
   // Feature routes — pool passed as Queryable for repository injection
-  app.use(createRouter(deps.pool, deps.bus));
+  app.use(createRouter(deps.pool, deps.bus, deps.config));
 
   // Terminal error handler (must be last)
   app.use(errorHandler);

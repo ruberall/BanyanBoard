@@ -5,10 +5,12 @@ import { createAuthRouter } from './auth';
 import { requireAuth } from '../middleware/requireAuth';
 import { createBoardsRouter } from './boards';
 import { createColumnCardsRouter, createCardsRouter } from './cards';
+import { createFeedRouter } from './feed';
 import type { DomainEventBus } from '../events/domain-event-bus';
 import { EventService } from '../services/event.service';
+import type { Config } from '../config';
 
-export function createRouter(db: Queryable, bus?: DomainEventBus): Router {
+export function createRouter(db: Queryable, bus?: DomainEventBus, config?: Config): Router {
   const router = Router();
 
   const eventService = bus ? new EventService(bus, db) : undefined;
@@ -26,6 +28,11 @@ export function createRouter(db: Queryable, bus?: DomainEventBus): Router {
   router.use('/boards', createBoardsRouter(db));
   router.use('/columns', createColumnCardsRouter(db));
   router.use('/cards', createCardsRouter(db, bus, eventService));
+
+  // SSE activity feed — only mounted when a bus is provided
+  if (bus) {
+    router.use('/boards/:boardId/events', createFeedRouter(db, bus, config));
+  }
 
   return router;
 }
