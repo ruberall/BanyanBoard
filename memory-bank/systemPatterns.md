@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-18 (PrivateRoute 401 redirect fix)
+**Last updated**: 2026-06-18 (added DB schema, query patterns, domain event pattern)
 
 ## Architecture
 
@@ -239,6 +239,29 @@ throw new UnauthorizedError('Invalid email or password');
 
 #### CORS Credentials: Reflect Origin Instead of Wildcard
 When `credentials: true`, browsers reject `Access-Control-Allow-Origin: *`. `backend/src/middleware/cors.ts` reflects the incoming request's `Origin` header back in the response rather than echoing `*`. This preserves broad dev-mode permissiveness while satisfying the credentials constraint.
+
+## Database Schema
+
+| Table | Key Columns |
+|-------|-------------|
+| `users` | `id` uuid PK, `email` varchar UNIQUE, `password_hash` text, `created_at` timestamptz |
+| `boards` | `id` uuid PK, `name` varchar, `created_at` timestamptz |
+| `columns` | `id` uuid PK, `board_id` FK → boards CASCADE DELETE, `name` varchar, `position` int, `created_at` timestamptz |
+| `cards` | `id` uuid PK, `column_id` FK → columns CASCADE DELETE, `title` varchar, `description` text?, `due_date` timestamptz?, `labels` text[]?, `position` float8 DEFAULT 1.0, `created_at`/`updated_at` timestamptz |
+
+## Query Patterns
+
+- **Parameterized SQL** — `$1, $2, ...` placeholders everywhere; no string interpolation
+- **`RETURNING`** — INSERTs return the created row directly; no separate SELECT after write
+- **Two-query over JOIN** — board + columns fetched as separate queries, not a JOIN (handles zero-column boards cleanly)
+- **`Promise.all`** — independent queries run concurrently (e.g. COUNT + data in paginated list; seeding columns on board create)
+- **No transactions** — multi-step writes use parallel independent inserts
+- **Type projection** — `password_hash` never appears in public return types; `RETURNING` lists safe columns explicitly
+- **Domain types at repo layer** — entity types defined at the top of each repository file, not in a shared `models/` folder
+
+## Domain Event Pattern
+
+Card actions (create, move, label, assign, delete) emit domain events. Consumers subscribe to event streams rather than polling. Events carry: timestamp, actor, action type, card ID, before/after state. In-process emitter for v1; designed for future message bus extraction.
 
 ## Adding a New Feature (proven pattern — first used in FEAT-002 Board API)
 
