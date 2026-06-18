@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-17 (TASK-011 Phase 2 — Frontend Auth Shell)
+**Last updated**: 2026-06-18 (PrivateRoute 401 redirect fix)
 
 ## Architecture
 
@@ -226,9 +226,10 @@ throw new UnauthorizedError('Invalid email or password');
 #### PrivateRoute: 4-State Guard
 `frontend/src/components/PrivateRoute/PrivateRoute.tsx` handles four states in order:
 1. **Loading** → render `<LoadingSpinner>` (session check in flight)
-2. **Error** → render `<ErrorBanner>` (unexpected `/auth/me` error)
-3. **Unauthenticated** → `<Navigate to="/login?next=<current-path>" replace>`
-4. **Authenticated** → `<AppHeader> + <Outlet>`
+2. **Error (401)** → `<Navigate to="/login?next=<current-path>" replace>` (not logged in — treat as unauthenticated, not a fault)
+3. **Error (other)** → render `<ErrorBanner>` (unexpected `/auth/me` failure)
+4. **Unauthenticated** → `<Navigate to="/login?next=<current-path>" replace>`
+5. **Authenticated** → `<AppHeader> + <Outlet>`
 
 #### Auth State via TanStack Query
 `useCurrentUser()` (`frontend/src/hooks/useCurrentUser.ts`) wraps `useQuery` against `GET /auth/me` with `retry: false` and `staleTime: 0`. This is the single source of truth for session state — no AuthContext or global store needed.
