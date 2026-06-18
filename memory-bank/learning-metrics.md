@@ -22,6 +22,7 @@
 | 2026-06-13 | TASK-001 archive | 3 | 3 | 0 | 0 | 0 | 0 |
 | 2026-06-16 | TASK-006 archive | 5 | 5 | 0 | 0 | 1 | 0 |
 | 2026-06-17 | TASK-009 archive | 8 | 8 | 0 | 0 | 0 | 0 |
+| 2026-06-18 | TASK-011 archive | 10 | 10 | 0 | 0 | 0 | 0 |
 
 ## Rule Effectiveness
 

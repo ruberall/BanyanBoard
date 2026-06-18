@@ -23,7 +23,7 @@
   - FEAT-003: Card Management API (planned) [Level 2]
   - FEAT-004: Card Move & Ordering (complete) [Level 2]
   - FEAT-005: React Frontend Scaffold (complete) [Level 3]
-  - FEAT-006: User Authentication (planned) [Level 3]
+  - FEAT-006: User Authentication (complete) [Level 3]
 
 ### next (Planning)
 
@@ -142,6 +142,8 @@
 - **Priority**: medium
 - **Complexity**: Level 3
 - **Description**: Session-based auth for the Express API. Register and login with email + password (bcrypt). Express-session with PostgreSQL session store. Auth middleware protecting all board/card routes. React login/register pages and session state management on the frontend. Users DB schema and migration.
-- **Linked Tasks**: TASK-011 (in_progress)
+- **Status**: complete
+- **Linked Tasks**: TASK-011 (COMPLETE)
 - **Branch**: feature/FEAT-006-user-authentication
 - **Created**: 2026-06-13
+- **Completed**: 2026-06-18

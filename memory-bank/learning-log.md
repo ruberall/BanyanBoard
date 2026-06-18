@@ -2,6 +2,17 @@
 
 ---
 
+## 2026-06-18 - Consolidation (during TASK-011 archive)
+
+- Files before: 10, Files after: 10
+- Merged: 0 files
+- Expired: 0 bullets (0 files deleted)
+- Promoted: 0 files (testing-patterns already at medium)
+- Pruned: 0 excess bullets
+- All rules recent (< 90 days); no stale expiry candidates
+
+---
+
 ## 2026-06-18 - TASK-011 Reflection
 
 ### Extracted Patterns
