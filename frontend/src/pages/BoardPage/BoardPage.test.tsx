@@ -34,6 +34,11 @@ import type { BoardWithColumns } from '@/types'
 // ---------------------------------------------------------------------------
 vi.mock('@/api/hooks')
 
+// Mock useActivityFeed to prevent EventSource creation in jsdom
+vi.mock('@/hooks/useActivityFeed', () => ({
+  useActivityFeed: () => ({ events: [], connectionStatus: 'connecting' as const }),
+}))
+
 const mockedUseBoard = hooks.useBoard as Mock
 const mockedUseCards = hooks.useCards as Mock
 const mockedUseCreateCard = hooks.useCreateCard as Mock

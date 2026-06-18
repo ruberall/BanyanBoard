@@ -39,6 +39,21 @@ export interface PaginatedResponse<T> {
   limit: number
 }
 
+export interface CardMovedEvent {
+  type: 'card.moved'
+  eventId: string
+  boardId: string
+  cardId: string
+  cardTitle: string
+  actorId: string | null
+  actorEmail: string | null
+  fromColumnId: string
+  fromColumnName: string | null
+  toColumnId: string
+  toColumnName: string | null
+  occurredAt: string // ISO-8601
+}
+
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
