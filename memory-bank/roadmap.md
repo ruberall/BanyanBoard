@@ -31,7 +31,7 @@
 - **Features**:
   - FEAT-007: Pagination for list endpoints (complete) [Level 2]
   - FEAT-008: E2E Test Suite for Board Flow (in_progress) [Level 2]
-  - FEAT-009: Realtime Activity Feed (planned) [Level 3]
+  - FEAT-009: Realtime Activity Feed (complete) [Level 3]
 
 ---
 
@@ -139,13 +139,14 @@
 ### FEAT-009: Realtime Activity Feed
 
 - **Version**: next
-- **Status**: planned
+- **Status**: complete
 - **Priority**: medium
 - **Complexity**: Level 3
 - **Description**: Track and display a realtime activity feed of card movements between columns. Card actions (create, move, label, assign, delete) emit domain events per systemPatterns.md Domain Event Pattern. Events carry timestamp, actor, action type, card ID, and before/after state. In-process emitter for v1, designed for future message bus extraction. Transport via SSE or WebSocket (to be decided in creative phase). New backend events endpoint and frontend ActivityFeed component.
-- **Linked Tasks**: TASK-012 (PLANNING)
-- **Branch**: feature/FEAT-009-realtime-activity-feed
+- **Linked Tasks**: TASK-012 (COMPLETE)
+- **Branch**: feature/FEAT-009-realtime-activity-feed (merged → main 2026-06-18)
 - **Created**: 2026-06-18
+- **Completed**: 2026-06-18
 
 ---
 

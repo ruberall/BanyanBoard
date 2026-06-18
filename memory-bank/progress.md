@@ -12,6 +12,7 @@
 | TASK-008 | FEAT-004: Card Move & Ordering | 2026-06-16 | feature/FEAT-004-card-move-ordering | [archive-TASK-008.md](archive/archive-TASK-008.md) |
 | TASK-009 | FEAT-005: React Frontend Scaffold | 2026-06-17 | feature/FEAT-005-react-frontend-scaffold | [archive-TASK-009.md](archive/archive-TASK-009.md) |
 | TASK-011 | FEAT-006: User Authentication | 2026-06-18 | feature/FEAT-006-user-authentication | [archive-TASK-011.md](archive/archive-TASK-011.md) |
+| TASK-012 | FEAT-009: Realtime Activity Feed | 2026-06-18 | feature/FEAT-009-realtime-activity-feed | [archive-TASK-012.md](archive/archive-TASK-012.md) |
 
 ## TASK-011 Phase 4: E2E & Hardening (2026-06-18)
 
