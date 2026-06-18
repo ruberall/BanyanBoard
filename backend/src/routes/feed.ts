@@ -35,6 +35,17 @@ export function createFeedRouter(
     const maxHistory  = config?.FEED_MAX_HISTORY  ?? DEFAULT_MAX_HISTORY;
     const heartbeatMs = config?.FEED_SSE_HEARTBEAT_MS ?? DEFAULT_HEARTBEAT_MS;
 
+    // --- Subscribe first to buffer events that arrive during DB query ---
+    const localBuffer: DomainEvent[] = [];
+    let buffering = true;
+    const unsubscribe = bus.subscribe(boardId, (event: DomainEvent) => {
+      if (buffering) {
+        localBuffer.push(event);
+      } else {
+        sendFrame(event.eventId, event);
+      }
+    });
+
     // --- SSE headers ---
     res.setHeader('Content-Type',      'text/event-stream');
     res.setHeader('Cache-Control',     'no-cache');
@@ -51,25 +62,31 @@ export function createFeedRouter(
     }
 
     // --- History flush ---
+    const replayedIds = new Set<string>();
     if (lastEventId) {
-      // Replay events that arrived after the client's last-seen event.
       const missed = await eventRepo.findAfterById(boardId, lastEventId);
       for (const row of missed) {
+        replayedIds.add(row.id);
         sendFrame(row.id, row);
       }
     } else {
-      // Standard connect: flush the last N events (oldest-first for correct ordering).
       const recent = await eventRepo.findRecentByBoard(boardId, maxHistory);
       const ordered = [...recent].reverse();
       for (const row of ordered) {
+        replayedIds.add(row.id);
         sendFrame(row.id, row);
       }
     }
 
-    // --- Bus subscription ---
-    const unsubscribe = bus.subscribe(boardId, (event: DomainEvent) => {
-      sendFrame(event.eventId, event);
-    });
+    // --- Drain buffer (skip events already sent via history) ---
+    buffering = false;
+    for (const event of localBuffer) {
+      if (!replayedIds.has(event.eventId)) {
+        sendFrame(event.eventId, event);
+      }
+    }
+    localBuffer.length = 0;
+    replayedIds.clear();
 
     // --- Heartbeat ---
     const heartbeat = setInterval(() => {

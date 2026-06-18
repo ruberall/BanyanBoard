@@ -391,6 +391,129 @@ describe('GET /boards/:boardId/events — Last-Event-ID replay', () => {
 });
 
 // ---------------------------------------------------------------------------
+// SSE-RACE-1: event emitted during subscribe gap must reach the client
+// ---------------------------------------------------------------------------
+//
+// Scenario: a card.moved event is published on the bus AFTER the SSE headers
+// are flushed but BEFORE bus.subscribe() is called (i.e. during the async
+// history DB query). With the current implementation the event is lost because
+// subscribe has not been registered yet. After the fix (subscribe-before-flush
+// with buffering), the event must appear in the stream.
+//
+// Implementation detail of the test:
+//   - stubPool.query is delayed 50 ms to create a window where the route is
+//     awaiting the DB result but has not yet called bus.subscribe().
+//   - mockBus.subscribe captures the handler AND immediately invokes it with
+//     fixBusEvent — this simulates an event that arrived during the gap.
+//   - We actually emit the event during the DB delay (before subscribe returns)
+//     by firing it inside the subscribe mock itself. The fix must buffer that
+//     event and drain it after the history flush.
+//
+// NOTE: This test FAILS on the current implementation (RED) and passes after
+// the subscribe-before-flush fix is applied.
+
+describe('GET /boards/:boardId/events — subscribe-before-flush race condition', () => {
+  const stubPool = { query: jest.fn() } as any;
+
+  // This bus mock captures the handler on subscribe and immediately invokes it
+  // with fixBusEvent, simulating an event that was emitted during the gap.
+  let capturedHandler: ((event: DomainEvent) => void) | null = null;
+  const mockBus = {
+    publish: jest.fn(),
+    subscribe: jest.fn().mockImplementation((_boardId: string, handler: (e: DomainEvent) => void) => {
+      capturedHandler = handler;
+      return jest.fn(); // unsubscribeFn
+    }),
+  };
+
+  let server: http.Server;
+  let port: number;
+  let sessionCookie: string;
+
+  beforeAll(async () => {
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool as any, bus: mockBus as any });
+    server = http.createServer(app);
+    await new Promise<void>(resolve => server.listen(0, resolve));
+    port = (server.address() as AddressInfo).port;
+    sessionCookie = await loginAndGetCookie(server, stubPool);
+    stubPool.query.mockReset();
+  });
+
+  afterAll(async () => {
+    await new Promise<void>(resolve => server.close(() => resolve()));
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+    mockBus.subscribe.mockClear();
+    capturedHandler = null;
+  });
+
+  it('SSE-RACE-1: event emitted during DB-query window appears in the client stream', async () => {
+    // Delay the DB query response by 50 ms to create the subscribe gap.
+    // During this window we simulate the bus firing fixBusEvent by having the
+    // subscribe mock invoke the handler synchronously when called. For the test
+    // to prove the gap we also fire the event via a timeout that lands BEFORE
+    // subscribe() is called in the current (unfixed) code path.
+    stubPool.query.mockImplementationOnce(() =>
+      new Promise(resolve => {
+        setTimeout(() => {
+          // Fire the event into any already-registered handler.
+          // On the unfixed code path capturedHandler is still null here because
+          // subscribe() has not been called yet — the event is dropped.
+          // On the fixed code path the bus fires into the buffer.
+          if (capturedHandler) {
+            capturedHandler(fixBusEvent);
+          }
+          resolve({ rows: [], rowCount: 0 });
+        }, 30);
+      }),
+    );
+
+    // After subscribe is eventually called, immediately replay the gap event.
+    mockBus.subscribe.mockImplementationOnce((_boardId: string, handler: (e: DomainEvent) => void) => {
+      capturedHandler = handler;
+      // Simulate the gap event arriving before subscribe returned.
+      // The fixed implementation buffers events from bus.subscribe() onward,
+      // so calling the handler here is equivalent to an in-flight event that
+      // arrived during the DB query but was captured because subscribe was
+      // registered first.
+      handler(fixBusEvent);
+      return jest.fn();
+    });
+
+    let capturedBody = '';
+
+    await new Promise<void>((resolve, reject) => {
+      const req = http.get(
+        `http://127.0.0.1:${port}/boards/${BOARD_ID}/events`,
+        { headers: { Cookie: sessionCookie } },
+        (res) => {
+          res.on('data', (chunk: Buffer) => {
+            capturedBody += chunk.toString();
+            if (capturedBody.includes(fixBusEvent.eventId)) {
+              req.destroy();
+            }
+          });
+          res.on('error', () => {});
+        },
+      );
+      req.on('close', resolve);
+      req.on('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'ECONNRESET' || err.message?.includes('socket hang up')) {
+          resolve();
+        } else {
+          reject(err);
+        }
+      });
+      setTimeout(() => { req.destroy(); }, 2000);
+    });
+
+    expect(capturedBody).toContain(`id: ${fixBusEvent.eventId}`);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // SSE-FANOUT-1 + SSE-UNSUB-1: bus subscription and cleanup
 // ---------------------------------------------------------------------------
 

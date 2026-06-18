@@ -185,3 +185,53 @@ describe('useActivityFeed() — error handling', () => {
     expect(result.current.connectionStatus).toBe('error')
   })
 })
+
+// ===========================================================================
+// Deduplication — DEDUP-1
+// NOTE: FAILS until useActivityFeed tracks seen eventIds and skips duplicates.
+// ===========================================================================
+
+describe('useActivityFeed() — eventId deduplication', () => {
+  it('DEDUP-1: duplicate eventId in successive messages produces only one entry in events', () => {
+    const { result } = renderHook(() => useActivityFeed('board-1'))
+    const es = MockEventSource.instances[0]
+
+    act(() => {
+      es.simulateOpen()
+      es.simulateMessage(makeCardMovedEvent({ eventId: 'evt-dup', cardTitle: 'Original' }))
+    })
+
+    act(() => {
+      es.simulateMessage(makeCardMovedEvent({ eventId: 'evt-dup', cardTitle: 'Duplicate' }))
+    })
+
+    expect(result.current.events).toHaveLength(1)
+    expect(result.current.events[0].eventId).toBe('evt-dup')
+  })
+})
+
+// ===========================================================================
+// Reconnect status cycle — RECONNECT-1
+// ===========================================================================
+
+describe('useActivityFeed() — reconnect status cycle', () => {
+  it('RECONNECT-1: connectionStatus cycles open → error → open when onerror fires then onopen fires again', () => {
+    const { result } = renderHook(() => useActivityFeed('board-1'))
+    const es = MockEventSource.instances[0]
+
+    act(() => {
+      es.simulateOpen()
+    })
+    expect(result.current.connectionStatus).toBe('open')
+
+    act(() => {
+      es.simulateError()
+    })
+    expect(result.current.connectionStatus).toBe('error')
+
+    act(() => {
+      es.simulateOpen()
+    })
+    expect(result.current.connectionStatus).toBe('open')
+  })
+})

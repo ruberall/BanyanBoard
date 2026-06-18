@@ -15,6 +15,7 @@ export function useActivityFeed(boardId: string): UseActivityFeedResult {
   useEffect(() => {
     setEvents([])
     setConnectionStatus('connecting')
+    const seenIds = new Set<string>()
     const url = `/boards/${boardId}/events`
     const es = new EventSource(url)
 
@@ -25,6 +26,8 @@ export function useActivityFeed(boardId: string): UseActivityFeedResult {
     es.onmessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data) as CardMovedEvent
+        if (seenIds.has(data.eventId)) return
+        seenIds.add(data.eventId)
         setEvents((prev) => [data, ...prev])
       } catch {
         // ignore malformed messages
