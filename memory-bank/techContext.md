@@ -24,17 +24,26 @@ No clever abstractions. No microservices. One Express app.
 /
 ├── frontend/           # React + TypeScript SPA (Vite 8)
 │   ├── src/
-│   │   ├── types/      # Domain types (Board, Column, Card, ApiError)
-│   │   ├── components/ # UI components (common/ for shared, feature-specific otherwise)
-│   │   ├── pages/      # Route-level components (BoardListPage, BoardPage, NotFoundPage)
-│   │   ├── hooks/      # Custom React hooks
+│   │   ├── types/      # Domain types (Board, Column, Card, User, ApiError)
+│   │   ├── context/    # React contexts (AuthContext — currentUser, login, logout, register via TanStack Query)
+│   │   ├── components/ # UI components (common/ for shared, feature-specific otherwise; PrivateRoute for auth guard)
+│   │   ├── pages/      # Route-level components (BoardListPage, BoardPage, LoginPage, RegisterPage, NotFoundPage)
+│   │   ├── hooks/      # Custom React hooks (useLogin, useRegister, useLogout, useCurrentUser)
 │   │   ├── lib/        # Shared utilities (logger.ts — warn/error only, always emit)
 │   │   ├── api/        # API client
-│   │   │   ├── client.ts     # request<T>() fetch transport
-│   │   │   ├── endpoints.ts  # 10 typed endpoint functions
+│   │   │   ├── client.ts     # request<T>() fetch transport (credentials: 'include'; 401 triggers redirect to /login)
+│   │   │   ├── endpoints.ts  # Typed endpoint functions (board CRUD + auth: loginUser, registerUser, logoutUser, getCurrentUser)
 │   │   │   ├── hooks.ts      # TanStack Query hooks (useBoards, useBoard, useCreateBoard, etc.)
-│   │   │   └── queryKeys.ts  # TanStack Query key factory
+│   │   │   └── queryKeys.ts  # TanStack Query key factory (queryKeys.auth.me + board keys)
 │   │   └── test-setup.ts  # jest-dom setup
+│   ├── e2e/            # Playwright E2E tests (requires running stack: docker compose up)
+│   │   ├── auth.spec.ts        # Auth flow: unauthenticated redirect, login, register, logout, a11y
+│   │   ├── board-list.spec.ts  # Board list CRUD (authenticated)
+│   │   ├── board-page.spec.ts  # Board/card interactions (authenticated)
+│   │   ├── error-pages.spec.ts # 404 and error states (authenticated)
+│   │   └── helpers/
+│   │       ├── auth.ts         # loginAsTestUser(page.request) — uses page.request to share session cookie
+│   │       └── api.ts          # createBoard/deleteBoard via APIRequestContext (authenticated)
 │   ├── vite.config.ts      # Build config with @/ path alias
 │   ├── vitest.config.ts    # Test config (separate from vite.config.ts due to Vite 8/Vitest 3 compatibility)
 │   ├── tsconfig.app.json   # TypeScript 6 strict config
@@ -47,16 +56,17 @@ No clever abstractions. No microservices. One Express app.
 │   │   ├── routes/
 │   │   │   ├── index.ts          # createRouter — mounts auth (public) then requireAuth then domain routes
 │   │   │   ├── health.ts         # GET /health
-│   │   │   ├── auth.ts           # createAuthRouter — POST /register, /login, /logout; GET /me
+│   │   │   ├── auth.ts           # createAuthRouter — POST /register (auto-login), /login, /logout; GET /me
 │   │   │   └── boards.ts         # createBoardsRouter — CRUD for /boards
 │   │   ├── services/
-│   │   │   ├── auth.service.ts   # AuthService — register, login, getMe (bcrypt, email-enum-safe)
+│   │   │   ├── auth.service.ts   # AuthService — register, login, getMe (bcrypt cost 12, email-enum-safe)
 │   │   │   └── board.service.ts  # BoardService — input validation + business logic
 │   │   ├── repositories/
-│   │   │   ├── user.repository.ts  # UserRepository — SQL + User/PublicUser types
+│   │   │   ├── user.repository.ts  # UserRepository — SQL + User/PublicUser types (no password_hash in PublicUser)
 │   │   │   └── board.repository.ts # BoardRepository — SQL + Board/Column types
 │   │   ├── middleware/
-│   │   │   └── requireAuth.ts    # Synchronous session guard; throws UnauthorizedError if no userId
+│   │   │   ├── requireAuth.ts    # Synchronous session guard; throws UnauthorizedError if no userId
+│   │   │   └── cors.ts           # CORS with credentials: true; reflects origin for wildcard dev config
 │   │   ├── lib/
 │   │   │   └── asyncHandler.ts   # Wraps async handlers to forward errors to next()
 │   │   └── db/         # DB connection + queryable interface

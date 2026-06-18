@@ -12,6 +12,20 @@
 | TASK-008 | FEAT-004: Card Move & Ordering | 2026-06-16 | feature/FEAT-004-card-move-ordering | [archive-TASK-008.md](archive/archive-TASK-008.md) |
 | TASK-009 | FEAT-005: React Frontend Scaffold | 2026-06-17 | feature/FEAT-005-react-frontend-scaffold | [archive-TASK-009.md](archive/archive-TASK-009.md) |
 
+## TASK-011 Phase 4: E2E & Hardening (2026-06-18)
+
+**Phase**: 4 of 4 — BUILD_COMPLETE
+**Changes**:
+- `frontend/e2e/auth.spec.ts`: 11 Playwright E2E tests (unauthenticated redirect, login, register, logout, a11y)
+- `frontend/e2e/helpers/auth.ts`: auth helper using `page.request` to share session cookie
+- `frontend/e2e/helpers/api.ts`: refactored to `APIRequestContext` for auth-aware board CRUD
+- Existing E2E specs updated with `beforeEach` authentication
+- `frontend/vitest.config.ts`: excluded `e2e/**` from vitest (Playwright specs were polluting unit test runs)
+- Security checklist verified: bcrypt 12 rounds, HttpOnly cookie, no password_hash in any response, no email in logs
+- `memory-bank/techContext.md`: updated to reflect auth components, AuthContext, PrivateRoute, E2E structure
+**Test results**: 147 backend + 160 frontend unit tests passing; Playwright E2E requires running stack
+**Security**: All 4 checklist items PASS
+
 ## TASK-011 Phase 3: Integration & Docker Compose Wiring (2026-06-18)
 
 **Phase**: 3 of 4

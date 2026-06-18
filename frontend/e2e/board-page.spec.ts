@@ -1,15 +1,17 @@
 import { test, expect } from '@playwright/test';
 import { createBoard, deleteBoard } from './helpers/api.js';
+import { loginAsTestUser } from './helpers/auth.js';
 
 test.describe('Board Page', () => {
   let boardId: string;
 
-  test.beforeEach(async () => {
-    boardId = await createBoard('E2E Board');
+  test.beforeEach(async ({ page }) => {
+    await loginAsTestUser(page.request);
+    boardId = await createBoard(page.request, 'E2E Board');
   });
 
-  test.afterEach(async () => {
-    await deleteBoard(boardId);
+  test.afterEach(async ({ page }) => {
+    await deleteBoard(page.request, boardId);
   });
 
   test('renders board heading and three default columns', async ({ page }) => {

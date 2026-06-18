@@ -12,4 +12,4 @@
 | TASK-008 | Card Move & Ordering | ARCHIVE | COMPLETE | FEAT-004 |
 | TASK-009 | React Frontend Scaffold | ARCHIVE | COMPLETE | FEAT-005 |
 | TASK-010 | E2E Test Suite for Board Flow | ARCHIVE | COMPLETE | FEAT-008 |
-| TASK-011 | User Authentication | BUILD | Phase 3/4 COMPLETE | FEAT-006 |
+| TASK-011 | User Authentication | BUILD | BUILD_COMPLETE | FEAT-006 |

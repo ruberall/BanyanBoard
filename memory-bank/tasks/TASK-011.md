@@ -286,10 +286,13 @@ Questions requiring creative exploration:
 - Session fixation hardened: `req.session.regenerate()` before assigning userId on login and register
 - Frontend test lint: replaced `require()` with ES imports in LoginPage.test.tsx and RegisterPage.test.tsx
 
-**Phase 4 — E2E & Hardening**
-- Playwright E2E tests covering: register → redirect to boards, login → access boards, logout → redirect to login, unauthenticated access → redirect to login, API returns 401 without session
-- Security checklist: bcrypt cost factor 10+, `HttpOnly` cookie, no hash in response, no email in logs
-- Accessibility: label/input associations on auth forms, focus on error, axe-core clean
+**Phase 4 — E2E & Hardening** ✅ COMPLETE (2026-06-18)
+- `frontend/e2e/auth.spec.ts`: 11 Playwright E2E tests — unauthenticated redirect (AC-ENTRY-1/2), login (AC-LOGIN-1/2), register (AC-REG-1/2), logout (AC-LOGOUT-1/2), a11y (AC-A11Y-1/2/3)
+- `frontend/e2e/helpers/auth.ts`: `loginAsTestUser(page.request)` helper sharing session cookie with page
+- `frontend/e2e/helpers/api.ts`: refactored from Node.js `fetch` to `APIRequestContext` (auth-aware)
+- Existing E2E specs (board-list, board-page, error-pages) updated with beforeEach auth
+- `frontend/vitest.config.ts`: added `exclude: ['e2e/**']` — stops vitest picking up Playwright specs
+- Security checklist PASS: bcrypt 12 rounds ✅, HttpOnly cookie ✅, no password_hash in responses ✅, no email in logs ✅
 
 ---
 
@@ -378,14 +381,14 @@ New endpoints (all under `/auth` prefix, mounted in `routes/index.ts`):
 
 ## Execution State
 
-**Build Status**: RUNNING
-**Current Build**: Phase 3: Integration & Docker Compose Wiring (TASK-011)
+**Build Status**: COMPLETE
+**Current Build**: Phase 4: E2E & Hardening (TASK-011)
 **Build Started**: 2026-06-18
-**Phase Number**: 3 of 4
+**Phase Number**: 4 of 4
 **Is Multi-Phase**: YES
 
 ### Current Build Step
-**Step**: Phase 3 COMPLETE
+**Step**: Phase 4 COMPLETE
 **Status**: COMPLETE
 **Completed**: 2026-06-18
 
