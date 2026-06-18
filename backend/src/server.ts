@@ -3,6 +3,7 @@ import { logger } from './logger';
 import { createPool } from './db/pool';
 import { runMigrations } from './db/migrate';
 import { createApp } from './app';
+import { InProcessEventBus } from './events/in-process-event-bus';
 
 async function main(): Promise<void> {
   const pool = createPool(config);
@@ -13,7 +14,8 @@ async function main(): Promise<void> {
     logger.info('Migrations complete');
   }
 
-  const app = createApp({ config, logger, pool });
+  const bus = new InProcessEventBus();
+  const app = createApp({ config, logger, pool, bus });
 
   const server = app.listen(config.PORT, () => {
     logger.info({ port: config.PORT }, 'API server listening');

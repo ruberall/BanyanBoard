@@ -2,8 +2,11 @@ import { Router } from 'express';
 import type { Queryable } from '../db/queryable';
 import { CardRepository } from '../repositories/card.repository';
 import { CardService } from '../services/card.service';
+import { EventService } from '../services/event.service';
 import { asyncHandler } from '../lib/asyncHandler';
 import { ValidationError } from '../errors';
+import type { DomainEventBus } from '../events/domain-event-bus';
+import { InProcessEventBus } from '../events/in-process-event-bus';
 
 const VALID_PATCH_FIELDS = new Set(['title', 'description', 'due_date', 'labels']);
 
@@ -75,9 +78,15 @@ export function createColumnCardsRouter(db: Queryable): Router {
  *   PATCH  /cards/:id
  *   DELETE /cards/:id
  */
-export function createCardsRouter(db: Queryable): Router {
+export function createCardsRouter(
+  db: Queryable,
+  bus?: DomainEventBus,
+  eventService?: EventService,
+): Router {
   const repo = new CardRepository(db);
-  const service = new CardService(repo, db);
+  const resolvedBus = bus ?? new InProcessEventBus();
+  const resolvedEventService = eventService ?? (bus ? new EventService(resolvedBus, db) : undefined);
+  const service = new CardService(repo, db, resolvedEventService);
   const router = Router();
 
   router.get('/:id', asyncHandler(async (req, res) => {

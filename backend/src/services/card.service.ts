@@ -2,11 +2,13 @@ import type { CardRepository, Card, CardInput, CardUpdate } from '../repositorie
 import { logger } from '../logger';
 import { NotFoundError } from '../errors';
 import type { Queryable } from '../db/queryable';
+import type { EventService } from './event.service';
 
 export class CardService {
   constructor(
     private readonly repo: CardRepository,
     private readonly db: Queryable,
+    private readonly eventService?: EventService,
   ) {}
 
   async createCard(columnId: string, input: CardInput): Promise<Card> {
@@ -35,15 +37,16 @@ export class CardService {
   }
 
   async moveCard(id: string, columnId: string, afterCardId: string | null): Promise<Card> {
-    await this.repo.findCardById(id);
+    const existingCard = await this.repo.findCardById(id);
 
-    const colResult = await this.db.query<{ id: string }>(
-      'SELECT id FROM columns WHERE id = $1',
+    const colResult = await this.db.query<{ id: string; board_id: string }>(
+      'SELECT id, board_id FROM columns WHERE id = $1',
       [columnId],
     );
     if (colResult.rows.length === 0) {
       throw new NotFoundError('Column not found');
     }
+    const boardId = colResult.rows[0].board_id;
 
     const cards = await this.repo.findCardsByColumnId(columnId);
 
@@ -63,6 +66,25 @@ export class CardService {
 
     const card = await this.repo.moveCard(id, columnId, newPosition);
     logger.info({ cardId: id, columnId, position: newPosition }, 'card.moved');
+
+    if (this.eventService) {
+      try {
+        await this.eventService.emitCardMoved({
+          boardId:        boardId,
+          cardId:         card.id,
+          cardTitle:      card.title,
+          actorId:        null,
+          actorEmail:     null,
+          fromColumnId:   existingCard.column_id,
+          fromColumnName: null,
+          toColumnId:     card.column_id,
+          toColumnName:   null,
+        });
+      } catch (err) {
+        logger.warn({ err, cardId: id }, 'card.moved.event_emission_failed');
+      }
+    }
+
     return card;
   }
 }

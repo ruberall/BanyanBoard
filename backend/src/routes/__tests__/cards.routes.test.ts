@@ -547,3 +547,77 @@ describe('DELETE /cards/:id', () => {
     expect(res.body.error).toBe('NOT_FOUND');
   });
 });
+
+// ---------------------------------------------------------------------------
+// PATCH /cards/:id/move — EventService integration (Phase 1)
+//
+// Verifies that a successful card move causes EventService.emitCardMoved()
+// to be called.  The EventService is mocked at the module level so the test
+// does not depend on a real event bus or database.
+//
+// Tests will FAIL until the Coding Agent:
+//   1. Implements EventService in src/services/event.service.ts
+//   2. Wires EventService into CardService.moveCard() / the move route
+// ---------------------------------------------------------------------------
+
+// Module-level mock function for EventService.emitCardMoved — must be at module scope
+// so that jest.mock hoisting can close over it before describe blocks execute.
+const mockEmitCardMoved = jest.fn().mockResolvedValue(undefined);
+
+jest.mock('../../services/event.service', () => ({
+  EventService: jest.fn().mockImplementation(() => ({
+    emitCardMoved: mockEmitCardMoved,
+  })),
+}));
+
+describe('PATCH /cards/:id/move — event emission (Phase 1)', () => {
+  const COL_ID_2 = 'col-uuid-2222-3333-4444-555555555555';
+
+  const stubPool = { query: jest.fn() } as any;
+  // Pass a mock bus so createRouter constructs EventService (resolved via the jest mock above)
+  const mockBus = { publish: jest.fn(), subscribe: jest.fn() };
+  const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool as any, bus: mockBus as any });
+  const agent = supertest.agent(app);
+
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // login
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+    mockEmitCardMoved.mockClear();
+  });
+
+  it('AC-EVENT-1: successful card move calls EventService.emitCardMoved with correct ids', async () => {
+    // Arrange — provide the DB responses the move operation needs
+    const movedCard = { ...fixCard, column_id: COL_ID_2, position: 1.0 };
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixCard],              rowCount: 1 }) // findCardById
+      .mockResolvedValueOnce({ rows: [{ id: COL_ID_2 }],    rowCount: 1 }) // column existence check
+      .mockResolvedValueOnce({ rows: [],                     rowCount: 0 }) // findCardsByColumnId (empty target col)
+      .mockResolvedValueOnce({ rows: [movedCard],            rowCount: 1 }); // moveCard UPDATE
+
+    // Act
+    const res = await agent
+      .patch(`/cards/${CARD_ID}/move`)
+      .send({ column_id: COL_ID_2 });
+
+    // Assert HTTP response is still 200
+    expect(res.status).toBe(200);
+
+    // Assert EventService.emitCardMoved was called exactly once with the moved card's ids
+    expect(mockEmitCardMoved).toHaveBeenCalledTimes(1);
+    expect(mockEmitCardMoved).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cardId:      CARD_ID,
+        toColumnId:  COL_ID_2,
+      }),
+    );
+  });
+});
