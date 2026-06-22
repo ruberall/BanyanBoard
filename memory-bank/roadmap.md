@@ -157,7 +157,7 @@
 - **Status**: planned
 - **Priority**: medium
 - **Complexity**: Level 3
-- **Description**: Add color-coded labels to cards with filtering support. Labels are board-scoped with a name and color. Cards can have multiple labels assigned. The board view gains a filter bar to show only cards matching selected labels. Covers DB schema (labels table, card_labels join), label CRUD endpoints, card-label assignment API, React LabelPicker and LabelBadge components, and FilterBar integration on the board page.
+- **Description**: Add color-coded labels to cards with filtering support. Labels are board-scoped with a name and color. Cards can have multiple labels assigned. The board view gains a filter bar to show only cards that contain at least one of the selected labels (contains/OR match — not exact). Covers DB schema (labels table, card_labels join), label CRUD endpoints, card-label assignment API, React LabelPicker and LabelBadge components, and FilterBar integration on the board page.
 - **Linked Tasks**: None
 - **Branch**: feature/FEAT-010-card-labels
 - **Created**: 2026-06-22
