@@ -2,7 +2,7 @@
 
 ## Summary
 
-- **Total Features**: 9
+- **Total Features**: 10
 - **Released Versions**: 0
 - **Active Versions**: 0
 - **Planning Versions**: 1
@@ -32,6 +32,7 @@
   - FEAT-007: Pagination for list endpoints (complete) [Level 2]
   - FEAT-008: E2E Test Suite for Board Flow (in_progress) [Level 2]
   - FEAT-009: Realtime Activity Feed (complete) [Level 3]
+  - FEAT-010: Card Labels (planned) [Level 3]
 
 ---
 
@@ -147,6 +148,19 @@
 - **Branch**: feature/FEAT-009-realtime-activity-feed (merged → main 2026-06-18)
 - **Created**: 2026-06-18
 - **Completed**: 2026-06-18
+
+---
+
+### FEAT-010: Card Labels
+
+- **Version**: next
+- **Status**: planned
+- **Priority**: medium
+- **Complexity**: Level 3
+- **Description**: Add color-coded labels to cards with filtering support. Labels are board-scoped with a name and color. Cards can have multiple labels assigned. The board view gains a filter bar to show only cards matching selected labels. Covers DB schema (labels table, card_labels join), label CRUD endpoints, card-label assignment API, React LabelPicker and LabelBadge components, and FilterBar integration on the board page.
+- **Linked Tasks**: None
+- **Branch**: feature/FEAT-010-card-labels
+- **Created**: 2026-06-22
 
 ---
 
