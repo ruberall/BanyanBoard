@@ -190,6 +190,12 @@ No scope creep was introduced. The Phase 4 race condition hardening was explicit
 
 4. **architecture-foundation** (`backend/src/events/`): Implement `DomainEventBus` as a `Map<scopeId, Set<handler>>` rather than a Node.js `EventEmitter` — avoids max-listener warnings, enforces explicit cleanup via returned unsub closures, and has no global state to interfere with test isolation.
 
+5. **docker-dev-environment** (`docker-compose.yml`, frontend container): After writing frontend source files while the Docker container is stopped, restart the container before testing — Vite's in-memory module graph does not detect file changes made before startup on Windows Docker volumes (inotify doesn't fire).
+
+6. **sse-client** (`frontend/src/hooks/useActivityFeed.ts`, SSE hooks): Use an absolute `VITE_API_URL`-based URL for `EventSource` connections — relative URLs route to the Vite dev server (port 5173), not the API.
+
+7. **sse-client** (`frontend/src/hooks/useActivityFeed.ts`, SSE hooks): Always construct `EventSource` with `{ withCredentials: true }` when the API uses session-cookie authentication — the default omits credentials on cross-origin SSE connections, resulting in 401s.
+
 ### Learned Rules Applied
 
 - **testing-patterns.md**: The rule "Use `supertest` agent in integration tests to avoid port-binding conflicts" was loaded and applied for regular HTTP route tests. However, the existing rule does not cover SSE streaming endpoints — its guidance led to the initial (incorrect) supertest-based SSE test approach before the incompatibility was discovered. The new learning above (learning #1) should be added to this file to close the gap.
@@ -203,6 +209,52 @@ No scope creep was introduced. The Phase 4 race condition hardening was explicit
 2. **Phase 4 as a dedicated hardening phase worked well for race conditions** — The pattern of planning a separate hardening phase for non-obvious concurrency issues (subscribe ordering, dedup) during the roadmap/plan phase paid dividends. For future features involving streaming, queues, or websockets, explicitly plan a hardening phase in the implementation roadmap rather than folding it into the main feature phase.
 
 3. **Code review sub-agent should flag UUID field sourcing** — The empty-string UUID issue would be caught by a rule: "for any INSERT into a table with UUID FK columns, verify each FK value is sourced from a DB query or session context — never from user input without validation." This is a specific directive worth adding to data-integrity.md.
+
+---
+
+## Post-Archive Issues & Fixes (2026-06-22)
+
+Three integration bugs were discovered and resolved after the task was archived, during the first real run of the app against Docker Compose. They are documented here because they each reveal a new category of mistake worth codifying as learned rules.
+
+### Issue 1 — ActivityFeed not rendering (Vite stale module cache on Windows Docker)
+
+**Symptom**: The `<aside aria-label="Activity feed">` was absent from the DOM entirely. No network request for `ActivityFeed.tsx` or `useActivityFeed.ts` was observed in the browser. No console errors.
+
+**Root cause**: The Vite dev server inside Docker started before the `BoardPage.tsx`, `ActivityFeed.tsx`, and `ActivityFeed.module.css` files were written to the volume-mounted directory. Vite's in-memory module graph cached the pre-ActivityFeed version of `BoardPage.tsx`. Because Windows Docker Desktop uses a virtualisation layer that does not forward inotify filesystem events reliably, Vite's file watcher never fired — the module graph was never invalidated. Even hard-reloading the browser returned the stale build because Vite's server-side transform cache still held the old module.
+
+**Fix**: `docker compose restart frontend` forces Vite to rebuild its module graph from the current disk state on startup.
+
+**New learned rule**: `docker-dev-environment.md` — restart the Docker frontend container after writing source files while the container was stopped (Windows inotify limitation).
+
+---
+
+### Issue 2 — SSE URL was relative, routed to Vite dev server instead of API
+
+**Symptom**: `EventSource` showed an immediate error state; the "Reconnecting…" banner appeared on load. Network tab showed the SSE request going to `localhost:5173/boards/:id/events` (404).
+
+**Root cause**: `useActivityFeed.ts` used a relative URL `/boards/${boardId}/events`. All other API calls in the codebase use the absolute `${VITE_API_URL}/…` pattern, but this was not applied when the SSE hook was written. The relative URL resolves to the Vite dev server's origin (port 5173), which has no `/boards` route.
+
+**Fix**: Changed to `const baseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'` and `const url = \`${baseUrl}/boards/${boardId}/events\`` — matching the pattern used in `api/client.ts`.
+
+**New learned rule**: `sse-client.md` — use absolute VITE_API_URL base for EventSource URLs.
+
+---
+
+### Issue 3 — EventSource missing `withCredentials`, session cookie not sent
+
+**Symptom**: After fixing the URL, the EventSource still failed — the backend returned 401.
+
+**Root cause**: `EventSource` does not include cookies by default on cross-origin requests (frontend on port 5173, API on port 3000). The Express session middleware rejected the request because the session cookie was absent.
+
+**Fix**: `new EventSource(url, { withCredentials: true })` — one option, parallel to `{ credentials: 'include' }` used in `fetch()` calls.
+
+**New learned rule**: `sse-client.md` — always add `{ withCredentials: true }` to `EventSource` when the API uses session-cookie auth.
+
+---
+
+### Impact on Acceptance Criteria
+
+All original acceptance criteria remained met after the fixes — the bugs were in development-environment configuration and the SSE client, not in the core feature logic. The backend SSE endpoint, event persistence, and domain event fan-out were all correct.
 
 ---
 

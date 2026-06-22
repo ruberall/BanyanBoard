@@ -2,6 +2,20 @@
 
 ---
 
+## 2026-06-22 - TASK-012 Post-Archive Reflection (re-run)
+
+### Extracted Patterns
+- **docker-dev-environment** → created `agent-rules/_learned/docker-dev-environment.md` (evidence count: 1)
+  - Restart Docker frontend container after writing source files while container was stopped (Windows inotify gap)
+- **sse-client** → created `agent-rules/_learned/sse-client.md` (evidence count: 2)
+  - Use absolute VITE_API_URL base for EventSource URL (relative URLs hit Vite dev server, not API)
+  - Add `{ withCredentials: true }` to EventSource when API uses session-cookie auth
+
+### systemPatterns.md Updates
+- None — these are client-side configuration patterns, not architecture patterns
+
+---
+
 ## 2026-06-18 - TASK-012 Reflection Learnings
 
 ### Extracted Patterns

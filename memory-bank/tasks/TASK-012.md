@@ -8,6 +8,33 @@
 **Roadmap**: FEAT-009
 **Branch**: feature/FEAT-009-realtime-activity-feed (merged → main)
 
+## Post-Archive Fixes (2026-06-22)
+
+Three bugs were discovered and fixed after the task was archived, during first run of the app:
+
+### 1. ActivityFeed not rendering (Vite stale module cache)
+**Symptom**: The `<aside>` was absent from the DOM entirely — no SSE request, no sidebar visible.  
+**Root cause**: The Vite dev server started inside Docker before the `BoardPage.tsx` and `ActivityFeed.*` files were written to the volume-mounted directory. Vite's in-memory module graph cached the pre-ActivityFeed version of `BoardPage.tsx`. Because Windows Docker volume mounts don't reliably fire inotify events, Vite never saw the file change and served stale JS.  
+**Fix**: Restart the Docker frontend container (`docker compose restart frontend`) to force Vite to rebuild its module graph from the current disk state.  
+**Prevention**: Any time source files are written while the Docker frontend container is stopped, restart the container before testing.
+
+### 2. SSE URL was relative — broke when fetched from the browser
+**Symptom**: `EventSource` connected to `http://localhost:5173/boards/:id/events` (Vite dev server) instead of the API, causing an immediate error.  
+**Root cause**: `useActivityFeed.ts` used a relative URL `/boards/${boardId}/events`. All other API calls use the absolute `VITE_API_URL` base, but SSE was not updated to match.  
+**Fix**: `frontend/src/hooks/useActivityFeed.ts` — changed to:
+```ts
+const baseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+const url = `${baseUrl}/boards/${boardId}/events`
+```
+
+### 3. SSE missing `withCredentials` — session cookie not sent
+**Symptom**: Even with the correct absolute URL, `EventSource` received a 401 because the browser did not send the session cookie on the cross-origin request.  
+**Root cause**: `EventSource` does not include credentials by default on cross-origin connections. The API's auth middleware rejected the request.  
+**Fix**: `frontend/src/hooks/useActivityFeed.ts` — added `{ withCredentials: true }`:
+```ts
+const es = new EventSource(url, { withCredentials: true })
+```
+
 ## Task Description
 
 Track and display a realtime activity feed of card movements between columns. Card actions (create, move, label, assign, delete) emit domain events per the Domain Event Pattern in `systemPatterns.md`. Events carry timestamp, actor, action type, card ID, and before/after state. Transport uses SSE (Server-Sent Events) for v1 — in-process emitter, designed for future message bus extraction. A new `ActivityFeed` panel on the board page displays the live event stream.

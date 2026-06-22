@@ -15,6 +15,7 @@
 | TASK-009 | 2026-06-17 | 4 | 3 | 1 | frontend-accessibility + react-query-patterns + docker-compose created; testing-patterns amended (Level 3) |
 | TASK-011 | 2026-06-18 | 4 | 1 | 2 | security created; testing-patterns + api-design amended (Level 3) |
 | TASK-012 | 2026-06-18 | 4 | 0 | 2 | testing-patterns (10→ evidence_count) + architecture-foundation amended; subscribe-before-flush + DomainEventBus Map pattern (Level 3) |
+| TASK-012 (re-run) | 2026-06-22 | 3 | 2 | 0 | docker-dev-environment + sse-client created; post-archive integration bugs (Windows Docker inotify, EventSource URL + withCredentials) |
 
 ## Consolidation History
 
@@ -38,3 +39,5 @@
 | frontend-accessibility.md | 1 | low | 2026-06-17 | active |
 | react-query-patterns.md | 1 | low | 2026-06-17 | active |
 | docker-compose.md | 1 | low | 2026-06-17 | active |
+| docker-dev-environment.md | 1 | low | 2026-06-22 | active |
+| sse-client.md | 2 | low | 2026-06-22 | active |

@@ -16,8 +16,9 @@ export function useActivityFeed(boardId: string): UseActivityFeedResult {
     setEvents([])
     setConnectionStatus('connecting')
     const seenIds = new Set<string>()
-    const url = `/boards/${boardId}/events`
-    const es = new EventSource(url)
+    const baseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+    const url = `${baseUrl}/boards/${boardId}/events`
+    const es = new EventSource(url, { withCredentials: true })
 
     es.onopen = () => {
       setConnectionStatus('open')

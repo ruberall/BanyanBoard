@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { CardMovedEvent } from '@/types'
+import styles from './ActivityFeed.module.css'
 
 type ConnectionStatus = 'connecting' | 'open' | 'closed' | 'error'
 
@@ -50,36 +51,35 @@ export function ActivityFeed({ events, connectionStatus }: ActivityFeedProps) {
   }
 
   return (
-    <aside aria-label="Activity feed">
+    <aside className={styles.sidebar} aria-label="Activity feed">
       <button
         type="button"
+        className={styles.toggleBtn}
         aria-label={isOpen ? 'Collapse activity feed' : 'Expand activity feed'}
         onClick={handleToggle}
       >
+        <span className={styles.title}>Activity</span>
         {isOpen ? '▲' : '▼'}
       </button>
 
       {connectionStatus === 'error' && (
-        <div role="status" style={{ background: '#FFC107', padding: '4px 8px' }}>
-          Reconnecting...
+        <div role="status" className={styles.reconnectBanner}>
+          Reconnecting…
         </div>
       )}
 
       {isOpen && (
-        <ul role="log" aria-live="polite" aria-label="Activity events">
+        <ul role="log" aria-live="polite" aria-label="Activity events" className={styles.list}>
           {events.length === 0 ? (
-            <li>
-              <p>No activity yet</p>
-            </li>
+            <li className={styles.emptyState}>No activity yet</li>
           ) : (
             events.map((event) => (
-              <li key={event.eventId}>
-                <div>
+              <li key={event.eventId} className={styles.entry}>
+                <div className={styles.entryActor}>
                   {event.actorEmail ?? 'Someone'} moved &apos;{event.cardTitle}&apos;
                 </div>
-                <div>
-                  from {event.fromColumnName ?? '?'} → {event.toColumnName ?? '?'} ·{' '}
-                  {formatRelativeTime(event.occurredAt)}
+                <div className={styles.entryMeta}>
+                  {event.fromColumnName ?? '?'} → {event.toColumnName ?? '?'} · {formatRelativeTime(event.occurredAt)}
                 </div>
               </li>
             ))
