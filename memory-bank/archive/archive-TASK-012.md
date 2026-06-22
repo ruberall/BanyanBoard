@@ -122,6 +122,30 @@ Notable testing pattern: SSE integration tests written with native `http.createS
 - `backend/src/routes/__tests__/cards.routes.test.ts` (extended)
 - `frontend/src/pages/BoardPage/BoardPage.test.tsx` (extended — EventSource mock)
 
+## Post-Archive Fixes (2026-06-22)
+
+Three integration bugs discovered and fixed during first live run of the app:
+
+### 1. ActivityFeed not rendering — Vite stale module cache on Windows Docker
+**Symptom**: The `<aside>` was absent from the DOM. No SSE request. No sidebar in the browser.  
+**Root cause**: Vite dev server started inside Docker before `BoardPage.tsx` and `ActivityFeed.*` files were written to the volume-mounted directory. Windows Docker volumes don't fire inotify events reliably, so Vite never invalidated its in-memory module graph.  
+**Fix**: `docker compose restart frontend` — forces Vite to rebuild the module graph from current disk state.  
+**Rule**: `agent-rules/_learned/docker-compose.md` (merged, evidence_count: 2)
+
+### 2. SSE URL was relative — connected to Vite dev server instead of API
+**Symptom**: `EventSource` connected to `http://localhost:5173/boards/:id/events` (Vite), not the API. Immediate connection error.  
+**Root cause**: `useActivityFeed.ts` used a relative URL. All other API calls use absolute `VITE_API_URL`, but SSE was not updated to match.  
+**Fix**: `const baseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'`; URL becomes `${baseUrl}/boards/${boardId}/events`.  
+**Rule**: `agent-rules/_learned/sse-client.md` (evidence_count: 2)
+
+### 3. SSE missing `withCredentials` — session cookie not sent, 401 response
+**Symptom**: Even with the correct absolute URL, `EventSource` received 401.  
+**Root cause**: `EventSource` does not include credentials by default on cross-origin connections. Session cookie was not sent.  
+**Fix**: `new EventSource(url, { withCredentials: true })`.  
+**Rule**: `agent-rules/_learned/sse-client.md` (evidence_count: 2)
+
+**Attempted fix that was reverted**: Adding a Vite proxy (`/boards → http://localhost:3000`) broke React Router navigation — the `/boards/:id` route was intercepted by the proxy, returning API JSON instead of the React SPA. Correct solution was the absolute `VITE_API_URL` pattern.
+
 ## Lessons Learned
 
 1. **Subscribe-before-flush is mandatory for SSE + history replay** — Any SSE endpoint that replays history on connect must subscribe to the event bus before issuing the DB query, buffer incoming live events, and drain with dedup after history flush. Events emitted during the async DB window are silently dropped otherwise.

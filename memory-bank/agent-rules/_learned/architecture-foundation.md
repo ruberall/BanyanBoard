@@ -2,7 +2,7 @@
 name: "Learned: Architecture Foundation Tasks"
 globs: ["memory-bank/creative/**", "memory-bank/tasks/**", "backend/src/routes/**", "backend/src/events/**"]
 topics: ["architecture", "creative-phase", "foundation-tasks", "planning", "sse", "event-bus"]
-priority: low
+priority: medium
 evidence_count: 3
 last_updated: 2026-06-18
 auto_generated: true

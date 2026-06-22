@@ -25,19 +25,19 @@
 | 2026-06-16 | TASK-006 archive | 5 | 5 | 0 | 0 | 1 | 0 |
 | 2026-06-17 | TASK-009 archive | 8 | 8 | 0 | 0 | 0 | 0 |
 | 2026-06-18 | TASK-011 archive | 10 | 10 | 0 | 0 | 0 | 0 |
+| 2026-06-22 | TASK-012 re-archive | 12 | 11 | 1 | 0 | 1 | 0 |
 
 ## Rule Effectiveness
 
 | File | Evidence Count | Priority | Last Updated | Status |
 |------|---------------|----------|--------------|--------|
 | testing-patterns.md | 10 | medium | 2026-06-18 | active (promoted) |
-| architecture-foundation.md | 3 | low | 2026-06-18 | active |
+| architecture-foundation.md | 3 | medium | 2026-06-18 | active (promoted) |
 | observability-standards.md | 1 | low | 2026-06-13 | active |
 | data-integrity.md | 1 | low | 2026-06-15 | active |
 | api-design.md | 2 | low | 2026-06-18 | active |
 | security.md | 1 | low | 2026-06-18 | active |
 | frontend-accessibility.md | 1 | low | 2026-06-17 | active |
 | react-query-patterns.md | 1 | low | 2026-06-17 | active |
-| docker-compose.md | 1 | low | 2026-06-17 | active |
-| docker-dev-environment.md | 1 | low | 2026-06-22 | active |
+| docker-compose.md | 2 | low | 2026-06-22 | active (merged: docker-dev-environment) |
 | sse-client.md | 2 | low | 2026-06-22 | active |

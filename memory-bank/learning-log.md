@@ -2,6 +2,17 @@
 
 ---
 
+## 2026-06-22 - Consolidation (during TASK-012 re-archive)
+
+- Files before: 12, Files after: 11
+- Merged: 1 file (`docker-dev-environment.md` → `docker-compose.md`; both Docker/frontend-dev; file count exceeded 10-file cap)
+- Expired: 0 bullets (0 files deleted)
+- Promoted: 1 file (`architecture-foundation.md` low → medium; evidence_count reached threshold of 3)
+- Pruned: 0 excess bullets
+- All rules recent (< 90 days); no stale expiry candidates
+
+---
+
 ## 2026-06-22 - TASK-012 Post-Archive Reflection (re-run)
 
 ### Extracted Patterns

@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-18 (added Guiding Principles, DB schema, query patterns, domain event pattern, SSE transport layer, subscribe-before-flush race hardening)
+**Last updated**: 2026-06-22 (added Guiding Principles, DB schema, query patterns, domain event pattern, SSE transport layer, subscribe-before-flush race hardening; added cursor pagination principle)
 
 ## Guiding Principles
 
@@ -20,6 +20,7 @@ These principles are enforced by the Code Reviewer Agent. Violations are **BLOCK
 | 10 | **Test Against Real Behaviour** | Repository tests use mock `Queryable`. Integration tests use a real DB (skip if `DATABASE_URL` absent). Never mock the full DB stack for integration tests. |
 | 11 | **Domain Types at Repository Layer** | Entity types defined at the top of the repository file that owns them. No shared `models/` folder unless a type crosses repository boundaries. |
 | 12 | **SSE / Streaming: Always Clean Up** | Long-lived connections (SSE, WebSocket) must register a `close` handler that cancels subscriptions, clears intervals, and releases resources to prevent memory leaks. |
+| 13 | **Cursor Pagination** | All list endpoints use cursor, limit, hasMore. No offset pagination.
 
 ## Architecture
 
