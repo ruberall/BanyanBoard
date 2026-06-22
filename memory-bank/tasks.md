@@ -14,3 +14,4 @@
 | TASK-010 | E2E Test Suite for Board Flow | ARCHIVE | COMPLETE | FEAT-008 |
 | TASK-011 | User Authentication | ARCHIVE | COMPLETE | FEAT-006 |
 | TASK-012 | Realtime Activity Feed | ARCHIVE | COMPLETE | FEAT-009 |
+| TASK-013 | Card Labels | PLAN | PLANNING_COMPLETE | FEAT-010 |
