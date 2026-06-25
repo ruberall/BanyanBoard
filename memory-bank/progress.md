@@ -14,6 +14,60 @@
 | TASK-011 | FEAT-006: User Authentication | 2026-06-18 | feature/FEAT-006-user-authentication | [archive-TASK-011.md](archive/archive-TASK-011.md) |
 | TASK-012 | FEAT-009: Realtime Activity Feed | 2026-06-18 | feature/FEAT-009-realtime-activity-feed | [archive-TASK-012.md](archive/archive-TASK-012.md) |
 
+## TASK-013 Phase 1: FilterBar — COMPLETE (2026-06-25)
+
+**Task**: TASK-013 — Card Labels (FEAT-010)
+**Phase**: 1 of 3 — FilterBar
+**Branch**: feature/FEAT-010-card-labels
+
+**Files Created**:
+- `frontend/src/components/board/FilterBar/FilterBar.tsx` — controlled text input + × clear; React derived-state pattern for parent-reset sync
+- `frontend/src/components/board/FilterBar/FilterBar.module.css`
+
+**Files Modified**:
+- `frontend/src/components/board/KanbanColumn/KanbanColumn.tsx` — `filterText?` prop + client-side substring filter on title/description
+- `frontend/src/components/board/KanbanBoard/KanbanBoard.tsx` — threads `filterText` to KanbanColumn
+- `frontend/src/pages/BoardPage/BoardPage.tsx` — `filterText` useState lifted here; FilterBar in heading row
+- `frontend/src/pages/BoardPage/BoardPage.module.css` — `.headingRow` flex layout, `.heading` ellipsis
+
+**Test Results**: 188/188 passing (19 files), TypeScript clean, ESLint clean (Phase 1 files)
+**Code Review**: APPROVED — 2 recommended fixes applied (lowerFilter hoisting; removed redundant onClear)
+**Security**: PASS — no new dependencies; filter text used client-side only (no XSS surface)
+**Key Pattern**: FilterBar uses two-useState derived-state (React docs recommended pattern for locally-editable + parent-resetable controlled inputs)
+
+---
+
+## TASK-013 Creative Phase Complete (2026-06-25)
+
+**Task**: TASK-013 — Card Labels (FEAT-010)
+**Status**: CREATIVE_COMPLETE
+
+#### Creative Phase: UI/UX Design — COMPLETE
+- Completed: 2026-06-25
+- Output: memory-bank/creative/TASK-013-card-labels-uiux.md
+- Decisions:
+  - FilterBar: inline in `BoardPage` heading row as flex sibling of `<h1>` (justify-content: space-between)
+  - KanbanCard: single flex row `[handle][badge(s)][title]`, title flex:1 with ellipsis
+  - Color picker: badge is a `<button>` with caret; fixed-position focus-trapped popover; boundary detection for ActivityFeed zone; optimistic TanStack Query update
+
+---
+
+## TASK-013 Planning Complete (2026-06-25)
+
+**Task**: TASK-013 — Card Labels (FEAT-010)
+**Status**: PLANNING_COMPLETE
+**Branch**: feature/FEAT-010-card-labels
+**Complexity**: Level 3
+
+**Planned Phases**:
+1. FilterBar — client-side filter by title/description; filter state lifted to BoardPage; × clear button
+2. Label enhancements + color picker — badge right of drag handle; DB migration; LabelColorPicker 10-swatch grid; label_color persisted
+3. E2E + polish — Playwright tests for filter and color-pick flows
+
+**Creative Phase Required**: UI/UX Design (3 open design questions: FilterBar placement, card flex layout, color picker trigger)
+
+---
+
 ## TASK-011 Phase 4: E2E & Hardening (2026-06-18)
 
 **Phase**: 4 of 4 — BUILD_COMPLETE

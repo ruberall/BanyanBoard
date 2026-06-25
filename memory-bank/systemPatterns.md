@@ -336,6 +336,41 @@ Each frame carries the full `EventRow` serialized as JSON; the `id` field enable
 
 **`EventRepository.findAfterById`** (added in Phase 2): selects events for a board whose `occurred_at` is greater than the anchor event's `occurred_at` (correlated subquery), ordered `ASC` to deliver chronological replay.
 
+## FilterBar / Client-Side Filter Pattern (FEAT-010, TASK-013)
+
+### State Ownership
+
+Filter text is owned by `BoardPage` (the page-level container), not by `FilterBar` itself:
+
+```
+BoardPage (owns filterText state)
+  └─ FilterBar (controlled input — value + onChange)
+  └─ KanbanBoard (receives filterText prop)
+       └─ KanbanColumn (applies filter against sortedCards)
+```
+
+- **Why state lives at page level**: The filter must span all columns simultaneously. If state lived inside `FilterBar`, `KanbanColumn` couldn't read it without a shared context or side-channel.
+- **FilterBar derived-state pattern**: `FilterBar` uses two `useState` calls — `internalValue` for keystroke buffering (avoids parent re-render on every keypress) and `prevPropValue` to detect parent-driven resets (`value` prop changing to `''`). This is the React "store previous prop value" pattern documented at https://react.dev/reference/react/useState#storing-information-from-previous-renders.
+
+### Client-Side Filtering
+
+Filtering is applied inside `KanbanColumn` against the already-fetched `sortedCards` array:
+
+- Match is case-insensitive `includes()` on `card.title` and `card.description`
+- Empty `filterText` skips the filter entirely (shows all cards)
+- The `lowerFilter` value is computed once per render, outside the filter predicate, to avoid redundant `.toLowerCase()` calls per card
+
+No server round-trips for filtering — works offline and feels instant for typical board sizes.
+
+### When to Use This Pattern
+
+Use page-level state + prop drilling (not a context) for filter/search state when:
+1. The filtered content spans multiple sibling components (columns)
+2. The data is already fetched client-side (no server filtering needed)
+3. The filter affects only one page subtree
+
+Use a React context instead if the filter state needs to escape the page boundary (e.g., persisted in URL params or shared with a sidebar outside the `BoardPage` tree).
+
 ## Adding a New Feature (proven pattern — first used in FEAT-002 Board API)
 
 1. Create migration in `backend/migrations/` (node-pg-migrate JS format)

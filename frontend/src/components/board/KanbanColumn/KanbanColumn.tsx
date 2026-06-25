@@ -10,9 +10,10 @@ import styles from './KanbanColumn.module.css'
 
 interface KanbanColumnProps {
   column: Column
+  filterText?: string
 }
 
-export function KanbanColumn({ column }: KanbanColumnProps) {
+export function KanbanColumn({ column, filterText }: KanbanColumnProps) {
   const { data: cards, isLoading, isError, error } = useCards(column.id)
   const { setNodeRef } = useDroppable({ id: column.id })
 
@@ -30,14 +31,25 @@ export function KanbanColumn({ column }: KanbanColumnProps) {
 
   const sortedCards = [...(cards ?? [])].sort((a, b) => a.position - b.position)
 
+  // Lowercase once outside the filter predicate so we don't repeat the
+  // transformation for every card × field on each render.
+  const lowerFilter = filterText ? filterText.toLowerCase() : ''
+  const visibleCards = lowerFilter
+    ? sortedCards.filter(
+        (card) =>
+          card.title.toLowerCase().includes(lowerFilter) ||
+          (card.description ?? '').toLowerCase().includes(lowerFilter),
+      )
+    : sortedCards
+
   return (
     <section ref={setNodeRef} aria-label={`Column: ${column.name}`} className={styles.column}>
       <h2 className={styles.heading}>{column.name}</h2>
-      <SortableContext items={sortedCards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-        {sortedCards.length === 0 ? (
+      <SortableContext items={visibleCards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+        {visibleCards.length === 0 ? (
           <p className={styles.empty}>No cards yet</p>
         ) : (
-          sortedCards.map((c) => <KanbanCard key={c.id} card={c} />)
+          visibleCards.map((c) => <KanbanCard key={c.id} card={c} />)
         )}
       </SortableContext>
       <CreateCardForm columnId={column.id} />

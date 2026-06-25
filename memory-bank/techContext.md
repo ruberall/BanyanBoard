@@ -26,7 +26,7 @@ No clever abstractions. No microservices. One Express app.
 │   ├── src/
 │   │   ├── types/      # Domain types (Board, Column, Card, User, ApiError, CardMovedEvent)
 │   │   ├── context/    # React contexts (AuthContext — currentUser, login, logout, register via TanStack Query)
-│   │   ├── components/ # UI components (common/ for shared, feature-specific otherwise; PrivateRoute for auth guard; ActivityFeed — collapsible right sidebar showing real-time card-move events, localStorage persistence for collapsed state)
+│   │   ├── components/ # UI components (common/ for shared, feature-specific otherwise; PrivateRoute for auth guard; ActivityFeed — collapsible right sidebar showing real-time card-move events, localStorage persistence for collapsed state; FilterBar — controlled text input with × clear button, client-side card filtering via prop drilling BoardPage → KanbanBoard → KanbanColumn)
 │   │   ├── pages/      # Route-level components (BoardListPage, BoardPage, LoginPage, RegisterPage, NotFoundPage)
 │   │   ├── hooks/      # Custom React hooks (useLogin, useRegister, useLogout, useCurrentUser, useActivityFeed — SSE client returning events[] + connectionStatus)
 │   │   ├── lib/        # Shared utilities (logger.ts — warn/error only, always emit)
