@@ -35,13 +35,22 @@ function validateCardInput(body: Record<string, unknown>, requireTitle: boolean)
     }
   }
 
+  const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
   const labels = body['labels'];
   if (labels !== undefined && labels !== null) {
     if (!Array.isArray(labels)) {
-      throw new ValidationError('labels must be an array of strings');
+      throw new ValidationError('labels must be an array');
     }
-    if ((labels as unknown[]).some((l) => typeof l !== 'string')) {
-      throw new ValidationError('labels must be an array of strings');
+    for (const l of labels as unknown[]) {
+      if (typeof l !== 'object' || l === null || typeof (l as Record<string, unknown>)['name'] !== 'string') {
+        throw new ValidationError('labels must be an array of objects with a name string');
+      }
+      const color = (l as Record<string, unknown>)['color'];
+      // null is intentionally rejected here (coerces to "null" which fails regex);
+      // omit color entirely to use the default (#95B9C7 applied downstream).
+      if (color !== undefined && !HEX_COLOR_RE.test(color as string)) {
+        throw new ValidationError('labels[].color must be a valid hex color (#rrggbb)');
+      }
     }
   }
 }
@@ -125,6 +134,13 @@ export function createCardsRouter(
     }
 
     validateCardInput(body, false);
+
+    if ('labels' in body && Array.isArray(body['labels'])) {
+      body['labels'] = (body['labels'] as Record<string, unknown>[]).map((l) => ({
+        name: l['name'],
+        color: l['color'] ?? '#95B9C7',
+      }));
+    }
 
     const updates: Record<string, unknown> = {};
     for (const field of VALID_PATCH_FIELDS) {

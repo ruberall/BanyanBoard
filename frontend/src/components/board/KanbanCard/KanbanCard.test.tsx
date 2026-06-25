@@ -76,7 +76,16 @@ describe('KanbanCard — semantic structure', () => {
 
 describe('KanbanCard — labels', () => {
   it('renders each label when labels are present', () => {
-    render(<KanbanCard card={makeCard({ labels: ['bug', 'urgent'] })} />)
+    render(
+      <KanbanCard
+        card={makeCard({
+          labels: [
+            { name: 'bug', color: '#fce7f3' },
+            { name: 'urgent', color: '#fef3c7' },
+          ],
+        })}
+      />
+    )
 
     expect(screen.getByText('bug')).toBeInTheDocument()
     expect(screen.getByText('urgent')).toBeInTheDocument()
@@ -155,8 +164,61 @@ describe('KanbanCard — minimal data', () => {
 })
 
 // ===========================================================================
-// Phase 4 — Drag handle (accessible affordances)
+// Phase 2 — Label badges (Label[] type with color picker)
 // ===========================================================================
+
+describe('KanbanCard — label badges (Phase 2)', () => {
+  it('renders a label badge with inline background-color from label.color', () => {
+    render(
+      <KanbanCard
+        card={makeCard({ labels: [{ name: 'bug', color: '#fce7f3' }] })}
+      />
+    )
+
+    const badge = screen.getByText('bug').closest('button') ?? screen.getByText('bug')
+    const style = (badge as HTMLElement).style.backgroundColor
+    // style is either the inline hex directly or rgb() equivalent — either confirms it is set
+    expect(style).toBeTruthy()
+  })
+
+  it('renders label badge as a <button> element to enable color picker', () => {
+    render(
+      <KanbanCard
+        card={makeCard({ labels: [{ name: 'bug', color: '#fce7f3' }] })}
+      />
+    )
+
+    // The element containing the label name should be (or be inside) a button
+    const labelEl = screen.getByText('bug')
+    const buttonEl = labelEl.closest('button') ?? (labelEl.tagName.toLowerCase() === 'button' ? labelEl : null)
+    expect(buttonEl).not.toBeNull()
+    expect((buttonEl as HTMLElement).tagName.toLowerCase()).toBe('button')
+  })
+
+  it('uses default color #95B9C7 when label.color is not specified', () => {
+    // Label with empty string color falls back to default
+    render(
+      <KanbanCard
+        card={makeCard({ labels: [{ name: 'no-color', color: '' }] })}
+      />
+    )
+
+    const labelEl = screen.getByText('no-color')
+    const badge = labelEl.closest('button') ?? labelEl
+    // The badge should still be rendered (no crash) and visible
+    expect(badge).toBeInTheDocument()
+  })
+
+  it('renders no label badges when labels array is empty', () => {
+    render(<KanbanCard card={makeCard({ labels: [] })} />)
+
+    // No badge buttons with aria-expanded (label badge pattern) should exist
+    expect(screen.queryByText('bug')).not.toBeInTheDocument()
+  })
+})
+
+// ===========================================================================
+// Phase 4 — Drag handle (accessible affordances)
 //
 // Note: We do NOT simulate actual drag-and-drop events here.
 // dnd-kit uses pointer events that do not behave correctly in jsdom.

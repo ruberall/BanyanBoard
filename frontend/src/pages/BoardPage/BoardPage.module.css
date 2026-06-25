@@ -1,2 +1,17 @@
 .page { padding: 24px 284px 24px 24px; }
-.heading { margin: 0 0 16px; font-size: 1.5rem; }
+.headingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.heading {
+  margin: 0;
+  font-size: 1.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 50%;
+  flex-shrink: 1;
+}

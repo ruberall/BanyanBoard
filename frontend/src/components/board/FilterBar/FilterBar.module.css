@@ -1,0 +1,36 @@
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.input {
+  padding: 6px 10px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  outline: none;
+  min-width: 180px;
+}
+
+.input:focus {
+  border-color: #4a90d9;
+  box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.2);
+}
+
+.clearButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: #718096;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.clearButton:hover {
+  color: #2d3748;
+  background: #edf2f7;
+}

@@ -20,6 +20,7 @@ import { KanbanBoard } from '@/components/board/KanbanBoard/KanbanBoard'
 import { KanbanCard } from '@/components/board/KanbanCard/KanbanCard'
 import { ActivityFeed } from '@/components/ActivityFeed/ActivityFeed'
 import { useActivityFeed } from '@/hooks/useActivityFeed'
+import { FilterBar } from '@/components/board/FilterBar/FilterBar'
 import type { Card } from '@/types'
 import styles from './BoardPage.module.css'
 
@@ -27,6 +28,7 @@ export function BoardPage() {
   const { boardId } = useParams<{ boardId: string }>()
   const { data: board, isLoading, isError, error } = useBoard(boardId ?? '')
   const [activeCard, setActiveCard] = useState<Card | null>(null)
+  const [filterText, setFilterText] = useState('')
   const [bannerError, setBannerError] = useState<string | null>(null)
   const moveCard = useMoveCard(setBannerError)
   const { events: activityEvents, connectionStatus } = useActivityFeed(boardId ?? '')
@@ -112,7 +114,10 @@ export function BoardPage() {
       {bannerError && (
         <ErrorBanner message={bannerError} onDismiss={() => setBannerError(null)} />
       )}
-      <h1 className={styles.heading}>{board.name}</h1>
+      <div className={styles.headingRow}>
+        <h1 className={styles.heading}>{board.name}</h1>
+        <FilterBar value={filterText} onChange={setFilterText} />
+      </div>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -120,7 +125,7 @@ export function BoardPage() {
         onDragEnd={onDragEnd}
         onDragCancel={onDragCancel}
       >
-        <KanbanBoard columns={sortedColumns} />
+        <KanbanBoard columns={sortedColumns} filterText={filterText} />
         <DragOverlay>
           {activeCard ? <KanbanCard card={activeCard} overlay /> : null}
         </DragOverlay>

@@ -8,8 +8,9 @@ import {
   listCards,
   createCard,
   moveCard,
+  updateCard,
 } from '@/api/endpoints'
-import type { PaginatedResponse, Board, BoardWithColumns, Card, ApiError } from '@/types'
+import type { PaginatedResponse, Board, BoardWithColumns, Card, Label, ApiError } from '@/types'
 
 export function useBoards() {
   return useQuery<PaginatedResponse<Board>>({
@@ -55,6 +56,32 @@ export function useCreateCard(columnId: string) {
   return useMutation<Card, Error, { title: string; description?: string | null }>({
     mutationFn: (data) => createCard(columnId, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.cards.byColumn(columnId) }),
+  })
+}
+
+type UpdateCardVars = { cardId: string; labels: Label[] }
+type UpdateCardCtx = { prevCards: Card[] | undefined }
+
+export function useUpdateCard(columnId: string) {
+  const qc = useQueryClient()
+  return useMutation<Card, ApiError, UpdateCardVars, UpdateCardCtx>({
+    mutationFn: ({ cardId, labels }) => updateCard(cardId, { labels }),
+    onMutate: async ({ cardId, labels }) => {
+      await qc.cancelQueries({ queryKey: queryKeys.cards.byColumn(columnId) })
+      const prevCards = qc.getQueryData<Card[]>(queryKeys.cards.byColumn(columnId))
+      qc.setQueryData<Card[]>(queryKeys.cards.byColumn(columnId), (old) =>
+        (old ?? []).map((c) => c.id === cardId ? { ...c, labels } : c)
+      )
+      return { prevCards }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prevCards !== undefined) {
+        qc.setQueryData(queryKeys.cards.byColumn(columnId), ctx.prevCards)
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.cards.byColumn(columnId) })
+    },
   })
 }
 
