@@ -385,7 +385,7 @@ BoardPage (filterText state)
 ## Implementation Roadmap
 
 - [x] Phase 1: FilterBar — `FilterBar` component with controlled input + × clear; filter state lifted to `BoardPage`; `KanbanColumn` accepts `filterText` prop and filters cards client-side; real-time case-insensitive substring match on title and description
-- [ ] Phase 2: Label enhancements + color picker — `KanbanCard` badge repositioned right of drag handle; `KanbanColumn` min-width → 300px; DB migration `labels text[] → jsonb`; `Label` type `{ name, color }`; `CardRepository` + `PATCH /cards/:id` extended; `LabelColorPicker` swatch grid; default color `#95B9C7`
+- [x] Phase 2: Label enhancements + color picker — `KanbanCard` badge repositioned right of drag handle; `KanbanColumn` min-width → 300px; DB migration `labels text[] → jsonb`; `Label` type `{ name, color }`; `CardRepository` + `PATCH /cards/:id` extended; `LabelColorPicker` swatch grid; default color `#95B9C7`
 - [ ] Phase 3: E2E + polish — Playwright E2E for filter flow (AC-FILTER-HAPPY-1) and color pick-persist flow (AC-COLOR-HAPPY-1/2); any remaining accessibility edge cases
 
 ## Creative Phases
@@ -400,8 +400,8 @@ BoardPage (filterText state)
 ## Execution State
 
 **Build Status**: IDLE
-**Current Phase**: BUILD (Phase 1 complete)
-**Phase Number**: 1 of 3 COMPLETE
+**Current Phase**: BUILD (Phase 2 complete)
+**Phase Number**: 2 of 3 COMPLETE
 **Is Multi-Phase**: YES
 **Can Resume**: NO
 
@@ -439,3 +439,9 @@ BoardPage (filterText state)
 - Phase 1 Step 9 Documentation: COMPLETE (2026-06-25) — techContext.md, systemPatterns.md, productBrief.md updated
 - Phase 1 Step 11 Git Commit: COMPLETE (2026-06-25)
 - UI/UX Design Agent: COMPLETE (2026-06-25) — memory-bank/creative/TASK-013-card-labels-uiux.md
+- Phase 2 Step 3 Test Writer: COMPLETE (2026-06-25) — 17 new tests across 4 files
+- Phase 2 Step 4 Coding Agent: COMPLETE (2026-06-25) — LabelColorPicker, KanbanCard layout, Label[] types, backend validation, DB migration; 200/200 frontend, 167 backend
+- Phase 2 Step 7 Integration Verification: COMPLETE (2026-06-25) — 200/200 tests, TS clean, lint clean
+- Phase 2 Step 8 Code Reviewer: COMPLETE (2026-06-25) — APPROVED; 2 recommended fixes applied (drag-close picker, null-color comment)
+- Phase 2 Step 9 Documentation: COMPLETE (2026-06-25) — techContext, systemPatterns, productBrief updated
+- Phase 2 Step 11 Git Commit: COMPLETE (2026-06-25)

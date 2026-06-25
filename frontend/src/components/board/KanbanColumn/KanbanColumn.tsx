@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import type { Column } from '@/types'
-import { useCards } from '@/api/hooks'
+import type { Column, Label } from '@/types'
+import { useCards, useUpdateCard } from '@/api/hooks'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner/LoadingSpinner'
 import { ErrorBanner } from '@/components/common/ErrorBanner/ErrorBanner'
 import { KanbanCard } from '@/components/board/KanbanCard/KanbanCard'
@@ -16,6 +16,11 @@ interface KanbanColumnProps {
 export function KanbanColumn({ column, filterText }: KanbanColumnProps) {
   const { data: cards, isLoading, isError, error } = useCards(column.id)
   const { setNodeRef } = useDroppable({ id: column.id })
+  const updateCard = useUpdateCard(column.id)
+
+  function handleLabelColorChange(cardId: string, newLabels: Label[]) {
+    updateCard?.mutate({ cardId, labels: newLabels })
+  }
 
   if (isLoading) {
     return <LoadingSpinner label="Loading cards" />
@@ -49,7 +54,7 @@ export function KanbanColumn({ column, filterText }: KanbanColumnProps) {
         {visibleCards.length === 0 ? (
           <p className={styles.empty}>No cards yet</p>
         ) : (
-          visibleCards.map((c) => <KanbanCard key={c.id} card={c} />)
+          visibleCards.map((c) => <KanbanCard key={c.id} card={c} onLabelColorChange={handleLabelColorChange} />)
         )}
       </SortableContext>
       <CreateCardForm columnId={column.id} />

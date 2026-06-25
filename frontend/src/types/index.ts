@@ -16,13 +16,18 @@ export interface Column {
   created_at: string
 }
 
+export interface Label {
+  name: string
+  color: string
+}
+
 export interface Card {
   id: string
   column_id: string
   title: string
   description: string | null
   due_date: string | null
-  labels: string[]
+  labels: Label[]
   position: number
   created_at: string
   updated_at: string

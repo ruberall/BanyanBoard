@@ -1,13 +1,18 @@
 import type { Queryable } from '../db/queryable';
 import { NotFoundError } from '../errors';
 
+export interface Label {
+  name: string;
+  color: string;
+}
+
 export interface Card {
   id: string;
   column_id: string;
   title: string;
   description: string | null;
   due_date: Date | null;
-  labels: string[];
+  labels: Label[];
   position: number;
   created_at: Date;
   updated_at: Date;
@@ -17,14 +22,14 @@ export interface CardInput {
   title: string;
   description?: string | null;
   due_date?: string | null;
-  labels?: string[];
+  labels?: Label[];
 }
 
 export interface CardUpdate {
   title?: string;
   description?: string | null;
   due_date?: string | null;
-  labels?: string[];
+  labels?: Label[];
 }
 
 export class CardRepository {
@@ -36,7 +41,7 @@ export class CardRepository {
         `INSERT INTO cards (column_id, title, description, due_date, labels)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING id, column_id, title, description, due_date, labels, position, created_at, updated_at`,
-        [columnId, input.title, input.description ?? null, input.due_date ?? null, input.labels ?? []],
+        [columnId, input.title, input.description ?? null, input.due_date ?? null, JSON.stringify(input.labels ?? [])],
       );
       return result.rows[0];
     } catch (err: unknown) {
@@ -89,8 +94,8 @@ export class CardRepository {
       values.push(updates.due_date);
     }
     if (updates.labels !== undefined) {
-      fields.push(`labels = $${paramIndex++}`);
-      values.push(updates.labels);
+      fields.push(`labels = $${paramIndex++}::jsonb`);
+      values.push(JSON.stringify(updates.labels));
     }
 
     fields.push(`updated_at = now()`);
