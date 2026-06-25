@@ -386,7 +386,7 @@ BoardPage (filterText state)
 
 - [x] Phase 1: FilterBar — `FilterBar` component with controlled input + × clear; filter state lifted to `BoardPage`; `KanbanColumn` accepts `filterText` prop and filters cards client-side; real-time case-insensitive substring match on title and description
 - [x] Phase 2: Label enhancements + color picker — `KanbanCard` badge repositioned right of drag handle; `KanbanColumn` min-width → 300px; DB migration `labels text[] → jsonb`; `Label` type `{ name, color }`; `CardRepository` + `PATCH /cards/:id` extended; `LabelColorPicker` swatch grid; default color `#95B9C7`
-- [ ] Phase 3: E2E + polish — Playwright E2E for filter flow (AC-FILTER-HAPPY-1) and color pick-persist flow (AC-COLOR-HAPPY-1/2); any remaining accessibility edge cases
+- [x] Phase 3: E2E + polish — Playwright E2E for filter flow (AC-FILTER-HAPPY-1) and color pick-persist flow (AC-COLOR-HAPPY-1/2); any remaining accessibility edge cases
 
 ## Creative Phases
 
@@ -400,13 +400,13 @@ BoardPage (filterText state)
 ## Execution State
 
 **Build Status**: IDLE
-**Current Phase**: BUILD (Phase 2 complete)
-**Phase Number**: 2 of 3 COMPLETE
+**Current Phase**: BUILD (Phase 3 complete — ALL PHASES DONE)
+**Phase Number**: 3 of 3 COMPLETE
 **Is Multi-Phase**: YES
 **Can Resume**: NO
 
 ### Current Build Step
-**Step**: Step 11 - Git Commit
+**Step**: Step 11 - Git Commit Phase 3
 **Status**: COMPLETE
 **Completed**: 2026-06-25
 
