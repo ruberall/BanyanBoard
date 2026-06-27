@@ -15,6 +15,9 @@
  *   - ErrorBanner shows when bannerError is set via useMoveCard
  *   - DragOverlay renders in the DOM without crashing
  *
+ * Phase 5 additions:
+ *  AC-FILTER-ENTRY-1  FilterBar input is present on every board load
+ *
  * Mocking strategy:
  *  - vi.mock('@/api/hooks') for useBoard, useCards, useCreateCard, useMoveCard
  *  - Wrap in MemoryRouter with route /boards/:boardId
@@ -295,5 +298,26 @@ describe('BoardPage — DnD integration (Phase 4)', () => {
     // The board container should exist — DragOverlay does not crash the render
     expect(container).toBeTruthy()
     expect(container.firstChild).not.toBeNull()
+  })
+})
+
+// ===========================================================================
+// Phase 5 — FilterBar presence (AC-FILTER-ENTRY-1)
+// ===========================================================================
+
+describe('BoardPage — FilterBar (Phase 5, AC-FILTER-ENTRY-1)', () => {
+  beforeEach(() => {
+    mockedUseBoard.mockReturnValue({
+      data: BOARD_WITH_COLUMNS,
+      isLoading: false,
+      isError: false,
+      error: null,
+    })
+  })
+
+  it('renders a filter input with aria-label "Filter cards" on every board load', () => {
+    renderBoardPage()
+
+    expect(screen.getByRole('textbox', { name: /filter cards/i })).toBeInTheDocument()
   })
 })

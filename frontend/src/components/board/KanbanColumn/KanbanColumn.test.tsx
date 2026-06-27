@@ -15,6 +15,12 @@
  * Phase 4 — SortableContext / droppable regression guards:
  *  - Cards still render after SortableContext wrapper is added
  *  - Column section (droppable target) still has accessible aria-label
+ *
+ * Phase 5 — filterText prop (AC-FILTER-HAPPY-1, AC-FILTER-HAPPY-2,
+ *            AC-FILTER-HAPPY-4, AC-FILTER-NEGATIVE-1):
+ *  - filterText filters cards by title substring (case-insensitive)
+ *  - filterText filters cards by description substring (case-insensitive)
+ *  - Non-matching filterText shows the existing empty state message
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -68,12 +74,12 @@ function mockMutation(overrides: Partial<MutationMock> = {}): MutationMock {
   }
 }
 
-function renderColumn(column: Column) {
+function renderColumn(column: Column, filterText?: string) {
   const client = makeQueryClient()
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <KanbanColumn column={column} />
+        <KanbanColumn column={column} filterText={filterText} />
       </MemoryRouter>
     </QueryClientProvider>,
   )
@@ -276,5 +282,70 @@ describe('KanbanColumn — Phase 4 SortableContext regression guards', () => {
       // Fallback: the column name heading is present (column is rendered)
       screen.queryByText('To Do')
     expect(columnRegion).toBeInTheDocument()
+  })
+})
+
+// ===========================================================================
+// Phase 5 — filterText prop (AC-FILTER-HAPPY-1/-2/-4, AC-FILTER-NEGATIVE-1)
+// ===========================================================================
+
+describe('KanbanColumn — filterText prop', () => {
+  it('shows only cards whose title matches the filter text (AC-FILTER-HAPPY-1)', () => {
+    const cards = [
+      makeCard({ id: 'c1', title: 'Fix login bug', position: 0 }),
+      makeCard({ id: 'c2', title: 'Add dark mode', position: 1 }),
+    ]
+    mockedUseCards.mockReturnValue({ data: cards, isLoading: false, isError: false, error: null })
+    mockedUseCreateCard.mockReturnValue(mockMutation())
+
+    renderColumn(COLUMN, 'fix')
+
+    expect(screen.getByText('Fix login bug')).toBeInTheDocument()
+    expect(screen.queryByText('Add dark mode')).not.toBeInTheDocument()
+  })
+
+  it('matches title filter case-insensitively (AC-FILTER-HAPPY-4)', () => {
+    const cards = [
+      makeCard({ id: 'c1', title: 'Fix login bug', position: 0 }),
+      makeCard({ id: 'c2', title: 'Add dark mode', position: 1 }),
+    ]
+    mockedUseCards.mockReturnValue({ data: cards, isLoading: false, isError: false, error: null })
+    mockedUseCreateCard.mockReturnValue(mockMutation())
+
+    renderColumn(COLUMN, 'FIX')
+
+    expect(screen.getByText('Fix login bug')).toBeInTheDocument()
+    expect(screen.queryByText('Add dark mode')).not.toBeInTheDocument()
+  })
+
+  it('shows cards whose description matches the filter text (AC-FILTER-HAPPY-2)', () => {
+    const cards = [
+      makeCard({ id: 'c1', title: 'Card A', description: 'authentication flow', position: 0 }),
+      makeCard({ id: 'c2', title: 'Card B', description: 'unrelated work', position: 1 }),
+    ]
+    mockedUseCards.mockReturnValue({ data: cards, isLoading: false, isError: false, error: null })
+    mockedUseCreateCard.mockReturnValue(mockMutation())
+
+    renderColumn(COLUMN, 'auth')
+
+    expect(screen.getByText('Card A')).toBeInTheDocument()
+    expect(screen.queryByText('Card B')).not.toBeInTheDocument()
+  })
+
+  it('shows the existing empty state when no cards match the filter (AC-FILTER-NEGATIVE-1)', () => {
+    const cards = [
+      makeCard({ id: 'c1', title: 'Fix login bug', position: 0 }),
+    ]
+    mockedUseCards.mockReturnValue({ data: cards, isLoading: false, isError: false, error: null })
+    mockedUseCreateCard.mockReturnValue(mockMutation())
+
+    renderColumn(COLUMN, 'zzznomatch')
+
+    expect(screen.queryByText('Fix login bug')).not.toBeInTheDocument()
+    const emptyMsg =
+      screen.queryByText(/no cards/i) ??
+      screen.queryByText(/empty/i) ??
+      screen.queryByText(/add a card/i)
+    expect(emptyMsg).toBeInTheDocument()
   })
 })
