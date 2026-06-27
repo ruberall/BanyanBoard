@@ -63,7 +63,12 @@ export function logout(): Promise<void> {
   return request<void>('POST', '/auth/logout')
 }
 
-export function register(data: { email: string; password: string }): Promise<User> {
+export function register(data: {
+  email: string
+  password: string
+  first_name?: string
+  last_name?: string
+}): Promise<User> {
   return request<User>('POST', '/auth/register', { body: JSON.stringify(data) })
 }
 

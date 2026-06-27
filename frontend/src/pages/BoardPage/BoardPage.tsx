@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   DndContext,
   DragOverlay,
@@ -26,6 +26,7 @@ import styles from './BoardPage.module.css'
 
 export function BoardPage() {
   const { boardId } = useParams<{ boardId: string }>()
+  const navigate = useNavigate()
   const { data: board, isLoading, isError, error } = useBoard(boardId ?? '')
   const [activeCard, setActiveCard] = useState<Card | null>(null)
   const [filterText, setFilterText] = useState('')
@@ -115,6 +116,7 @@ export function BoardPage() {
         <ErrorBanner message={bannerError} onDismiss={() => setBannerError(null)} />
       )}
       <div className={styles.headingRow}>
+        <button type="button" onClick={() => navigate('/')}>Back</button>
         <h1 className={styles.heading}>{board.name}</h1>
         <FilterBar value={filterText} onChange={setFilterText} />
       </div>

@@ -74,6 +74,32 @@ const fixPublicUserRow = {
   created_at: CREATED_AT,
 };
 
+// Fixtures for TASK-015 Phase 1 — first_name / last_name fields
+const fixUserRowWithNames = {
+  id: USER_ID,
+  email: USER_EMAIL,
+  password_hash: USER_HASH,
+  first_name: 'Bob',
+  last_name: 'Smith',
+  created_at: CREATED_AT,
+};
+
+const fixPublicUserRowWithNames = {
+  id: USER_ID,
+  email: USER_EMAIL,
+  first_name: 'Bob',
+  last_name: 'Smith',
+  created_at: CREATED_AT,
+};
+
+const fixPublicUserRowNullNames = {
+  id: USER_ID,
+  email: USER_EMAIL,
+  first_name: null,
+  last_name: null,
+  created_at: CREATED_AT,
+};
+
 // ---------------------------------------------------------------------------
 // POST /auth/register
 // ---------------------------------------------------------------------------
@@ -345,5 +371,116 @@ describe('Route protection: GET /boards', () => {
 
     // Assert — auth passed, boards handler responded
     expect(response.status).toBe(200);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TASK-015 Phase 1 — POST /auth/register with first_name / last_name fields
+//
+// AC-S3-HAPPY-1: POST /auth/register with first_name + last_name → 201 with those fields
+// AC-S3-HAPPY-2: POST /auth/register WITHOUT first_name/last_name → 201 with null values
+// ---------------------------------------------------------------------------
+
+describe('POST /auth/register (TASK-015: name fields)', () => {
+  it('AC-S3-HAPPY-1: returns 201 with first_name and last_name when both are provided', async () => {
+    // Arrange — stub pool: findByEmail returns null (no duplicate), createUser returns row with names
+    const stubPool = {
+      query: jest.fn()
+        // findByEmail check → no existing user
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 })
+        // createUser INSERT → new user row with first_name and last_name
+        .mockResolvedValueOnce({ rows: [fixUserRowWithNames], rowCount: 1 }),
+    } as any;
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+
+    // Act
+    const response = await supertest(app)
+      .post('/auth/register')
+      .send({ email: USER_EMAIL, password: USER_PASSWORD, first_name: 'Bob', last_name: 'Smith' });
+
+    // Assert — 201 with name fields in response body
+    expect(response.status).toBe(201);
+    expect(response.body.id).toBeDefined();
+    expect(response.body.email).toBe(USER_EMAIL);
+    expect(response.body.first_name).toBe('Bob');
+    expect(response.body.last_name).toBe('Smith');
+    expect(response.body.created_at).toBeDefined();
+    expect(response.body.password_hash).toBeUndefined();
+  });
+
+  it('AC-S3-HAPPY-2: returns 201 with first_name=null and last_name=null when names are omitted', async () => {
+    // Arrange — stub pool: findByEmail returns null, createUser returns row with null names
+    const stubPool = {
+      query: jest.fn()
+        // findByEmail check → no existing user
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 })
+        // createUser INSERT → new user row with null name columns
+        .mockResolvedValueOnce({ rows: [fixPublicUserRowNullNames], rowCount: 1 }),
+    } as any;
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+
+    // Act — register without optional name fields
+    const response = await supertest(app)
+      .post('/auth/register')
+      .send({ email: USER_EMAIL, password: USER_PASSWORD });
+
+    // Assert — registration succeeds and null name fields are returned
+    expect(response.status).toBe(201);
+    expect(response.body.first_name).toBeNull();
+    expect(response.body.last_name).toBeNull();
+    expect(response.body.password_hash).toBeUndefined();
+  });
+
+  it('returns 400 VALIDATION_ERROR when first_name exceeds 100 characters', async () => {
+    // Arrange — pool never reached for invalid input
+    const stubPool = { query: jest.fn() } as any;
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    const longName = 'A'.repeat(101);
+
+    // Act
+    const response = await supertest(app)
+      .post('/auth/register')
+      .send({ email: USER_EMAIL, password: USER_PASSWORD, first_name: longName });
+
+    // Assert — validation rejects name > 100 chars
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('VALIDATION_ERROR');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TASK-015 Phase 1 — GET /auth/me returns first_name / last_name after registration
+//
+// AC-S3-VERIFY-1: GET /auth/me returns first_name and last_name after registration
+// ---------------------------------------------------------------------------
+
+describe('GET /auth/me (TASK-015: name fields)', () => {
+  it('AC-S3-VERIFY-1: returns first_name and last_name in PublicUser after login', async () => {
+    // Arrange — agent preserves cookies between requests
+    const stubPool = {
+      query: jest.fn()
+        // 1. POST /auth/login: findByEmail (returns user with names in DB)
+        .mockResolvedValueOnce({ rows: [fixUserRowWithNames], rowCount: 1 })
+        // 2. GET /auth/me: findById returns PublicUser with names
+        .mockResolvedValueOnce({ rows: [fixPublicUserRowWithNames], rowCount: 1 }),
+    } as any;
+    const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+    const agent = supertest.agent(app);
+
+    // Login first to establish session
+    await agent
+      .post('/auth/login')
+      .send({ email: USER_EMAIL, password: USER_PASSWORD });
+
+    // Act
+    const response = await agent.get('/auth/me');
+
+    // Assert — response includes first_name and last_name
+    expect(response.status).toBe(200);
+    expect(response.body.id).toBe(USER_ID);
+    expect(response.body.email).toBe(USER_EMAIL);
+    expect(response.body.first_name).toBe('Bob');
+    expect(response.body.last_name).toBe('Smith');
+    expect(response.body.password_hash).toBeUndefined();
   });
 });

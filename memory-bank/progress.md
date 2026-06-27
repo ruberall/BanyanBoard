@@ -1,5 +1,49 @@
 # Progress
 
+---
+
+## Task Archive: TASK-015
+
+**Task**: User Profile, Messaging, and Navigation Enhancements (FEAT-012)
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-27
+**Archive**: `memory-bank/archive/archive-TASK-015.md`
+
+---
+
+## Phase 2 Complete: TASK-015
+
+**Task**: User Profile, Messaging, and Navigation Enhancements (FEAT-012)
+**Status**: ✅ Phase 2/3 COMPLETE
+**Date**: 2026-06-27
+**Phase**: Frontend — Register Form Fields + Back Button
+**Tests**: 226/226 frontend + 174/174 backend passing
+**Code Review**: APPROVED — 0 blocking issues (fixed: merged test file, omit empty name strings)
+**Key Changes**:
+- Extended `User` type with `first_name: string | null`, `last_name: string | null`
+- RegisterPage: "First name" + "Last name" optional inputs; omitted from payload when blank (backend stores NULL)
+- BoardPage: Back button via `useNavigate` — navigates to `/`
+- `register()` endpoint: accepts optional `first_name?` and `last_name?`
+
+---
+
+## Phase 1 Complete: TASK-015
+
+**Task**: User Profile, Messaging, and Navigation Enhancements (FEAT-012)
+**Status**: ✅ Phase 1/3 COMPLETE
+**Date**: 2026-06-27
+**Phase**: DB Migrations + Backend Plumbing
+**Tests**: 174/174 passing (includes 7 new Phase 1 tests)
+**TypeScript**: Clean (0 errors)
+**Code Review**: APPROVED — 0 blocking issues (1 recommended: PII in seed migration, address before merge)
+**Key Changes**:
+- Added `first_name`, `last_name` columns to `users` table
+- Added `messages` table (id, message, created_at, recipient_user_id FK)
+- Seeded existing user with Rebecca Uberall name
+- Extended `PublicUser` type, `createUser`, `register`, and POST /register route to accept optional name fields
+
+---
+
 ## Task Archive: TASK-013
 
 **Task**: Card Labels

@@ -69,4 +69,21 @@ test.describe('Board Page', () => {
     await page.reload();
     await expect(inProgressColumn.getByRole('heading', { name: 'Keyboard move card' })).toBeVisible();
   });
+
+  // -------------------------------------------------------------------------
+  // AC-S5: Back button (Phase 3 E2E)
+  // -------------------------------------------------------------------------
+
+  test('AC-S5-HAPPY-1: Back button is visible and navigates to Boards list', async ({ page }) => {
+    await page.goto(`/boards/${boardId}`);
+    await expect(page.getByRole('heading', { name: 'E2E Board' })).toBeVisible();
+
+    const backButton = page.getByRole('button', { name: /back/i });
+    await expect(backButton).toBeVisible();
+
+    await backButton.click();
+
+    await expect(page).toHaveURL('/');
+    await expect(page.getByRole('heading', { name: /my boards/i })).toBeVisible();
+  });
 });

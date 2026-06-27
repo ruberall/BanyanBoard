@@ -14,6 +14,8 @@ function getErrorMessage(error: unknown): string {
 }
 
 export function RegisterPage() {
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const navigate = useNavigate()
@@ -23,7 +25,13 @@ export function RegisterPage() {
     e.preventDefault()
     register.reset()
     register.mutate(
-      { email, password },
+      {
+        email,
+        password,
+        // Omit name fields entirely when blank so the backend stores NULL rather than an empty string.
+        ...(firstName ? { first_name: firstName } : {}),
+        ...(lastName ? { last_name: lastName } : {}),
+      },
       {
         onSuccess: () => navigate('/', { replace: true }),
       },
@@ -37,6 +45,24 @@ export function RegisterPage() {
         <ErrorBanner message={getErrorMessage(register.error)} onDismiss={() => register.reset()} />
       )}
       <form onSubmit={handleSubmit}>
+        <div>
+          <label htmlFor="first_name">First name</label>
+          <input
+            id="first_name"
+            type="text"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+          />
+        </div>
+        <div>
+          <label htmlFor="last_name">Last name</label>
+          <input
+            id="last_name"
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+          />
+        </div>
         <div>
           <label htmlFor="email">Email</label>
           <input

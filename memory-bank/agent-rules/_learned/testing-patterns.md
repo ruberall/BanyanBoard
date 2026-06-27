@@ -3,19 +3,13 @@ name: "Learned: Testing Patterns"
 globs: ["*.test.*", "*.test.tsx", "*.test.ts", "*.spec.*"]
 topics: ["testing-patterns", "typescript", "test-fixtures"]
 priority: medium
-evidence_count: 14
+evidence_count: 10
 last_updated: 2026-06-27
 auto_generated: true
 ---
 
 # Testing Patterns
 
-- Use `supertest` agent in integration tests to avoid port-binding conflicts across test suites.
-- Test validation middleware by asserting both the HTTP status code and the error message body structure.
-- Validate paginated endpoint tests include assertions on `total`, `page`, and `limit` fields — not just `data`.
-- Declare fixture constants in test files only if they are referenced in at least one assertion — unused typed constants cause TS6133 errors that fail the build pipeline.
-- In Playwright configs for suites sharing a live database, set `workers: 1` to prevent isolation race conditions unless each test namespaces its own data.
-- When testing TanStack Query error states in Playwright, wait for `[role="status"]` to disappear before asserting `[role="alert"]` — this spans the full retry cycle rather than racing against it.
 - When wiring a PostgreSQL-backed middleware (e.g., `connect-pg-simple`) into `createApp`, add a `NODE_ENV === 'test'` conditional that substitutes an in-memory store to prevent the real store constructor from intercepting stub pool mock chains in route integration tests.
 - When adding Playwright E2E specs to a project that also uses vitest, add `exclude: ['e2e/**']` to `vitest.config.ts` before committing the first `.spec.ts` file to the `e2e/` directory.
 - Test SSE endpoints using native `http.createServer` + `http.get()` against a random bound port — supertest 7 blocks `server.close()` on open SSE connections and never sends `buffer(false)` requests.
@@ -24,17 +18,13 @@ auto_generated: true
 - Pre-existing test fixture type mismatches (e.g., `string[]` where `Label[]` is required) should be fixed in the same PR phase as the new tests that reveal them — don't defer to avoid scope creep.
 - Playwright E2E tests that rely on new DOM elements (e.g., a palette button) require the Vite dev server to have HMR'd those changes before the test run — restart Docker Compose for a clean state if a new element is timing out even though the parent container is visible.
 - When a build phase produces only Playwright spec files and the live stack is not verified during the session, add a `PLAYWRIGHT_UNVERIFIED` note to the task execution state and treat it as an open checklist item for UAT — do not treat commit of an unrun spec as equivalent to a passing test.
+- Place frontend component tests co-located alongside the component file (`ComponentName.test.tsx`), never in a `__tests__/` subdirectory — extend existing test files when adding coverage to a component that already has tests.
+- When extending a function's signature with optional parameters, update all existing mock assertions to match the new full call signature (e.g., `(email, hash, undefined, undefined)`) rather than leaving them at the old arity.
 
 ## Evidence
 
 | Learning | Source | Date |
 |----------|--------|------|
-| supertest agent pattern | [reflection-TASK-001.md](../reflection/reflection-TASK-001.md) | 2026-06-13 |
-| Validation middleware test assertions | [reflection-TASK-002.md](../reflection/reflection-TASK-002.md) | 2026-06-15 |
-| Pagination field assertions | [reflection-TASK-006.md](../reflection/reflection-TASK-006.md) | 2026-06-16 |
-| Unused ALL_COLUMN_IDS in useMoveCard.test.tsx caused TS6133 build failure | [reflection-TASK-009.md](../reflection/reflection-TASK-009.md) | 2026-06-17 |
-| Playwright workers=1 for shared-DB suites | [reflection-TASK-010.md](../reflection/reflection-TASK-010.md) | 2026-06-17 |
-| TanStack Query retry cycle wait pattern | [reflection-TASK-010.md](../reflection/reflection-TASK-010.md) | 2026-06-17 |
 | MemoryStore fallback for stub-pool tests (connect-pg-simple) | [reflection-TASK-011.md](../reflection/reflection-TASK-011.md) | 2026-06-18 |
 | vitest/Playwright coexistence: exclude e2e/** | [reflection-TASK-011.md](../reflection/reflection-TASK-011.md) | 2026-06-18 |
 | SSE endpoints require native http.get, not supertest | [reflection-TASK-012.md](../reflection/reflection-TASK-012.md) | 2026-06-18 |
@@ -43,3 +33,5 @@ auto_generated: true
 | Fix pre-existing fixture type mismatches in same phase | [reflection-TASK-014.md](../reflection/reflection-TASK-014.md) | 2026-06-27 |
 | Playwright E2E needs HMR'd dev server before new DOM element tests | [reflection-TASK-014.md](../reflection/reflection-TASK-014.md) | 2026-06-27 |
 | Unrun Playwright specs committed without live-stack verification | [reflection-TASK-013.md](../reflection/reflection-TASK-013.md) | 2026-06-27 |
+| Co-located test placement — test writer created `__tests__/` dirs for both BoardPage and RegisterPage | [reflection-TASK-015.md](../reflection/reflection-TASK-015.md) | 2026-06-27 |
+| Mock arity mismatch — `auth.service.test.ts` broke after `createUser` extended to 4-arg signature | [reflection-TASK-015.md](../reflection/reflection-TASK-015.md) | 2026-06-27 |

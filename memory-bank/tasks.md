@@ -16,3 +16,4 @@
 | TASK-012 | Realtime Activity Feed | ARCHIVE | COMPLETE | FEAT-009 |
 | TASK-013 | Card Labels | ARCHIVE | COMPLETE | FEAT-010 |
 | TASK-014 | Card Color Picker | ARCHIVE | COMPLETE | FEAT-011 |
+| TASK-015 | User Profile, Messaging, and Navigation Enhancements | ARCHIVE | COMPLETE | FEAT-012 |

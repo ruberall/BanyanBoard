@@ -2,7 +2,7 @@
 
 ## Summary
 
-- **Total Features**: 11
+- **Total Features**: 12
 - **Released Versions**: 0
 - **Active Versions**: 0
 - **Planning Versions**: 1
@@ -33,7 +33,8 @@
   - FEAT-008: E2E Test Suite for Board Flow (in_progress) [Level 2]
   - FEAT-009: Realtime Activity Feed (complete) [Level 3]
   - FEAT-010: Card Labels (complete) [Level 3]
-  - FEAT-011: Card Color Picker (planned) [Level 3]
+  - FEAT-011: Card Color Picker (complete) [Level 3]
+  - FEAT-012: User Profile, Messaging, and Navigation Enhancements (complete) [Level 3]
 
 ---
 
@@ -175,6 +176,20 @@
 - **Description**: A palette button on each card opens a modal with ~10 pale color swatches. Selecting a swatch sets the card's background color and persists it to the DB. Requires a new `color` column on the `cards` table (migration), backend validation, and a new `CardColorPicker` modal component on the frontend.
 - **Linked Tasks**: TASK-014 (COMPLETE)
 - **Branch**: feature/FEAT-011-card-color-picker (merged → main 2026-06-27)
+- **Created**: 2026-06-27
+- **Completed**: 2026-06-27
+
+---
+
+### FEAT-012: User Profile, Messaging, and Navigation Enhancements
+
+- **Version**: next
+- **Status**: complete
+- **Priority**: high
+- **Complexity**: Level 3
+- **Description**: Five related enhancements: (1) Sign Out button in the upper-right of the initial screen that navigates to the existing login page. (2) Extend the users table with first_name and last_name columns; add a messages table linked to a recipient user (message string 255 chars, created_at timestamp, recipient_user_id FK). (3) Add First name and Last name fields to the Register screen; persist with user account on register. (4) Data migration: set first_name="Rebecca", last_name="Uberall" on the one existing user. (5) Back button in the upper-left of the Cards/Board screen that navigates to the Boards list screen.
+- **Linked Tasks**: TASK-015 (COMPLETE)
+- **Branch**: feature/FEAT-012-user-profile-messaging
 - **Created**: 2026-06-27
 - **Completed**: 2026-06-27
 

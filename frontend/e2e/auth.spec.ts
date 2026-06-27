@@ -3,17 +3,19 @@
  *
  * E2E tests for the authentication user journey.
  *
- * AC-ENTRY-1  Unauthenticated user navigating to / is redirected to /login
- * AC-ENTRY-2  Unauthenticated user navigating to a board page is redirected to /login
- * AC-LOGIN-1  Logging in with valid credentials redirects to /
- * AC-LOGIN-2  Logging in with wrong password shows an error banner
- * AC-REG-1    Registering with valid credentials redirects to / (auto-login)
- * AC-REG-2    Registering with an already-used email shows an error banner
- * AC-LOGOUT-1 Clicking logout redirects to /login
- * AC-LOGOUT-2 After logout, navigating to / redirects back to /login
- * AC-A11Y-1   Login form inputs have associated labels
- * AC-A11Y-2   Register form inputs have associated labels
- * AC-A11Y-3   Login error banner has role="alert"
+ * AC-ENTRY-1    Unauthenticated user navigating to / is redirected to /login
+ * AC-ENTRY-2    Unauthenticated user navigating to a board page is redirected to /login
+ * AC-LOGIN-1    Logging in with valid credentials redirects to /
+ * AC-LOGIN-2    Logging in with wrong password shows an error banner
+ * AC-REG-1      Registering with valid credentials redirects to / (auto-login)
+ * AC-REG-2      Registering with an already-used email shows an error banner
+ * AC-LOGOUT-1   Clicking logout redirects to /login
+ * AC-LOGOUT-2   After logout, navigating to / redirects back to /login
+ * AC-A11Y-1     Login form inputs have associated labels
+ * AC-A11Y-2     Register form inputs have associated labels
+ * AC-A11Y-3     Login error banner has role="alert"
+ * AC-S3-HAPPY-1 Register with first + last name → GET /auth/me returns names
+ * AC-S3-HAPPY-2 Register without names → succeeds (null fields)
  */
 
 import { randomUUID } from 'crypto';
@@ -189,5 +191,52 @@ test.describe('Accessibility (AC-A11Y)', () => {
     const alert = page.getByRole('alert');
     await expect(alert).toBeVisible();
     await expect(alert).toContainText(/invalid email or password/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// AC-S3: Register form name fields (Phase 3 E2E)
+// ---------------------------------------------------------------------------
+
+test.describe('Registration with name fields (AC-S3)', () => {
+  test('AC-S3-HAPPY-1: register with first + last name → GET /auth/me returns names', async ({ page }) => {
+    const email = uniqueEmail();
+
+    await page.goto('/register');
+    await page.getByLabel(/first name/i).fill('Jane');
+    await page.getByLabel(/last name/i).fill('Doe');
+    await page.getByLabel(/email/i).fill(email);
+    await page.getByLabel(/password/i).fill(E2E_PASSWORD);
+    await page.getByRole('button', { name: /create account/i }).click();
+
+    // Auto-login → redirect to /
+    await expect(page).toHaveURL('/');
+
+    // Verify names persisted — call GET /auth/me with the session cookie
+    const meRes = await page.request.get(`${API_BASE}/auth/me`);
+    expect(meRes.ok()).toBeTruthy();
+    const me = await meRes.json();
+    expect(me.first_name).toBe('Jane');
+    expect(me.last_name).toBe('Doe');
+
+    // Cleanup
+    await page.request.post(`${API_BASE}/auth/logout`);
+  });
+
+  test('AC-S3-HAPPY-2: register without names → succeeds, no form error', async ({ page }) => {
+    const email = uniqueEmail();
+
+    await page.goto('/register');
+    // Leave first_name and last_name blank
+    await page.getByLabel(/email/i).fill(email);
+    await page.getByLabel(/password/i).fill(E2E_PASSWORD);
+    await page.getByRole('button', { name: /create account/i }).click();
+
+    // Should succeed and redirect to /
+    await expect(page).toHaveURL('/');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+
+    // Cleanup
+    await page.request.post(`${API_BASE}/auth/logout`);
   });
 });

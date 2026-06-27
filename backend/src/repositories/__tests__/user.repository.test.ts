@@ -51,6 +51,31 @@ const fixPublicUser = {
   created_at: CREATED_AT,
 };
 
+const fixUserRowWithNames = {
+  id: USER_ID,
+  email: USER_EMAIL,
+  password_hash: PASS_HASH,
+  first_name: 'Alice',
+  last_name: 'Smith',
+  created_at: CREATED_AT,
+};
+
+const fixPublicUserWithNames = {
+  id: USER_ID,
+  email: USER_EMAIL,
+  first_name: 'Alice',
+  last_name: 'Smith',
+  created_at: CREATED_AT,
+};
+
+const fixPublicUserNullNames = {
+  id: USER_ID,
+  email: USER_EMAIL,
+  first_name: null,
+  last_name: null,
+  created_at: CREATED_AT,
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -203,6 +228,72 @@ describe('UserRepository', () => {
         // Assert
         const [_sql, values] = mockDb.query.mock.calls[0] as [string, unknown[]];
         expect(values).toContain(USER_ID);
+      });
+    });
+
+    // ── createUser with first_name / last_name (TASK-015 Phase 1) ────────────
+    //
+    // AC-S2-VERIFY-1: users table has first_name and last_name columns (nullable)
+    // AC-S3-HAPPY-1: POST /auth/register with first_name + last_name returns 201 with those fields
+    // AC-S3-HAPPY-2: POST /auth/register WITHOUT first_name/last_name still succeeds (null values)
+
+    describe('createUser(email, passwordHash, firstName?, lastName?)', () => {
+      it('AC-S3-HAPPY-1: returns PublicUser with first_name and last_name when both are supplied', async () => {
+        // Arrange
+        const mockDb = makeMockDb([
+          { rows: [fixUserRowWithNames], rowCount: 1 },
+        ]);
+        const { UserRepository } = await import('../user.repository');
+        const repo = new UserRepository(mockDb);
+
+        // Act
+        const result = await repo.createUser(USER_EMAIL, PASS_HASH, 'Alice', 'Smith');
+
+        // Assert — PublicUser shape now includes first_name and last_name
+        expect(result.id).toBe(USER_ID);
+        expect(result.email).toBe(USER_EMAIL);
+        expect((result as any).first_name).toBe('Alice');
+        expect((result as any).last_name).toBe('Smith');
+        expect(result.created_at).toEqual(CREATED_AT);
+        expect((result as any).password_hash).toBeUndefined();
+      });
+
+      it('AC-S3-HAPPY-1: passes first_name and last_name as SQL parameters when supplied', async () => {
+        // Arrange
+        const mockDb = makeMockDb([
+          { rows: [fixUserRowWithNames], rowCount: 1 },
+        ]);
+        const { UserRepository } = await import('../user.repository');
+        const repo = new UserRepository(mockDb);
+
+        // Act
+        await repo.createUser(USER_EMAIL, PASS_HASH, 'Alice', 'Smith');
+
+        // Assert — SQL params must include email, hash, first_name, last_name
+        expect(mockDb.query).toHaveBeenCalledTimes(1);
+        const [_sql, values] = mockDb.query.mock.calls[0] as [string, unknown[]];
+        expect(values).toContain(USER_EMAIL);
+        expect(values).toContain(PASS_HASH);
+        expect(values).toContain('Alice');
+        expect(values).toContain('Smith');
+      });
+
+      it('AC-S3-HAPPY-2: returns PublicUser with first_name=null and last_name=null when names are omitted', async () => {
+        // Arrange — DB returns null for the name columns (as would happen post-migration)
+        const mockDb = makeMockDb([
+          { rows: [fixPublicUserNullNames], rowCount: 1 },
+        ]);
+        const { UserRepository } = await import('../user.repository');
+        const repo = new UserRepository(mockDb);
+
+        // Act — call without optional name params
+        const result = await repo.createUser(USER_EMAIL, PASS_HASH);
+
+        // Assert — first_name and last_name are present as null (not undefined)
+        expect(result.id).toBe(USER_ID);
+        expect((result as any).first_name).toBeNull();
+        expect((result as any).last_name).toBeNull();
+        expect((result as any).password_hash).toBeUndefined();
       });
     });
 

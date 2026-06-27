@@ -27,7 +27,7 @@ No clever abstractions. No microservices. One Express app.
 │   │   ├── types/      # Domain types (Board, Column, Card, User, ApiError, CardMovedEvent)
 │   │   ├── context/    # React contexts (AuthContext — currentUser, login, logout, register via TanStack Query)
 │   │   ├── components/ # UI components (common/ for shared, feature-specific otherwise; PrivateRoute for auth guard; ActivityFeed — collapsible right sidebar showing real-time card-move events, localStorage persistence for collapsed state; FilterBar — controlled text input with × clear button, client-side card filtering via prop drilling BoardPage → KanbanBoard → KanbanColumn)
-│   │   ├── pages/      # Route-level components (BoardListPage, BoardPage, LoginPage, RegisterPage, NotFoundPage)
+│   │   ├── pages/      # Route-level components (BoardListPage, BoardPage — includes Back button via useNavigate, LoginPage, RegisterPage — optional first/last name fields, NotFoundPage)
 │   │   ├── hooks/      # Custom React hooks (useLogin, useRegister, useLogout, useCurrentUser, useActivityFeed — SSE client returning events[] + connectionStatus)
 │   │   ├── lib/        # Shared utilities (logger.ts — warn/error only, always emit)
 │   │   ├── api/        # API client
@@ -172,7 +172,7 @@ React Router v6 (`BrowserRouter`) wraps the app in `main.tsx`. Routes are declar
 
 - **Engine**: PostgreSQL 15+
 - **Migrations**: node-pg-migrate — JS migration files in `backend/migrations/`; filenames are `<epoch-ms>_<description>.js` (e.g., `1749916800000_create-boards-and-columns.js`); run automatically on startup via `RUN_MIGRATIONS_ON_START=true`
-- **Schema**: boards → columns → cards (ordered); users; board_members
+- **Schema**: boards → columns → cards (ordered); users (with optional `first_name`/`last_name`); messages (user-to-user messaging); board_members
 - **UUID primary keys**: all tables use `gen_random_uuid()` (PostgreSQL built-in, no extension required)
 - **Local**: Managed by Docker Compose (`postgres` service); data persisted in Docker volume
 
@@ -190,7 +190,7 @@ Auth state is managed entirely via **TanStack Query** — no separate AuthContex
 | Fetch client | `frontend/src/api/client.ts` | All requests include `credentials: 'include'` |
 | Query key | `frontend/src/api/queryKeys.ts` `auth.me` | `['auth', 'me']` |
 | Auth endpoints | `frontend/src/api/endpoints.ts` | `fetchMe`, `login`, `logout`, `register` |
-| User type | `frontend/src/types/index.ts` | `User { id: string; email: string }` |
+| User type | `frontend/src/types/index.ts` | `User { id: string; email: string; first_name: string \| null; last_name: string \| null }` |
 
 Routing (in `App.tsx`): `/login` and `/register` are public; all other routes wrapped in `<PrivateRoute>`.
 
@@ -220,7 +220,7 @@ All endpoints are prefixed by the Express mount path. The app currently exposes:
 | Method | Path | Auth Required | Description | Response |
 |--------|------|---------------|-------------|----------|
 | `GET` | `/health` | No | Liveness probe | `200 { status: "ok" }` |
-| `POST` | `/auth/register` | No | Register a new user (`{ email, password }`) | `201 PublicUser` or `400`/`409` |
+| `POST` | `/auth/register` | No | Register a new user (`{ email, password, first_name?, last_name? }`) | `201 PublicUser` or `400`/`409` |
 | `POST` | `/auth/login` | No | Log in and establish a session (`{ email, password }`) | `200 PublicUser` or `400`/`401` |
 | `POST` | `/auth/logout` | No | Destroy the current session | `200 {}` |
 | `GET` | `/auth/me` | Yes | Return the authenticated user | `200 PublicUser` or `401` |

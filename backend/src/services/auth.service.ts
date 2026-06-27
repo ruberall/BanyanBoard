@@ -6,13 +6,13 @@ import type { PublicUser } from '../repositories/user.repository';
 export class AuthService {
   constructor(private readonly repo: UserRepository) {}
 
-  async register(email: string, password: string): Promise<PublicUser> {
+  async register(email: string, password: string, firstName?: string | null, lastName?: string | null): Promise<PublicUser> {
     const existing = await this.repo.findByEmail(email);
     if (existing) {
       throw new ConflictError('Email already registered');
     }
     const hash = await bcrypt.hash(password, 12);
-    return this.repo.createUser(email, hash);
+    return this.repo.createUser(email, hash, firstName, lastName);
   }
 
   async login(email: string, password: string): Promise<PublicUser> {
@@ -27,7 +27,7 @@ export class AuthService {
     if (!match) {
       throw new UnauthorizedError('Invalid email or password');
     }
-    return { id: user.id, email: user.email, created_at: user.created_at };
+    return { id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, created_at: user.created_at };
   }
 
   async getMe(userId: string): Promise<PublicUser> {

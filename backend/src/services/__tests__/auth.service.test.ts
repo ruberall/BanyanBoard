@@ -102,7 +102,7 @@ describe('AuthService', () => {
       // Assert — bcrypt called with cost 12
       expect(bcrypt.hash).toHaveBeenCalledWith(PLAIN_PASS, 12);
       // Assert — repo.createUser called with email and the resulting hash
-      expect(repo.createUser).toHaveBeenCalledWith(USER_EMAIL, PASS_HASH);
+      expect(repo.createUser).toHaveBeenCalledWith(USER_EMAIL, PASS_HASH, undefined, undefined);
       // Assert — returns PublicUser (no password_hash)
       expect(result).toEqual(fixPublicUser);
       expect((result as any).password_hash).toBeUndefined();

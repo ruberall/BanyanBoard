@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-22 (added Guiding Principles, DB schema, query patterns, domain event pattern, SSE transport layer, subscribe-before-flush race hardening; added cursor pagination principle)
+**Last updated**: 2026-06-27 (added Guiding Principles, DB schema, query patterns, domain event pattern, SSE transport layer, subscribe-before-flush race hardening; added cursor pagination principle; TASK-015 Phase 1: added first_name/last_name to users schema, added messages table)
 
 ## Guiding Principles
 
@@ -264,11 +264,12 @@ When `credentials: true`, browsers reject `Access-Control-Allow-Origin: *`. `bac
 
 | Table | Key Columns |
 |-------|-------------|
-| `users` | `id` uuid PK, `email` varchar UNIQUE, `password_hash` text, `created_at` timestamptz |
+| `users` | `id` uuid PK, `email` varchar UNIQUE, `password_hash` text, `first_name` varchar(100)?, `last_name` varchar(100)?, `created_at` timestamptz |
 | `boards` | `id` uuid PK, `name` varchar, `created_at` timestamptz |
 | `columns` | `id` uuid PK, `board_id` FK → boards CASCADE DELETE, `name` varchar, `position` int, `created_at` timestamptz |
 | `cards` | `id` uuid PK, `column_id` FK → columns CASCADE DELETE, `title` varchar, `description` text?, `due_date` timestamptz?, `labels` text[]?, `position` float8 DEFAULT 1.0, `created_at`/`updated_at` timestamptz |
 | `card_events` | `id` uuid PK, `board_id` FK → boards CASCADE DELETE, `card_id` FK → cards SET NULL, `actor_id` FK → users SET NULL, `event_type` varchar, `payload` jsonb, `occurred_at` timestamptz DEFAULT now() |
+| `messages` | `id` uuid PK gen_random_uuid(), `message` varchar(255) NOT NULL, `created_at` timestamptz DEFAULT now(), `recipient_user_id` uuid FK → users CASCADE DELETE |
 
 ## Query Patterns
 

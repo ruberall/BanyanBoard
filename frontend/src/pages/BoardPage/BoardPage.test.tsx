@@ -23,7 +23,7 @@
  *  - Wrap in MemoryRouter with route /boards/:boardId
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { Mock } from 'vitest'
@@ -41,6 +41,13 @@ vi.mock('@/api/hooks')
 vi.mock('@/hooks/useActivityFeed', () => ({
   useActivityFeed: () => ({ events: [], connectionStatus: 'connecting' as const }),
 }))
+
+// Mock useNavigate while keeping MemoryRouter, Route, Routes intact (Phase 2)
+const mockNavigate = vi.fn()
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom')
+  return { ...actual, useNavigate: () => mockNavigate }
+})
 
 const mockedUseBoard = hooks.useBoard as Mock
 const mockedUseCards = hooks.useCards as Mock
@@ -319,5 +326,48 @@ describe('BoardPage — FilterBar (Phase 5, AC-FILTER-ENTRY-1)', () => {
     renderBoardPage()
 
     expect(screen.getByRole('textbox', { name: /filter cards/i })).toBeInTheDocument()
+  })
+})
+
+// ===========================================================================
+// Phase 2 — Back button (AC-S5-HAPPY-1 / AC-S5-HAPPY-2)
+// ===========================================================================
+
+describe('BoardPage — Back button rendering (Phase 2, AC-S5-HAPPY-1)', () => {
+  beforeEach(() => {
+    mockedUseBoard.mockReturnValue({
+      data: BOARD_WITH_COLUMNS,
+      isLoading: false,
+      isError: false,
+      error: null,
+    })
+  })
+
+  it('renders a Back button on the board page', () => {
+    renderBoardPage()
+
+    const backButton = screen.getByRole('button', { name: /back/i })
+    expect(backButton).toBeInTheDocument()
+  })
+})
+
+describe('BoardPage — Back button navigation (Phase 2, AC-S5-HAPPY-2)', () => {
+  beforeEach(() => {
+    mockedUseBoard.mockReturnValue({
+      data: BOARD_WITH_COLUMNS,
+      isLoading: false,
+      isError: false,
+      error: null,
+    })
+  })
+
+  it('navigates to "/" when the Back button is clicked', () => {
+    renderBoardPage()
+
+    const backButton = screen.getByRole('button', { name: /back/i })
+    fireEvent.click(backButton)
+
+    expect(mockNavigate).toHaveBeenCalledOnce()
+    expect(mockNavigate).toHaveBeenCalledWith('/')
   })
 })

@@ -13,6 +13,28 @@
 
 ---
 
+## 2026-06-27 - Consolidation (during TASK-015 archive)
+
+- Files before: 14, Files after: 14
+- Merged: 0 files
+- Expired: 0 bullets (0 files deleted)
+- Promoted: 0 files (no file crossed evidence_count threshold of 3 this cycle)
+- Pruned: 6 bullets from `testing-patterns.md` (bullet count 16 → 10; exceeded 15-bullet max; removed 6 oldest single-evidence bullets from TASK-001 to TASK-010)
+
+---
+
+## 2026-06-27 - TASK-015 Reflection
+
+### Extracted Patterns
+- **data-validation** → created `agent-rules/_learned/data-validation.md` (evidence count: 1) — conditional spread for NULL vs empty string
+- **testing-patterns** → amended `agent-rules/_learned/testing-patterns.md` (evidence count: 16) — co-located test placement + mock arity mismatch
+- **security** → amended `agent-rules/_learned/security.md` (evidence count: 2) — PII in seed migrations must use env var substitution
+
+### systemPatterns.md Updates
+- None (no novel architectural patterns)
+
+---
+
 ## 2026-06-27 - TASK-013 Reflection
 
 ### Extracted Patterns

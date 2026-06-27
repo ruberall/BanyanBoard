@@ -10,6 +10,8 @@ import { requireAuth } from '../middleware/requireAuth';
 const registerSchema = z.object({
   email: z.string().email('email must be a valid email address'),
   password: z.string().min(8, 'password must be at least 8 characters').max(72, 'password must be at most 72 characters'),
+  first_name: z.string().max(100).optional(),
+  last_name: z.string().max(100).optional(),
 });
 
 const loginSchema = z.object({
@@ -28,8 +30,8 @@ export function createAuthRouter(db: Queryable): Router {
       const firstError = parsed.error.errors[0];
       throw new ValidationError(firstError?.message ?? 'Invalid input');
     }
-    const { email, password } = parsed.data;
-    const user = await service.register(email, password);
+    const { email, password, first_name, last_name } = parsed.data;
+    const user = await service.register(email, password, first_name, last_name);
     // Regenerate session ID before writing userId to prevent session fixation.
     req.session.regenerate((err) => {
       if (err) return next(err);
