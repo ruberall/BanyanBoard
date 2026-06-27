@@ -2,7 +2,7 @@
 
 ## Summary
 
-- **Total Features**: 10
+- **Total Features**: 11
 - **Released Versions**: 0
 - **Active Versions**: 0
 - **Planning Versions**: 1
@@ -33,6 +33,7 @@
   - FEAT-008: E2E Test Suite for Board Flow (in_progress) [Level 2]
   - FEAT-009: Realtime Activity Feed (complete) [Level 3]
   - FEAT-010: Card Labels (planned) [Level 3]
+  - FEAT-011: Card Color Picker (planned) [Level 3]
 
 ---
 
@@ -161,6 +162,19 @@
 - **Linked Tasks**: TASK-013 (INITIALIZED)
 - **Branch**: feature/FEAT-010-card-labels
 - **Created**: 2026-06-25
+
+---
+
+### FEAT-011: Card Color Picker
+
+- **Version**: next
+- **Status**: planned
+- **Priority**: medium
+- **Complexity**: Level 3
+- **Description**: A palette button on each card opens a modal with ~10 pale color swatches. Selecting a swatch sets the card's background color and persists it to the DB. Requires a new `color` column on the `cards` table (migration), backend validation, and a new `CardColorPicker` modal component on the frontend.
+- **Linked Tasks**: TASK-014 (INITIALIZED)
+- **Branch**: feature/FEAT-011-card-color-picker
+- **Created**: 2026-06-27
 
 ---
 
