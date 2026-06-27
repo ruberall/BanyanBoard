@@ -2,7 +2,7 @@
 name: "Learned: API Design"
 globs: ["src/routes/*.ts", "src/routes/**/*.ts"]
 topics: ["api-design", "routing"]
-priority: low
+priority: medium
 evidence_count: 3
 last_updated: 2026-06-27
 auto_generated: true

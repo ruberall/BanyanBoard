@@ -1,5 +1,14 @@
 # Progress
 
+## Task Archive: TASK-014
+
+**Task**: Card Color Picker
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-27
+**Archive**: `memory-bank/archive/archive-TASK-014.md`
+
+---
+
 ## TASK-013 Phase 2: Frontend Core — Card Type + LabelBadge + CardDetailPanel + useUpdateCard (2026-06-22)
 
 **Phase**: 2 of 3 — COMPLETE

@@ -168,13 +168,14 @@
 ### FEAT-011: Card Color Picker
 
 - **Version**: next
-- **Status**: planned
+- **Status**: complete
 - **Priority**: medium
 - **Complexity**: Level 3
 - **Description**: A palette button on each card opens a modal with ~10 pale color swatches. Selecting a swatch sets the card's background color and persists it to the DB. Requires a new `color` column on the `cards` table (migration), backend validation, and a new `CardColorPicker` modal component on the frontend.
-- **Linked Tasks**: TASK-014 (INITIALIZED)
-- **Branch**: feature/FEAT-011-card-color-picker
+- **Linked Tasks**: TASK-014 (COMPLETE)
+- **Branch**: feature/FEAT-011-card-color-picker (merged → main 2026-06-27)
 - **Created**: 2026-06-27
+- **Completed**: 2026-06-27
 
 ---
 

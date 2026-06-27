@@ -15,4 +15,4 @@
 | TASK-011 | User Authentication | ARCHIVE | COMPLETE | FEAT-006 |
 | TASK-012 | Realtime Activity Feed | ARCHIVE | COMPLETE | FEAT-009 |
 | TASK-013 | Card Labels | BUILD | BUILD_COMPLETE | FEAT-010 |
-| TASK-014 | Card Color Picker | REFLECT | REFLECTION_COMPLETE | FEAT-011 |
+| TASK-014 | Card Color Picker | ARCHIVE | COMPLETE | FEAT-011 |
