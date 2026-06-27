@@ -19,6 +19,7 @@
 | TASK-013 | 2026-06-27 | 4 | 1 | 3 | ui-patterns created; testing-patterns + react-query-patterns + data-integrity amended (Level 3) |
 | TASK-014 | 2026-06-27 | 3 | 0 | 2 | testing-patterns + frontend-accessibility amended; api-design promoted to medium (Level 2) |
 | TASK-015 | 2026-06-27 | 4 | 1 | 2 | data-validation created; testing-patterns + security amended (Level 3) |
+| TASK-016 | 2026-06-27 | 4 | 1 | 2 | architecture-patterns created; testing-patterns + service-design amended (Level 3) |
 
 ## Consolidation History
 
