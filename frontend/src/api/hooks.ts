@@ -59,18 +59,18 @@ export function useCreateCard(columnId: string) {
   })
 }
 
-type UpdateCardVars = { cardId: string; labels: Label[] }
+type UpdateCardVars = { cardId: string; labels: Label[]; color?: string | null }
 type UpdateCardCtx = { prevCards: Card[] | undefined }
 
 export function useUpdateCard(columnId: string) {
   const qc = useQueryClient()
   return useMutation<Card, ApiError, UpdateCardVars, UpdateCardCtx>({
-    mutationFn: ({ cardId, labels }) => updateCard(cardId, { labels }),
-    onMutate: async ({ cardId, labels }) => {
+    mutationFn: ({ cardId, labels, color }) => updateCard(cardId, { labels, ...(color !== undefined ? { color } : {}) }),
+    onMutate: async ({ cardId, labels, color }) => {
       await qc.cancelQueries({ queryKey: queryKeys.cards.byColumn(columnId) })
       const prevCards = qc.getQueryData<Card[]>(queryKeys.cards.byColumn(columnId))
       qc.setQueryData<Card[]>(queryKeys.cards.byColumn(columnId), (old) =>
-        (old ?? []).map((c) => c.id === cardId ? { ...c, labels } : c)
+        (old ?? []).map((c) => c.id === cardId ? { ...c, labels, ...(color !== undefined ? { color } : {}) } : c)
       )
       return { prevCards }
     },

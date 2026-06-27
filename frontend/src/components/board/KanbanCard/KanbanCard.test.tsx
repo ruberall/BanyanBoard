@@ -22,6 +22,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { Card } from '@/types'
 import { KanbanCard } from '@/components/board/KanbanCard/KanbanCard'
 
@@ -214,6 +215,65 @@ describe('KanbanCard — label badges (Phase 2)', () => {
 
     // No badge buttons with aria-expanded (label badge pattern) should exist
     expect(screen.queryByText('bug')).not.toBeInTheDocument()
+  })
+})
+
+// ===========================================================================
+// Phase 2 (TASK-014) — Card color picker integration
+//
+// Acceptance criteria covered:
+//  - AC-ENTRY-1: palette button visible on every card, correct aria-label
+//  - AC-HAPPY-1: clicking palette button opens CardColorPicker modal
+//  - AC-ERROR-1: card.color applied as inline style; null → no inline style
+// ===========================================================================
+
+describe('KanbanCard — card color picker (Phase 2 / TASK-014)', () => {
+  it('renders a palette button with aria-label "Set card color" on every card', () => {
+    render(<KanbanCard card={makeCard()} />)
+
+    const paletteBtn = screen.getByRole('button', { name: /set card color/i })
+    expect(paletteBtn).toBeInTheDocument()
+  })
+
+  it('palette button is visible even when the card has no labels', () => {
+    render(<KanbanCard card={makeCard({ labels: [] })} />)
+
+    expect(screen.getByRole('button', { name: /set card color/i })).toBeInTheDocument()
+  })
+
+  it('clicking the palette button opens the CardColorPicker modal (role="dialog" appears)', async () => {
+    render(<KanbanCard card={makeCard()} />)
+    const user = userEvent.setup()
+
+    const paletteBtn = screen.getByRole('button', { name: /set card color/i })
+    await user.click(paletteBtn)
+
+    // CardColorPicker renders with role="dialog"
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('card <article> has inline backgroundColor when card.color is a hex string', () => {
+    render(<KanbanCard card={makeCard({ color: '#fce7f3' })} />)
+
+    const article = screen.getByRole('article')
+    // jsdom converts hex to rgb; either form confirms the style is applied
+    expect(article).toHaveStyle({ backgroundColor: '#fce7f3' })
+  })
+
+  it('card <article> has no inline backgroundColor when card.color is null', () => {
+    render(<KanbanCard card={makeCard({ color: null })} />)
+
+    const article = screen.getByRole('article')
+    // backgroundColor should be empty string or not set
+    expect(article.style.backgroundColor).toBeFalsy()
+  })
+
+  it('card <article> has no inline backgroundColor when card.color is undefined (field absent)', () => {
+    // Omitting color from the override — makeCard default has no color field
+    render(<KanbanCard card={makeCard()} />)
+
+    const article = screen.getByRole('article')
+    expect(article.style.backgroundColor).toBeFalsy()
   })
 })
 

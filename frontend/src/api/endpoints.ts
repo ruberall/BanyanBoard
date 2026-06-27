@@ -40,7 +40,7 @@ export function getCard(cardId: string): Promise<Card> {
 
 export function updateCard(
   cardId: string,
-  data: Partial<Pick<Card, 'title' | 'description' | 'due_date' | 'labels' | 'position'>>,
+  data: Partial<Pick<Card, 'title' | 'description' | 'due_date' | 'labels' | 'position' | 'color'>>,
 ): Promise<Card> {
   return request<Card>('PATCH', `/cards/${cardId}`, { body: JSON.stringify(data) })
 }
