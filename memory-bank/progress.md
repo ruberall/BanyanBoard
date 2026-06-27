@@ -2,6 +2,60 @@
 
 ---
 
+## 2026-06-27 - Phase 2: Frontend Attribution — COMPLETE (TASK-016)
+
+### What Was Built
+- `frontend/src/types/index.ts`: Added `actorDisplayName: string | null` to `CardMovedEvent`; added `CardCreatedEvent` interface; added `ActivityEvent = CardMovedEvent | CardCreatedEvent` union
+- `ActivityFeed.tsx`: Renders both `card.moved` and `card.created` with `actorDisplayName ?? actorEmail ?? 'Someone'` fallback; exhaustiveness guard via `void (event as never)`
+- `useActivityFeed.ts`: Type-guards SSE frames by `cardId` presence before casting; accumulates `ActivityEvent[]` state
+- `feed.ts`: Applied `projectEventRow()` projection in both history replay paths (initial flush + catch-up)
+
+### Test Summary
+- Frontend: 226/226 passing (9 new Phase 2 tests — 5 component, 1 hook, 3 updated)
+- TypeScript: clean
+- Code Review: APPROVED — 4 recommended fixes applied (structural type guards, exhaustiveness check, button selector, hook test for card.created accumulation)
+
+### Files Changed
+- `frontend/src/types/index.ts`
+- `frontend/src/components/ActivityFeed/ActivityFeed.tsx`
+- `frontend/src/hooks/useActivityFeed.ts`
+- `frontend/src/components/ActivityFeed/__tests__/ActivityFeed.test.tsx`
+- `frontend/src/hooks/__tests__/useActivityFeed.test.ts`
+- `backend/src/routes/feed.ts` (projectEventRow applied in history replay paths)
+
+---
+
+## 2026-06-27 - Phase 1: Backend Attribution — COMPLETE (TASK-016)
+
+### What Was Built
+- `CardCreatedEvent`: New `DomainEvent` union member; `actorDisplayName` added to `CardMovedEvent`
+- `EventService.resolveDisplayName()`: Looks up user by `actorId`, snapshots `"First Last"` → email → null fallback chain into `payload.actor_display_name` at emit time (Payload Snapshot pattern)
+- `EventService.emitCardCreated()`: New method; persists `card.created` event row with `actor_id` + `actor_display_name` in payload jsonb
+- `CardService.moveCard()` / `createCard()`: Extended with optional `actorId?`; `createCard()` queries columns table for `board_id` + `name` before emitting event
+- `projectEventRow()`: Exported pure projection function in `feed.ts` normalizing `EventRow` → `ActivityEvent` (reads `actor_display_name` from payload — no JOIN)
+- `createColumnCardsRouter`: Now accepts and threads `EventService`; passes `req.session?.userId` as `actorId`
+- `createCardsRouter`: Simplified — DI violation removed; accepts `eventService?` directly
+
+### Test Summary
+- Tests: 184/184 passing (10 new Phase 1 tests)
+- Batches: 2 executed in parallel (Card Service: 16/16, Event Service: 6/6)
+- Code Review: APPROVED (2 iterations — 3 blocking issues caught and fixed)
+
+### Files Changed
+- `backend/src/events/domain-event-bus.ts`
+- `backend/src/repositories/event.repository.ts`
+- `backend/src/services/event.service.ts`
+- `backend/src/services/card.service.ts`
+- `backend/src/routes/feed.ts`
+- `backend/src/routes/index.ts`
+- `backend/src/routes/cards.ts`
+
+### Notes
+- SSE history replay normalization (projectEventRow in history flush) deferred to Phase 2 — pre-existing `events.routes.test.ts` asserts raw EventRow snake_case; updating the projection requires updating that test at the same time
+- `boardId ?? columnId` fallback in `createCard()` is safe (column always exists at card creation time in production; caught by outer try/catch)
+
+---
+
 ## Task Archive: TASK-015
 
 **Task**: User Profile, Messaging, and Navigation Enhancements (FEAT-012)

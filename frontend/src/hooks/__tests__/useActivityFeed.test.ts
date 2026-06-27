@@ -17,13 +17,11 @@ import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 
 import { useActivityFeed } from '@/hooks/useActivityFeed'
-import type { CardMovedEvent } from '@/types'
+import type { CardMovedEvent, CardCreatedEvent } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Mock EventSource
 // ---------------------------------------------------------------------------
-
-type EventSourceEventType = 'open' | 'message' | 'error'
 
 class MockEventSource {
   static instances: MockEventSource[] = []
@@ -75,11 +73,29 @@ function makeCardMovedEvent(overrides: Partial<CardMovedEvent> = {}): CardMovedE
     cardId: 'card-1',
     cardTitle: 'Fix login bug',
     actorId: 'user-1',
+    actorDisplayName: null,
     actorEmail: 'rebecca@example.com',
     fromColumnId: 'col-1',
     fromColumnName: 'In Progress',
     toColumnId: 'col-2',
     toColumnName: 'Done',
+    occurredAt: '2026-06-18T10:00:00Z',
+    ...overrides,
+  }
+}
+
+function makeCardCreatedEvent(overrides: Partial<CardCreatedEvent> = {}): CardCreatedEvent {
+  return {
+    type: 'card.created',
+    eventId: 'evt-c1',
+    boardId: 'board-1',
+    cardId: 'card-2',
+    cardTitle: 'New card',
+    actorId: 'user-1',
+    actorDisplayName: 'Rebecca',
+    actorEmail: 'rebecca@example.com',
+    columnId: 'col-1',
+    columnName: 'Backlog',
     occurredAt: '2026-06-18T10:00:00Z',
     ...overrides,
   }
@@ -167,6 +183,20 @@ describe('useActivityFeed() — event accumulation', () => {
     // Newest first — evt-2 was added last so it should be at index 0
     expect(result.current.events[0].eventId).toBe('evt-2')
     expect(result.current.events[1].eventId).toBe('evt-1')
+  })
+
+  it('prepends new CardCreatedEvent to events array on each message', () => {
+    const { result } = renderHook(() => useActivityFeed('board-1'))
+    const es = MockEventSource.instances[0]
+
+    act(() => {
+      es.simulateOpen()
+      es.simulateMessage(makeCardCreatedEvent({ eventId: 'evt-c1' }))
+    })
+
+    expect(result.current.events).toHaveLength(1)
+    expect(result.current.events[0].eventId).toBe('evt-c1')
+    expect(result.current.events[0].type).toBe('card.created')
   })
 })
 

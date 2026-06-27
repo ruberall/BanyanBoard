@@ -107,14 +107,14 @@ export function createFeedRouter(
       const missed = await eventRepo.findAfterById(boardId, lastEventId);
       for (const row of missed) {
         replayedIds.add(row.id);
-        sendFrame(row.id, row);
+        sendFrame(row.id, projectEventRow(row));
       }
     } else {
       const recent = await eventRepo.findRecentByBoard(boardId, maxHistory);
       const ordered = [...recent].reverse();
       for (const row of ordered) {
         replayedIds.add(row.id);
-        sendFrame(row.id, row);
+        sendFrame(row.id, projectEventRow(row));
       }
     }
 

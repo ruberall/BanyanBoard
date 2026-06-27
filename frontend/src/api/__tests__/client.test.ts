@@ -285,7 +285,7 @@ describe('updateCard(cardId, data)', () => {
   it('calls PATCH /cards/:id with partial update fields', async () => {
     const updated: Card = {
       id: 'card1', column_id: 'col1', title: 'Updated Title',
-      description: 'New desc', due_date: '2026-12-31', labels: ['bug'], position: 0,
+      description: 'New desc', due_date: '2026-12-31', labels: [{ name: 'bug', color: '#ff0000' }], position: 0,
       created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-03T00:00:00Z',
     };
     mockFetchOk(updated);

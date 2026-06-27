@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { CardMovedEvent } from '@/types'
+import type { ActivityEvent } from '@/types'
 import styles from './ActivityFeed.module.css'
 
 type ConnectionStatus = 'connecting' | 'open' | 'closed' | 'error'
@@ -7,7 +7,7 @@ type ConnectionStatus = 'connecting' | 'open' | 'closed' | 'error'
 const STORAGE_KEY = 'activityFeed.open'
 
 interface ActivityFeedProps {
-  events: CardMovedEvent[]
+  events: ActivityEvent[]
   connectionStatus: ConnectionStatus
 }
 
@@ -73,16 +73,34 @@ export function ActivityFeed({ events, connectionStatus }: ActivityFeedProps) {
           {events.length === 0 ? (
             <li className={styles.emptyState}>No activity yet</li>
           ) : (
-            events.map((event) => (
-              <li key={event.eventId} className={styles.entry}>
-                <div className={styles.entryActor}>
-                  {event.actorEmail ?? 'Someone'} moved &apos;{event.cardTitle}&apos;
-                </div>
-                <div className={styles.entryMeta}>
-                  {event.fromColumnName ?? '?'} → {event.toColumnName ?? '?'} · {formatRelativeTime(event.occurredAt)}
-                </div>
-              </li>
-            ))
+            events.map((event) => {
+              if (event.type === 'card.moved') {
+                return (
+                  <li key={event.eventId} className={styles.entry}>
+                    <div className={styles.entryActor}>
+                      {event.actorDisplayName ?? event.actorEmail ?? 'Someone'} moved &apos;{event.cardTitle}&apos;
+                    </div>
+                    <div className={styles.entryMeta}>
+                      {event.fromColumnName ?? '?'} → {event.toColumnName ?? '?'} · {formatRelativeTime(event.occurredAt)}
+                    </div>
+                  </li>
+                )
+              }
+              if (event.type === 'card.created') {
+                return (
+                  <li key={event.eventId} className={styles.entry}>
+                    <div className={styles.entryActor}>
+                      {event.actorDisplayName ?? event.actorEmail ?? 'Someone'} created card &apos;{event.cardTitle}&apos;
+                    </div>
+                    <div className={styles.entryMeta}>
+                      {formatRelativeTime(event.occurredAt)}
+                    </div>
+                  </li>
+                )
+              }
+              void (event as never)
+              return null
+            })
           )}
         </ul>
       )}
