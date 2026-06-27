@@ -16,6 +16,8 @@
 | TASK-011 | 2026-06-18 | 4 | 1 | 2 | security created; testing-patterns + api-design amended (Level 3) |
 | TASK-012 | 2026-06-18 | 4 | 0 | 2 | testing-patterns (10→ evidence_count) + architecture-foundation amended; subscribe-before-flush + DomainEventBus Map pattern (Level 3) |
 | TASK-012 (re-run) | 2026-06-22 | 3 | 2 | 0 | docker-dev-environment + sse-client created; post-archive integration bugs (Windows Docker inotify, EventSource URL + withCredentials) |
+| TASK-013 | 2026-06-27 | 4 | 1 | 3 | ui-patterns created; testing-patterns + react-query-patterns + data-integrity amended (Level 3) |
+| TASK-014 | 2026-06-27 | 3 | 0 | 2 | testing-patterns + frontend-accessibility amended; api-design promoted to medium (Level 2) |
 
 ## Consolidation History
 
@@ -26,18 +28,22 @@
 | 2026-06-17 | TASK-009 archive | 8 | 8 | 0 | 0 | 0 | 0 |
 | 2026-06-18 | TASK-011 archive | 10 | 10 | 0 | 0 | 0 | 0 |
 | 2026-06-22 | TASK-012 re-archive | 12 | 11 | 1 | 0 | 1 | 0 |
+| 2026-06-27 | TASK-014 archive | 11 | 11 | 0 | 0 | 1 | 0 |
+| 2026-06-27 | TASK-013 archive | 12 | 12 | 0 | 0 | 1 | 0 |
 
 ## Rule Effectiveness
 
 | File | Evidence Count | Priority | Last Updated | Status |
 |------|---------------|----------|--------------|--------|
-| testing-patterns.md | 10 | medium | 2026-06-18 | active (promoted) |
+| testing-patterns.md | 14 | medium | 2026-06-27 | active (promoted) |
 | architecture-foundation.md | 3 | medium | 2026-06-18 | active (promoted) |
+| api-design.md | 3 | medium | 2026-06-27 | active (promoted) |
+| react-query-patterns.md | 3 | medium | 2026-06-27 | active (promoted) |
 | observability-standards.md | 1 | low | 2026-06-13 | active |
-| data-integrity.md | 1 | low | 2026-06-15 | active |
-| api-design.md | 2 | low | 2026-06-18 | active |
+| data-integrity.md | 2 | low | 2026-06-27 | active |
 | security.md | 1 | low | 2026-06-18 | active |
-| frontend-accessibility.md | 1 | low | 2026-06-17 | active |
-| react-query-patterns.md | 1 | low | 2026-06-17 | active |
+| frontend-accessibility.md | 2 | low | 2026-06-27 | active |
 | docker-compose.md | 2 | low | 2026-06-22 | active (merged: docker-dev-environment) |
 | sse-client.md | 2 | low | 2026-06-22 | active |
+| service-design.md | 1 | low | 2026-06-16 | active |
+| ui-patterns.md | 1 | low | 2026-06-27 | active |

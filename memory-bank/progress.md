@@ -1,5 +1,14 @@
 # Progress
 
+## Task Archive: TASK-013
+
+**Task**: Card Labels
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-27
+**Archive**: `memory-bank/archive/archive-TASK-013.md`
+
+---
+
 ## Task Archive: TASK-014
 
 **Task**: Card Color Picker

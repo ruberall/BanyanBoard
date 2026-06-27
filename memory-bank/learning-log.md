@@ -2,6 +2,17 @@
 
 ---
 
+## 2026-06-27 - Consolidation (during TASK-013 archive)
+
+- Files before: 12, Files after: 12
+- Merged: 0 files
+- Expired: 0 bullets (0 files deleted)
+- Promoted: 1 file (`react-query-patterns.md` low → medium; evidence_count reached threshold of 3)
+- Pruned: 0 excess bullets
+- All rules recent (< 90 days); no stale expiry candidates
+
+---
+
 ## 2026-06-27 - TASK-013 Reflection
 
 ### Extracted Patterns

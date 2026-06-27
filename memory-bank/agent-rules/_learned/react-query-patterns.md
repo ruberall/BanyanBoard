@@ -2,7 +2,7 @@
 name: "Learned: React Query Patterns"
 globs: ["src/api/hooks.ts", "src/api/**", "*.hooks.ts"]
 topics: ["react-query", "optimistic-updates", "frontend-state"]
-priority: low
+priority: medium
 evidence_count: 3
 last_updated: 2026-06-27
 auto_generated: true

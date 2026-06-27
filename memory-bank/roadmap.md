@@ -32,7 +32,7 @@
   - FEAT-007: Pagination for list endpoints (complete) [Level 2]
   - FEAT-008: E2E Test Suite for Board Flow (in_progress) [Level 2]
   - FEAT-009: Realtime Activity Feed (complete) [Level 3]
-  - FEAT-010: Card Labels (planned) [Level 3]
+  - FEAT-010: Card Labels (complete) [Level 3]
   - FEAT-011: Card Color Picker (planned) [Level 3]
 
 ---
@@ -155,13 +155,14 @@
 ### FEAT-010: Card Labels
 
 - **Version**: next
-- **Status**: in_progress
+- **Status**: complete
 - **Priority**: medium
 - **Complexity**: Level 3
 - **Description**: Three enhancements to the card label system: (1) FilterBar — a text input in the upper-right of the board screen that filters the visible card list to only cards whose title or description contains the entered string; includes an × clear button that restores all cards. (2) Label placement — move the label badge to the right of the drag handle (not below it); widen columns slightly to accommodate. (3) User-chosen pale color — replace any fixed palette with a swatch grid of very pale colors the user selects per label; chosen color stored per card in the DB.
-- **Linked Tasks**: TASK-013 (INITIALIZED)
-- **Branch**: feature/FEAT-010-card-labels
+- **Linked Tasks**: TASK-013 (COMPLETE)
+- **Branch**: feature/FEAT-010-card-labels (merged → main 2026-06-27)
 - **Created**: 2026-06-25
+- **Completed**: 2026-06-27
 
 ---
 
