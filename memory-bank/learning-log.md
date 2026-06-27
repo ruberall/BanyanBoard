@@ -2,6 +2,17 @@
 
 ---
 
+## 2026-06-27 - TASK-014 Reflection
+
+### Extracted Patterns
+- **testing-patterns** → amended `agent-rules/_learned/testing-patterns.md` (evidence count: 13) — RTL fireEvent + rAF timing; fixture type mismatch fix; Playwright HMR state
+- **frontend-accessibility** → amended `agent-rules/_learned/frontend-accessibility.md` (evidence count: 2) — useEffect dismiss listener timing + rAF guard redundancy
+
+### systemPatterns.md Updates
+- None (learnings are component-level patterns, not system architecture)
+
+---
+
 ## 2026-06-22 - Consolidation (during TASK-012 re-archive)
 
 - Files before: 12, Files after: 11
