@@ -154,13 +154,13 @@
 ### FEAT-010: Card Labels
 
 - **Version**: next
-- **Status**: planned
+- **Status**: in_progress
 - **Priority**: medium
 - **Complexity**: Level 3
-- **Description**: Add a single color-coded label and a description field to each card, with a substring filter across both. Each card has at most one label (a free-text, multi-word string with a chosen color) and an optional description (free-text, multi-line). A filter bar on the board page performs a case-insensitive substring search across label text OR description text — cards whose label or description contains the search string remain visible; others are hidden. On the kanban board, each card shows its full label badge and a truncated description (one line, ellipsed); hovering the card shows the complete description in a tooltip. Covers: DB migration to add label_text, label_color, and description columns to cards (replacing the old free-form labels array), updated card API (PATCH accepts label_text, label_color, description), React LabelBadge component, card description display with truncation and tooltip, and FilterBar with controlled text input.
-- **Linked Tasks**: TASK-013 (planning)
+- **Description**: Three enhancements to the card label system: (1) FilterBar — a text input in the upper-right of the board screen that filters the visible card list to only cards whose title or description contains the entered string; includes an × clear button that restores all cards. (2) Label placement — move the label badge to the right of the drag handle (not below it); widen columns slightly to accommodate. (3) User-chosen pale color — replace any fixed palette with a swatch grid of very pale colors the user selects per label; chosen color stored per card in the DB.
+- **Linked Tasks**: TASK-013 (INITIALIZED)
 - **Branch**: feature/FEAT-010-card-labels
-- **Created**: 2026-06-22
+- **Created**: 2026-06-25
 
 ---
 

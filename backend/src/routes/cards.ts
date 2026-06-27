@@ -8,7 +8,7 @@ import { ValidationError } from '../errors';
 import type { DomainEventBus } from '../events/domain-event-bus';
 import { InProcessEventBus } from '../events/in-process-event-bus';
 
-const VALID_PATCH_FIELDS = new Set(['title', 'description', 'due_date', 'labels']);
+const VALID_PATCH_FIELDS = new Set(['title', 'description', 'due_date', 'labels', 'color']);
 
 function validateCardInput(body: Record<string, unknown>, requireTitle: boolean): void {
   const title = body['title'];
@@ -36,6 +36,14 @@ function validateCardInput(body: Record<string, unknown>, requireTitle: boolean)
   }
 
   const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+
+  const cardColor = body['color'];
+  if (cardColor !== undefined && cardColor !== null) {
+    if (typeof cardColor !== 'string' || !HEX_COLOR_RE.test(cardColor as string)) {
+      throw new ValidationError('color must be a valid hex color (#rrggbb)');
+    }
+  }
+
   const labels = body['labels'];
   if (labels !== undefined && labels !== null) {
     if (!Array.isArray(labels)) {
