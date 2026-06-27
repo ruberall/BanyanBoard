@@ -148,23 +148,24 @@ describe('POST /columns/:columnId/cards', () => {
     expect(res.body.created_at).toBeDefined();
   });
 
-  it('AC-HAPPY-2: returns 201 with all optional fields persisted', async () => {
+  it('AC-HAPPY-2: returns 201 with all optional fields persisted (Label[] shape)', async () => {
+    const labelArr = [{ name: 'backend', color: '#e0e7ff' }, { name: 'urgent', color: '#fce7f3' }];
     const fullCard = {
       ...fixCard,
       title: 'Ship v1',
       description: 'Tag and push',
       due_date: '2026-07-01T00:00:00.000Z',
-      labels: [{ name: 'backend', color: '#95B9C7' }, { name: 'urgent', color: '#95B9C7' }],
+      labels: labelArr,
     };
     stubPool.query
       .mockResolvedValueOnce({ rows: [fullCard], rowCount: 1 });
 
     const res = await agent
       .post(`/columns/${COL_ID}/cards`)
-      .send({ title: 'Ship v1', description: 'Tag and push', due_date: '2026-07-01T00:00:00Z', labels: [{ name: 'backend', color: '#95B9C7' }, { name: 'urgent', color: '#95B9C7' }] });
+      .send({ title: 'Ship v1', description: 'Tag and push', due_date: '2026-07-01T00:00:00Z', labels: labelArr });
 
     expect(res.status).toBe(201);
-    expect(res.body.labels).toEqual([{ name: 'backend', color: '#95B9C7' }, { name: 'urgent', color: '#95B9C7' }]);
+    expect(res.body.labels).toEqual(labelArr);
     expect(res.body.description).toBe('Tag and push');
   });
 
@@ -314,74 +315,6 @@ describe('GET /cards/:id', () => {
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe('NOT_FOUND');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// PATCH /cards/:id — color field (AC-API-1)
-// ---------------------------------------------------------------------------
-
-describe('PATCH /cards/:id — color field', () => {
-  const stubPool = { query: jest.fn() } as any;
-  const agent = makeAuthenticatedAgent(stubPool);
-
-  beforeAll(async () => {
-    stubPool.query
-      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // AuthService.login: findByEmail
-    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
-    if (loginRes.status !== 200) {
-      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
-    }
-    stubPool.query.mockReset();
-  });
-
-  afterEach(() => {
-    stubPool.query.mockReset();
-  });
-
-  it('AC-API-1: returns 400 with ValidationError when color is an invalid hex string', async () => {
-    const res = await agent
-      .patch(`/cards/${CARD_ID}`)
-      .send({ color: 'not-a-color' });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe('VALIDATION_ERROR');
-    expect(res.body.message).toMatch(/color must be a valid hex color/i);
-  });
-
-  it('AC-API-1: returns 400 with ValidationError when color is a short hex (#abc)', async () => {
-    const res = await agent
-      .patch(`/cards/${CARD_ID}`)
-      .send({ color: '#abc' });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe('VALIDATION_ERROR');
-  });
-
-  it('AC-API-1: returns 200 with color persisted when color is a valid 6-digit hex', async () => {
-    const updatedCard = { ...fixCard, color: '#fce7f3', updated_at: '2026-06-27T00:00:00.000Z' };
-    stubPool.query
-      .mockResolvedValueOnce({ rows: [updatedCard], rowCount: 1 });
-
-    const res = await agent
-      .patch(`/cards/${CARD_ID}`)
-      .send({ color: '#fce7f3' });
-
-    expect(res.status).toBe(200);
-    expect(res.body.color).toBe('#fce7f3');
-  });
-
-  it('AC-API-1: returns 200 with color: null when color is explicitly set to null', async () => {
-    const updatedCard = { ...fixCard, color: null, updated_at: '2026-06-27T00:00:00.000Z' };
-    stubPool.query
-      .mockResolvedValueOnce({ rows: [updatedCard], rowCount: 1 });
-
-    const res = await agent
-      .patch(`/cards/${CARD_ID}`)
-      .send({ color: null });
-
-    expect(res.status).toBe(200);
-    expect(res.body.color).toBeNull();
   });
 });
 
@@ -613,6 +546,81 @@ describe('DELETE /cards/:id', () => {
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe('NOT_FOUND');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /cards/:id — Label[] validation (Phase 2)
+// ---------------------------------------------------------------------------
+
+describe('PATCH /cards/:id — Label[] color validation (Phase 2)', () => {
+  const stubPool = { query: jest.fn() } as any;
+  const agent = makeAuthenticatedAgent(stubPool);
+
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // AuthService.login: findByEmail
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+  });
+
+  it('AC-LABEL-1: returns 200 when labels contains valid Label[] with hex color', async () => {
+    const updatedCard = {
+      ...fixCard,
+      labels: [{ name: 'bug', color: '#fce7f3' }],
+      updated_at: '2026-06-16T01:00:00.000Z',
+    };
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [updatedCard], rowCount: 1 });
+
+    const res = await agent
+      .patch(`/cards/${CARD_ID}`)
+      .send({ labels: [{ name: 'bug', color: '#fce7f3' }] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.labels).toEqual([{ name: 'bug', color: '#fce7f3' }]);
+  });
+
+  it('AC-LABEL-2: returns 400 with descriptive message when label color is not a valid hex', async () => {
+    const res = await agent
+      .patch(`/cards/${CARD_ID}`)
+      .send({ labels: [{ name: 'bug', color: 'red' }] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('VALIDATION_ERROR');
+    expect(JSON.stringify(res.body)).toMatch(/hex color/i);
+  });
+
+  it('AC-LABEL-3: returns 200 when label color is omitted (color is optional)', async () => {
+    const updatedCard = {
+      ...fixCard,
+      labels: [{ name: 'bug', color: '#95B9C7' }],
+      updated_at: '2026-06-16T01:00:00.000Z',
+    };
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [updatedCard], rowCount: 1 });
+
+    const res = await agent
+      .patch(`/cards/${CARD_ID}`)
+      .send({ labels: [{ name: 'bug' }] });
+
+    expect(res.status).toBe(200);
+  });
+
+  it('AC-LABEL-4: returns 400 when labels is not an array (string instead of Label[])', async () => {
+    const res = await agent
+      .patch(`/cards/${CARD_ID}`)
+      .send({ labels: 'bug' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('VALIDATION_ERROR');
   });
 });
 

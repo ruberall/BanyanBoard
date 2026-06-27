@@ -29,13 +29,16 @@ function makeMockDb(responses: Array<{ rows: unknown[]; rowCount?: number }>) {
   };
 }
 
+// Label type mirrors frontend/backend shared shape after Phase 2 migration
+interface Label { name: string; color: string }
+
 const BASE_CARD = {
   id: 'card-uuid-1',
   column_id: 'col-uuid-1',
   title: 'Write tests',
   description: null as string | null,
   due_date: null as Date | null,
-  labels: [] as string[],
+  labels: [] as Label[],
   position: 0,
   created_at: new Date('2026-06-16T00:00:00Z'),
   updated_at: new Date('2026-06-16T00:00:00Z'),
@@ -71,7 +74,7 @@ describe('CardRepository', () => {
           title: 'Ship v1',
           description: 'Tag and push',
           due_date: new Date('2026-07-01T00:00:00Z'),
-          labels: [{ name: 'backend', color: '#95B9C7' }, { name: 'urgent', color: '#95B9C7' }],
+          labels: [{ name: 'backend', color: '#e0e7ff' }, { name: 'urgent', color: '#fce7f3' }],
         };
         const mockDb = makeMockDb([{ rows: [fullCard] }]);
         const { CardRepository } = await import('../card.repository');
@@ -81,13 +84,32 @@ describe('CardRepository', () => {
           title: 'Ship v1',
           description: 'Tag and push',
           due_date: '2026-07-01T00:00:00Z',
-          labels: [{ name: 'backend', color: '#95B9C7' }, { name: 'urgent', color: '#95B9C7' }],
+          labels: [{ name: 'backend', color: '#e0e7ff' }, { name: 'urgent', color: '#fce7f3' }],
         });
 
         expect(card.title).toBe('Ship v1');
         expect(card.description).toBe('Tag and push');
-        expect(card.labels).toEqual([{ name: 'backend', color: '#95B9C7' }, { name: 'urgent', color: '#95B9C7' }]);
+        expect(card.labels).toEqual([{ name: 'backend', color: '#e0e7ff' }, { name: 'urgent', color: '#fce7f3' }]);
         expect(card.due_date).toBeInstanceOf(Date);
+      });
+
+      it('AC-LABEL-1: createCard with Label[] returns card with Label[] shape from DB (Phase 2)', async () => {
+        const labelCard = {
+          ...BASE_CARD,
+          labels: [{ name: 'bug', color: '#fce7f3' }],
+        };
+        const mockDb = makeMockDb([{ rows: [labelCard] }]);
+        const { CardRepository } = await import('../card.repository');
+        const repo = new CardRepository(mockDb);
+
+        const card = await repo.createCard('col-uuid-1', {
+          title: 'Write tests',
+          labels: [{ name: 'bug', color: '#fce7f3' }],
+        });
+
+        expect(card.labels).toEqual([{ name: 'bug', color: '#fce7f3' }]);
+        expect(card.labels[0]).toHaveProperty('name', 'bug');
+        expect(card.labels[0]).toHaveProperty('color', '#fce7f3');
       });
 
       it('AC-ERROR-3: throws NotFoundError when column does not exist (FK violation handled in service)', async () => {
@@ -174,50 +196,6 @@ describe('CardRepository', () => {
     });
 
     // -------------------------------------------------------------------------
-    // color field — AC-API-1
-    // -------------------------------------------------------------------------
-    describe('color field', () => {
-      it('AC-API-1: createCard returns color field from DB row', async () => {
-        const cardWithColor = { ...BASE_CARD, color: '#fce7f3' };
-        const mockDb = makeMockDb([{ rows: [cardWithColor] }]);
-        const { CardRepository } = await import('../card.repository');
-        const repo = new CardRepository(mockDb);
-
-        const card = await repo.createCard('col-uuid-1', { title: 'Colored card' });
-
-        expect((card as any).color).toBe('#fce7f3');
-      });
-
-      it('AC-API-1: findCardsByColumnId includes color field in returned cards', async () => {
-        const cards = [
-          { ...BASE_CARD, id: 'c1', color: '#fce7f3' },
-          { ...BASE_CARD, id: 'c2', color: null },
-        ];
-        const mockDb = makeMockDb([{ rows: cards }]);
-        const { CardRepository } = await import('../card.repository');
-        const repo = new CardRepository(mockDb);
-
-        const result = await repo.findCardsByColumnId('col-uuid-1');
-
-        expect((result[0] as any).color).toBe('#fce7f3');
-        expect((result[1] as any).color).toBeNull();
-      });
-
-      it('AC-API-1: updateCard persists color and returns it in updated card', async () => {
-        const updated = { ...BASE_CARD, color: '#fce7f3', updated_at: new Date('2026-06-27T00:00:00Z') };
-        const mockDb = makeMockDb([{ rows: [updated] }]);
-        const { CardRepository } = await import('../card.repository');
-        const repo = new CardRepository(mockDb);
-
-        const card = await repo.updateCard('card-uuid-1', { color: '#fce7f3' } as any);
-
-        expect((card as any).color).toBe('#fce7f3');
-        const [sql] = mockDb.query.mock.calls[0] as [string, unknown[]];
-        expect(sql.toUpperCase()).toContain('COLOR');
-      });
-    });
-
-    // -------------------------------------------------------------------------
     // updateCard
     // -------------------------------------------------------------------------
     describe('updateCard(id, updates)', () => {
@@ -233,15 +211,16 @@ describe('CardRepository', () => {
         expect(card.updated_at.getTime()).toBeGreaterThanOrEqual(BASE_CARD.updated_at.getTime());
       });
 
-      it('AC-HAPPY-6: returns card with updated labels', async () => {
-        const updated = { ...BASE_CARD, labels: [{ name: 'backend', color: '#95B9C7' }, { name: 'urgent', color: '#95B9C7' }] };
+      it('AC-HAPPY-6: returns card with updated labels as Label[]', async () => {
+        const updatedLabels = [{ name: 'backend', color: '#e0e7ff' }, { name: 'urgent', color: '#fce7f3' }];
+        const updated = { ...BASE_CARD, labels: updatedLabels };
         const mockDb = makeMockDb([{ rows: [updated] }]);
         const { CardRepository } = await import('../card.repository');
         const repo = new CardRepository(mockDb);
 
-        const card = await repo.updateCard('card-uuid-1', { labels: [{ name: 'backend', color: '#95B9C7' }, { name: 'urgent', color: '#95B9C7' }] });
+        const card = await repo.updateCard('card-uuid-1', { labels: updatedLabels });
 
-        expect(card.labels).toEqual([{ name: 'backend', color: '#95B9C7' }, { name: 'urgent', color: '#95B9C7' }]);
+        expect(card.labels).toEqual(updatedLabels);
       });
 
       it('AC-ERROR-4: throws NotFoundError when card to update does not exist', async () => {
