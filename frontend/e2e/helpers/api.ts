@@ -62,3 +62,23 @@ export async function createCard(
   if (!res.ok()) throw new Error(`createCard failed: ${res.status()}`);
   return res.json() as Promise<Card>;
 }
+
+/**
+ * Move a card to a different column via PATCH /cards/:id/move.
+ * Pass `afterCardId` to position the card after a specific card; omit to place
+ * it at the top of the target column.
+ */
+export async function moveCard(
+  request: APIRequestContext,
+  cardId: string,
+  toColumnId: string,
+  afterCardId?: string,
+): Promise<void> {
+  const res = await request.patch(`${API_BASE}/cards/${cardId}/move`, {
+    data: {
+      column_id: toColumnId,
+      after_card_id: afterCardId ?? null,
+    },
+  });
+  if (!res.ok()) throw new Error(`moveCard failed: ${res.status()}`);
+}

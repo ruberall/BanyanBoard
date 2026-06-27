@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-27 (added Guiding Principles, DB schema, query patterns, domain event pattern, SSE transport layer, subscribe-before-flush race hardening; added cursor pagination principle; TASK-015 Phase 1: added first_name/last_name to users schema, added messages table; TASK-016 Phase 1: added CardCreatedEvent to DomainEvent union, actorDisplayName to CardMovedEvent, resolveDisplayName pattern, projectEventRow pure projection, userRepo DI in EventService; TASK-016 Phase 2: added frontend SSE type-guard discrimination pattern, ActivityEvent union in frontend types)
+**Last updated**: 2026-06-27 (added Guiding Principles, DB schema, query patterns, domain event pattern, SSE transport layer, subscribe-before-flush race hardening; added cursor pagination principle; TASK-015 Phase 1: added first_name/last_name to users schema, added messages table; TASK-016 Phase 1: added CardCreatedEvent to DomainEvent union, actorDisplayName to CardMovedEvent, resolveDisplayName pattern, projectEventRow pure projection, userRepo DI in EventService; TASK-016 Phase 2: added frontend SSE type-guard discrimination pattern, ActivityEvent union in frontend types; TASK-016 Phase 3: added Playwright E2E SSE attribution test pattern)
 
 ## Guiding Principles
 
@@ -389,6 +389,39 @@ Use page-level state + prop drilling (not a context) for filter/search state whe
 3. The filter affects only one page subtree
 
 Use a React context instead if the filter state needs to escape the page boundary (e.g., persisted in URL params or shared with a sidebar outside the `BoardPage` tree).
+
+## Playwright E2E Pattern: SSE Attribution Testing (TASK-016 Phase 3)
+
+Testing SSE-based activity feed attribution requires two distinct setups depending on whether the test covers **live push** or **history replay**.
+
+### Live Push Tests (event created after page load)
+
+1. Navigate to the board page and wait for the SSE connection to open (poll the activity feed panel or use `waitForSelector`)
+2. Trigger the card action via the API helper **after** the page is loaded and SSE-connected
+3. Assert the feed panel shows the attributed text (e.g., `"E2E Attribution moved 'Card Title'"`)
+
+The event arrives as a live frame over the open SSE stream, so no reload is needed.
+
+### History Replay Tests (event created before page load)
+
+1. Trigger the card action via API helper **before** navigating to the board page
+2. Navigate to the board page — the feed route replays the `FEED_MAX_HISTORY` most recent events on SSE connect
+3. Assert the attributed text is visible in the feed immediately after load
+
+This verifies that `EventRepository.findRecentByBoard` and `projectEventRow` correctly surface `actor_display_name` from the stored `payload` jsonb without a live user lookup.
+
+### Reconnect / Reload Tests
+
+To test attribution surviving a reconnect:
+1. Create an event (live push, assert it appears)
+2. Reload the page — the browser sends `Last-Event-ID` and the feed route replays missed events via `EventRepository.findAfterById`
+3. Assert the same attributed text reappears
+
+### Attribution Test User Convention
+
+Use a dedicated test account (`e2e-attribution@banyanboard.test`, `first_name: 'E2E'`, `last_name: 'Attribution'`) so display-name assertions (`"E2E Attribution"`) are unambiguous and isolated from the generic `loginAsTestUser` fixture. The helper `loginAsAttributionUser(request)` in `frontend/e2e/helpers/auth.ts` registers and logs in this user.
+
+Board and card fixture data are created/deleted in `beforeEach`/`afterEach` via the `createBoard`, `deleteBoard`, and `moveCard` API helpers so each test starts with a clean state.
 
 ## Adding a New Feature (proven pattern — first used in FEAT-002 Board API)
 

@@ -37,13 +37,14 @@ No clever abstractions. No microservices. One Express app.
 │   │   │   └── queryKeys.ts  # TanStack Query key factory (queryKeys.auth.me + board keys)
 │   │   └── test-setup.ts  # jest-dom setup
 │   ├── e2e/            # Playwright E2E tests (requires running stack: docker compose up)
-│   │   ├── auth.spec.ts        # Auth flow: unauthenticated redirect, login, register, logout, a11y
-│   │   ├── board-list.spec.ts  # Board list CRUD (authenticated)
-│   │   ├── board-page.spec.ts  # Board/card interactions (authenticated)
-│   │   ├── error-pages.spec.ts # 404 and error states (authenticated)
+│   │   ├── auth.spec.ts             # Auth flow: unauthenticated redirect, login, register, logout, a11y
+│   │   ├── board-list.spec.ts       # Board list CRUD (authenticated)
+│   │   ├── board-page.spec.ts       # Board/card interactions (authenticated)
+│   │   ├── error-pages.spec.ts      # 404 and error states (authenticated)
+│   │   ├── activity-feed.spec.ts    # SSE attribution: live push (card.moved, card.created) + history replay + reconnect (TASK-016 Phase 3)
 │   │   └── helpers/
-│   │       ├── auth.ts         # loginAsTestUser(page.request) — uses page.request to share session cookie
-│   │       └── api.ts          # createBoard/deleteBoard via APIRequestContext (authenticated)
+│   │       ├── auth.ts         # loginAsTestUser(page.request); loginAsAttributionUser(request) — dedicated e2e-attribution@banyanboard.test user with first/last name for display-name assertions
+│   │       └── api.ts          # createBoard/deleteBoard/moveCard(request, cardId, toColumnId, afterCardId?) via APIRequestContext (authenticated)
 │   ├── vite.config.ts      # Build config with @/ path alias
 │   ├── vitest.config.ts    # Test config (separate from vite.config.ts due to Vite 8/Vitest 3 compatibility)
 │   ├── tsconfig.app.json   # TypeScript 6 strict config
