@@ -2,6 +2,19 @@
 
 ---
 
+## 2026-06-27 - TASK-013 Reflection
+
+### Extracted Patterns
+- **ui-patterns** → created `agent-rules/_learned/ui-patterns.md` (evidence count: 1) — position:fixed popover shared constant rule
+- **testing-patterns** → amended `agent-rules/_learned/testing-patterns.md` (evidence count: 14) — PLAYWRIGHT_UNVERIFIED commit pattern
+- **react-query-patterns** → amended `agent-rules/_learned/react-query-patterns.md` (evidence count: 3) — deferred rollback wiring as reliability debt
+- **data-integrity** → amended `agent-rules/_learned/data-integrity.md` (evidence count: 2) — reversible migration down() rule
+
+### systemPatterns.md Updates
+- None (component-level and testing patterns, not system architecture)
+
+---
+
 ## 2026-06-27 - Consolidation (during TASK-014 archive)
 
 - Files before: 11, Files after: 11
@@ -10,6 +23,16 @@
 - Promoted: 1 file (`api-design.md` low → medium; evidence_count reached threshold of 3)
 - Pruned: 0 excess bullets
 - All rules recent (< 90 days); no stale expiry candidates
+
+---
+
+## 2026-06-27 - TASK-013 Reflection
+
+### Extracted Patterns
+- **ui-patterns** → created `agent-rules/_learned/ui-patterns.md` (evidence count: 1) — position:fixed popover shared constant rule
+- **testing-patterns** → amended `agent-rules/_learned/testing-patterns.md` (evidence count: 14) — PLAYWRIGHT_UNVERIFIED commit pattern
+- **react-query-patterns** → amended `agent-rules/_learned/react-query-patterns.md` (evidence count: 3) — deferred rollback wiring as technical debt
+- **data-integrity** → amended `agent-rules/_learned/data-integrity.md` (evidence count: 2) — reversible migration down() rule
 
 ---
 

@@ -3,7 +3,7 @@ name: "Learned: Testing Patterns"
 globs: ["*.test.*", "*.test.tsx", "*.test.ts", "*.spec.*"]
 topics: ["testing-patterns", "typescript", "test-fixtures"]
 priority: medium
-evidence_count: 13
+evidence_count: 14
 last_updated: 2026-06-27
 auto_generated: true
 ---
@@ -23,6 +23,7 @@ auto_generated: true
 - RTL dismiss tests using `fireEvent` (synchronous) will fail if the event listener is deferred via `requestAnimationFrame` or `setTimeout` — the standard render → fireEvent → expect pattern assumes listeners are synchronously attached after render.
 - Pre-existing test fixture type mismatches (e.g., `string[]` where `Label[]` is required) should be fixed in the same PR phase as the new tests that reveal them — don't defer to avoid scope creep.
 - Playwright E2E tests that rely on new DOM elements (e.g., a palette button) require the Vite dev server to have HMR'd those changes before the test run — restart Docker Compose for a clean state if a new element is timing out even though the parent container is visible.
+- When a build phase produces only Playwright spec files and the live stack is not verified during the session, add a `PLAYWRIGHT_UNVERIFIED` note to the task execution state and treat it as an open checklist item for UAT — do not treat commit of an unrun spec as equivalent to a passing test.
 
 ## Evidence
 
@@ -41,3 +42,4 @@ auto_generated: true
 | Synchronous fireEvent fails when listener deferred via rAF | [reflection-TASK-014.md](../reflection/reflection-TASK-014.md) | 2026-06-27 |
 | Fix pre-existing fixture type mismatches in same phase | [reflection-TASK-014.md](../reflection/reflection-TASK-014.md) | 2026-06-27 |
 | Playwright E2E needs HMR'd dev server before new DOM element tests | [reflection-TASK-014.md](../reflection/reflection-TASK-014.md) | 2026-06-27 |
+| Unrun Playwright specs committed without live-stack verification | [reflection-TASK-013.md](../reflection/reflection-TASK-013.md) | 2026-06-27 |
