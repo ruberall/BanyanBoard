@@ -27,3 +27,14 @@
 - **Remote URL**: none
 - **Default Branch**: main
 - **Archive Strategy**: local-merge
+
+## Security Debt (Auto-Generated)
+
+### Dependency Upgrade: jest + ts-jest ecosystem
+- **Current Version**: jest 29.7.0 / ts-jest 29.1.5
+- **Target Version**: jest 30.x (latest major)
+- **Security Issue**: Moderate advisory chain in transitive test dependencies (js-yaml ≤4.1.1, jest-snapshot, @jest/transform) — test infrastructure only, not production runtime
+- **Scope**: All backend test files
+- **Breaking Changes**: Yes — jest 30.x requires config and matcher updates
+- **Recommended Priority**: LOW (test-only; no known exploit vector in this codebase's test usage)
+- **Generated From**: Task TASK-013, Phase 1, Date 2026-06-22

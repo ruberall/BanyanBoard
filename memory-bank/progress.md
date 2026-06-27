@@ -1,5 +1,47 @@
 # Progress
 
+## Task Archive: TASK-014
+
+**Task**: Card Color Picker
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-27
+**Archive**: `memory-bank/archive/archive-TASK-014.md`
+
+---
+
+## TASK-013 Phase 2: Frontend Core — Card Type + LabelBadge + CardDetailPanel + useUpdateCard (2026-06-22)
+
+**Phase**: 2 of 3 — COMPLETE
+**Changes**:
+- `frontend/src/types/index.ts`: `Card` interface — replaced `labels: string[]` with `label_text: string | null`, `label_color: string | null`
+- `frontend/src/api/endpoints.ts`: `updateCard` Pick type updated to `label_text | label_color`
+- `frontend/src/api/hooks.ts`: Added `useUpdateCard(columnId)` mutation hook
+- `frontend/src/components/board/LabelBadge/LabelBadge.tsx` (NEW): colored badge; exports `LabelColor`; WCAG AA contrast (#00bcd4/#ff1493 both on black)
+- `frontend/src/components/board/CardDetailPanel/CardDetailPanel.tsx` (NEW): inline expand form; label text input + radio color selector + description textarea; validates co-presence; shows `ErrorBanner` on save error
+- `frontend/src/components/board/KanbanCard/KanbanCard.tsx`: renders `LabelBadge`, truncated description with tooltip, inline `CardDetailPanel` on click-to-expand
+- Fixture migrations in `client.test.ts`, `useMoveCard.test.tsx`, `KanbanColumn.test.tsx`
+- Code review fixes: hotpink color changed to black text (WCAG AA ✓); `LabelColor` type consolidated to single export from `LabelBadge.tsx`
+- Deferred: `useUpdateCard` wiring in `KanbanCard.handleSave` (currently closes panel without persisting — Phase 3 integration)
+**Test results**: 193/193 frontend + 167/167 backend passing; TypeScript build clean
+
+---
+
+## TASK-013 Phase 1: Backend — DB Migration + Card Repository + API Validation (2026-06-22)
+
+**Phase**: 1 of 3 — COMPLETE
+**Changes**:
+- `backend/migrations/20260622120000_alter-cards-add-label-fields.js`: Drops `labels text[]`, adds `label_text varchar(100)` + `label_color varchar(20)` (both nullable); rollback restores `labels text[]`
+- `backend/src/repositories/card.repository.ts`: `Card`/`CardInput`/`CardUpdate` interfaces — replaced `labels: string[]` with `label_text: string | null`, `label_color: string | null`; all SQL updated accordingly
+- `backend/src/routes/cards.ts`: Added `VALID_LABEL_COLORS` constant + `LabelColor` type (exported for Phase 2 frontend import); `validateCardInput` validates color allowlist + label_text max length (100) + co-presence rule (label_text requires label_color)
+- `backend/src/routes/__tests__/cards.routes.test.ts`: Removed `labels` fixture fields + AC-ERROR-8; added 6 new label PATCH tests (`label-PATCH-1` through `label-PATCH-6`)
+- `backend/src/repositories/__tests__/card.repository.test.ts`: Updated `BASE_CARD` fixture + assertions to use `label_text`/`label_color`
+- `backend/src/services/__tests__/card.service.test.ts`: Updated `BASE_CARD: Card` fixture
+- `memory-bank/systemPatterns.md`: Updated cards schema table to reflect new columns
+- `memory-bank/projectbrief.md`: Added Security Debt section (jest/ts-jest upgrade, LOW priority, test-only)
+**Test results**: 167/167 passing (14 integration skipped — require live Postgres); TypeScript build PASS
+
+---
+
 ## Completed Tasks
 
 | Task | Feature | Completed | Branch | Archive |

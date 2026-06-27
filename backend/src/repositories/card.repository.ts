@@ -13,6 +13,7 @@ export interface Card {
   description: string | null;
   due_date: Date | null;
   labels: Label[];
+  color?: string | null;
   position: number;
   created_at: Date;
   updated_at: Date;
@@ -30,6 +31,7 @@ export interface CardUpdate {
   description?: string | null;
   due_date?: string | null;
   labels?: Label[];
+  color?: string | null;
 }
 
 export class CardRepository {
@@ -40,7 +42,7 @@ export class CardRepository {
       const result = await this.db.query<Card>(
         `INSERT INTO cards (column_id, title, description, due_date, labels)
          VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, column_id, title, description, due_date, labels, position, created_at, updated_at`,
+         RETURNING id, column_id, title, description, due_date, labels, color, position, created_at, updated_at`,
         [columnId, input.title, input.description ?? null, input.due_date ?? null, JSON.stringify(input.labels ?? [])],
       );
       return result.rows[0];
@@ -54,7 +56,7 @@ export class CardRepository {
 
   async findCardsByColumnId(columnId: string): Promise<Card[]> {
     const result = await this.db.query<Card>(
-      `SELECT id, column_id, title, description, due_date, labels, position, created_at, updated_at
+      `SELECT id, column_id, title, description, due_date, labels, color, position, created_at, updated_at
        FROM cards
        WHERE column_id = $1
        ORDER BY position ASC, created_at ASC`,
@@ -65,7 +67,7 @@ export class CardRepository {
 
   async findCardById(id: string): Promise<Card> {
     const result = await this.db.query<Card>(
-      `SELECT id, column_id, title, description, due_date, labels, position, created_at, updated_at
+      `SELECT id, column_id, title, description, due_date, labels, color, position, created_at, updated_at
        FROM cards
        WHERE id = $1`,
       [id],
@@ -97,13 +99,17 @@ export class CardRepository {
       fields.push(`labels = $${paramIndex++}::jsonb`);
       values.push(JSON.stringify(updates.labels));
     }
+    if (updates.color !== undefined) {
+      fields.push(`color = $${paramIndex++}`);
+      values.push(updates.color);
+    }
 
     fields.push(`updated_at = now()`);
     values.push(id);
 
     const result = await this.db.query<Card>(
       `UPDATE cards SET ${fields.join(', ')} WHERE id = $${paramIndex}
-       RETURNING id, column_id, title, description, due_date, labels, position, created_at, updated_at`,
+       RETURNING id, column_id, title, description, due_date, labels, color, position, created_at, updated_at`,
       values,
     );
 
@@ -118,7 +124,7 @@ export class CardRepository {
       `UPDATE cards
        SET column_id = $2, position = $3, updated_at = now()
        WHERE id = $1
-       RETURNING id, column_id, title, description, due_date, labels, position, created_at, updated_at`,
+       RETURNING id, column_id, title, description, due_date, labels, color, position, created_at, updated_at`,
       [id, columnId, position],
     );
     if (result.rows.length === 0) {

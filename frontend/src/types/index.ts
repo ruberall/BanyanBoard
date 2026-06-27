@@ -28,6 +28,7 @@ export interface Card {
   description: string | null
   due_date: string | null
   labels: Label[]
+  color?: string | null
   position: number
   created_at: string
   updated_at: string

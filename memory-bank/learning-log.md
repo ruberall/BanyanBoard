@@ -2,6 +2,28 @@
 
 ---
 
+## 2026-06-27 - Consolidation (during TASK-014 archive)
+
+- Files before: 11, Files after: 11
+- Merged: 0 files
+- Expired: 0 bullets (0 files deleted)
+- Promoted: 1 file (`api-design.md` low → medium; evidence_count reached threshold of 3)
+- Pruned: 0 excess bullets
+- All rules recent (< 90 days); no stale expiry candidates
+
+---
+
+## 2026-06-27 - TASK-014 Reflection
+
+### Extracted Patterns
+- **testing-patterns** → amended `agent-rules/_learned/testing-patterns.md` (evidence count: 13) — RTL fireEvent + rAF timing; fixture type mismatch fix; Playwright HMR state
+- **frontend-accessibility** → amended `agent-rules/_learned/frontend-accessibility.md` (evidence count: 2) — useEffect dismiss listener timing + rAF guard redundancy
+
+### systemPatterns.md Updates
+- None (learnings are component-level patterns, not system architecture)
+
+---
+
 ## 2026-06-22 - Consolidation (during TASK-012 re-archive)
 
 - Files before: 12, Files after: 11
