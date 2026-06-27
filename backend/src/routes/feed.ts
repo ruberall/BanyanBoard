@@ -15,8 +15,48 @@ import { Router } from 'express';
 import type { Queryable } from '../db/queryable';
 import type { DomainEventBus, DomainEvent } from '../events/domain-event-bus';
 import { EventRepository } from '../repositories/event.repository';
+import type { EventRow } from '../repositories/event.repository';
 import { asyncHandler } from '../lib/asyncHandler';
 import type { Config } from '../config';
+
+// ---------------------------------------------------------------------------
+// ActivityEvent — the normalized shape sent to SSE clients and used in history
+// ---------------------------------------------------------------------------
+
+export interface ActivityEvent {
+  eventId: string;
+  boardId: string;
+  cardId: string;
+  eventType: string;
+  actorId: string | null;
+  actorDisplayName: string | null;
+  fromColumnId: string | null;
+  toColumnId: string | null;
+  payload: Record<string, unknown>;
+  occurredAt: Date;
+}
+
+/**
+ * Normalize a raw EventRow from the DB into the ActivityEvent shape
+ * used by the SSE feed and history replay.
+ * Reads actor_display_name from the payload jsonb — no JOIN to users needed.
+ */
+export function projectEventRow(row: EventRow): ActivityEvent {
+  const actorDisplayName = (row.payload?.['actor_display_name'] as string | null | undefined) ?? null;
+
+  return {
+    eventId:          row.id,
+    boardId:          row.board_id,
+    cardId:           row.card_id,
+    eventType:        row.event_type,
+    actorId:          row.actor_id,
+    actorDisplayName: actorDisplayName,
+    fromColumnId:     row.from_column_id,
+    toColumnId:       row.to_column_id,
+    payload:          row.payload,
+    occurredAt:       row.occurred_at,
+  };
+}
 
 const DEFAULT_MAX_HISTORY   = 20;
 const DEFAULT_HEARTBEAT_MS  = 15000;

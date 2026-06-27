@@ -11,9 +11,37 @@ export class CardService {
     private readonly eventService?: EventService,
   ) {}
 
-  async createCard(columnId: string, input: CardInput): Promise<Card> {
+  async createCard(columnId: string, input: CardInput, actorId?: string | null): Promise<Card> {
     const card = await this.repo.createCard(columnId, input);
     logger.info({ cardId: card.id, columnId }, 'card.created');
+
+    if (this.eventService) {
+      try {
+        const colResult = await this.db.query<{ board_id: string; name: string }>(
+          'SELECT board_id, name FROM columns WHERE id = $1',
+          [columnId],
+        );
+        const boardId = colResult.rows[0]?.board_id ?? null;
+        const columnName = colResult.rows[0]?.name ?? null;
+
+        await this.eventService.emitCardCreated({
+          // boardId should always resolve from the columns query; fall back to
+          // columnId only if the row is unexpectedly missing (e.g., race with
+          // a concurrent column delete).  The columnId is a valid UUID but is
+          // not a board_id — this path triggers a FK violation in the event
+          // insert, which is caught by the outer try/catch and logged as a warning.
+          boardId:    boardId ?? columnId,
+          cardId:     card.id,
+          cardTitle:  card.title,
+          actorId:    actorId ?? null,
+          columnId,
+          columnName,
+        });
+      } catch (err) {
+        logger.warn({ err, cardId: card.id }, 'card.created.event_emission_failed');
+      }
+    }
+
     return card;
   }
 
@@ -36,7 +64,7 @@ export class CardService {
     logger.info({ cardId: id }, 'card.deleted');
   }
 
-  async moveCard(id: string, columnId: string, afterCardId: string | null): Promise<Card> {
+  async moveCard(id: string, columnId: string, afterCardId: string | null, actorId?: string | null): Promise<Card> {
     const existingCard = await this.repo.findCardById(id);
 
     const colResult = await this.db.query<{ id: string; board_id: string }>(
@@ -73,7 +101,7 @@ export class CardService {
           boardId:        boardId,
           cardId:         card.id,
           cardTitle:      card.title,
-          actorId:        null,
+          actorId:        actorId ?? null,
           actorEmail:     null,
           fromColumnId:   existingCard.column_id,
           fromColumnName: null,

@@ -2,11 +2,13 @@
  * card.service.test.ts
  *
  * Phase 1 coverage: CardService (unit tests — mock CardRepository)
+ * Phase 1 attribution: actor propagation into EventService (WI-016-001, WI-016-002)
  */
 
 import { CardService } from '../card.service';
 import { CardRepository } from '../../repositories/card.repository';
 import type { Card } from '../../repositories/card.repository';
+import type { EventService } from '../event.service';
 import { NotFoundError } from '../../errors';
 
 const BASE_CARD: Card = {
@@ -206,6 +208,109 @@ describe('CardService', () => {
       await svc.moveCard('card-uuid-1', 'col-uuid-1', null);
 
       expect(r.moveCard).toHaveBeenCalledTimes(1);
+    });
+
+    // -------------------------------------------------------------------------
+    // Phase 1 attribution — WI-016-001
+    // These tests FAIL until CardService.moveCard() accepts and forwards actorId.
+    // -------------------------------------------------------------------------
+
+    it('AC-HAPPY-1: passes actorId to EventService.emitCardMoved when session user provided', async () => {
+      // Arrange
+      const mockEventService: jest.Mocked<Pick<EventService, 'emitCardMoved'>> = {
+        emitCardMoved: jest.fn().mockResolvedValue(undefined),
+      };
+      const r = makeMockRepo();
+      const db = makeMockDb([{ rows: [{ id: 'col-uuid-2', board_id: 'board-uuid-1' }] }]);
+      const svc = new CardService(r, db, mockEventService as unknown as EventService);
+
+      r.findCardById.mockResolvedValueOnce(BASE_CARD);
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      const movedCard = { ...BASE_CARD, column_id: 'col-uuid-2', position: 1.0 };
+      r.moveCard.mockResolvedValueOnce(movedCard);
+
+      // Act — call moveCard with an actorId (new parameter required by WI-016-001)
+      await svc.moveCard('card-uuid-1', 'col-uuid-2', null, 'actor-user-uuid-1');
+
+      // Assert — emitCardMoved called with the real actorId (not null)
+      expect(mockEventService.emitCardMoved).toHaveBeenCalledTimes(1);
+      expect(mockEventService.emitCardMoved).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorId: 'actor-user-uuid-1',
+          cardId: 'card-uuid-1',
+          toColumnId: 'col-uuid-2',
+        }),
+      );
+    });
+
+    it('AC-HAPPY-1: actorId defaults to null when no session user provided (backward-compat)', async () => {
+      // Arrange
+      const mockEventService: jest.Mocked<Pick<EventService, 'emitCardMoved'>> = {
+        emitCardMoved: jest.fn().mockResolvedValue(undefined),
+      };
+      const r = makeMockRepo();
+      const db = makeMockDb([{ rows: [{ id: 'col-uuid-2', board_id: 'board-uuid-1' }] }]);
+      const svc = new CardService(r, db, mockEventService as unknown as EventService);
+
+      r.findCardById.mockResolvedValueOnce(BASE_CARD);
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      const movedCard = { ...BASE_CARD, column_id: 'col-uuid-2', position: 1.0 };
+      r.moveCard.mockResolvedValueOnce(movedCard);
+
+      // Act — no actorId argument
+      await svc.moveCard('card-uuid-1', 'col-uuid-2', null);
+
+      // Assert — actorId is null (not undefined, not missing)
+      expect(mockEventService.emitCardMoved).toHaveBeenCalledWith(
+        expect.objectContaining({ actorId: null }),
+      );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 1 attribution — createCard with emitCardCreated (WI-016-002)
+  // These tests FAIL until:
+  //   1. CardCreatedEvent is added to DomainEvent union
+  //   2. EventService.emitCardCreated() is implemented
+  //   3. CardService.createCard() calls emitCardCreated with actorId
+  // ---------------------------------------------------------------------------
+
+  describe('createCard(columnId, input) — Phase 1 attribution', () => {
+    it('AC-HAPPY-2: calls EventService.emitCardCreated with actorId when session user provided', async () => {
+      // Arrange
+      const mockEventService = {
+        emitCardMoved:   jest.fn().mockResolvedValue(undefined),
+        emitCardCreated: jest.fn().mockResolvedValue(undefined),
+      } as unknown as EventService;
+      const r = makeMockRepo();
+      const db = makeMockDb([]);
+      const svc = new CardService(r, db, mockEventService);
+
+      r.createCard.mockResolvedValueOnce(BASE_CARD);
+
+      // Act — createCard with actorId (new parameter required by WI-016-002)
+      await svc.createCard('col-uuid-1', { title: 'Write tests' }, 'actor-user-uuid-1');
+
+      // Assert — emitCardCreated called with real actorId (not null), cardId, boardId
+      expect((mockEventService as any).emitCardCreated).toHaveBeenCalledTimes(1);
+      expect((mockEventService as any).emitCardCreated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorId: 'actor-user-uuid-1',
+          cardId: BASE_CARD.id,
+        }),
+      );
+    });
+
+    it('AC-HAPPY-2: does not throw when EventService is not wired (backward-compat)', async () => {
+      // Arrange — no eventService injected
+      const r = makeMockRepo();
+      const db = makeMockDb([]);
+      const svc = new CardService(r, db); // no eventService
+
+      r.createCard.mockResolvedValueOnce(BASE_CARD);
+
+      // Act + Assert — createCard still succeeds without eventService
+      await expect(svc.createCard('col-uuid-1', { title: 'Write tests' })).resolves.toBe(BASE_CARD);
     });
   });
 });

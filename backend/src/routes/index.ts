@@ -8,12 +8,14 @@ import { createColumnCardsRouter, createCardsRouter } from './cards';
 import { createFeedRouter } from './feed';
 import type { DomainEventBus } from '../events/domain-event-bus';
 import { EventService } from '../services/event.service';
+import { UserRepository } from '../repositories/user.repository';
 import type { Config } from '../config';
 
 export function createRouter(db: Queryable, bus?: DomainEventBus, config?: Config): Router {
   const router = Router();
 
-  const eventService = bus ? new EventService(bus, db) : undefined;
+  const userRepo = new UserRepository(db);
+  const eventService = bus ? new EventService(bus, db, userRepo) : undefined;
 
   // Public routes — must be registered before requireAuth.
   // Express matches middleware in registration order; mounting auth routes after
@@ -26,8 +28,8 @@ export function createRouter(db: Queryable, bus?: DomainEventBus, config?: Confi
 
   // Protected routes
   router.use('/boards', createBoardsRouter(db));
-  router.use('/columns', createColumnCardsRouter(db));
-  router.use('/cards', createCardsRouter(db, bus, eventService));
+  router.use('/columns', createColumnCardsRouter(db, eventService));
+  router.use('/cards', createCardsRouter(db, eventService));
 
   // SSE activity feed — only mounted when a bus is provided
   if (bus) {
