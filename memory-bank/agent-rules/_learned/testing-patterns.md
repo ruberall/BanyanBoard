@@ -3,8 +3,8 @@ name: "Learned: Testing Patterns"
 globs: ["*.test.*", "*.test.tsx", "*.test.ts", "*.spec.*"]
 topics: ["testing-patterns", "typescript", "test-fixtures"]
 priority: medium
-evidence_count: 10
-last_updated: 2026-06-18
+evidence_count: 14
+last_updated: 2026-06-27
 auto_generated: true
 ---
 
@@ -20,6 +20,10 @@ auto_generated: true
 - When adding Playwright E2E specs to a project that also uses vitest, add `exclude: ['e2e/**']` to `vitest.config.ts` before committing the first `.spec.ts` file to the `e2e/` directory.
 - Test SSE endpoints using native `http.createServer` + `http.get()` against a random bound port — supertest 7 blocks `server.close()` on open SSE connections and never sends `buffer(false)` requests.
 - Add `src/**/__tests__` (recursive glob) to `tsconfig.json` `exclude`, not just `src/__tests__` — nested test helper files cause TS2393 duplicate declaration errors when only the top-level directory is excluded.
+- RTL dismiss tests using `fireEvent` (synchronous) will fail if the event listener is deferred via `requestAnimationFrame` or `setTimeout` — the standard render → fireEvent → expect pattern assumes listeners are synchronously attached after render.
+- Pre-existing test fixture type mismatches (e.g., `string[]` where `Label[]` is required) should be fixed in the same PR phase as the new tests that reveal them — don't defer to avoid scope creep.
+- Playwright E2E tests that rely on new DOM elements (e.g., a palette button) require the Vite dev server to have HMR'd those changes before the test run — restart Docker Compose for a clean state if a new element is timing out even though the parent container is visible.
+- When a build phase produces only Playwright spec files and the live stack is not verified during the session, add a `PLAYWRIGHT_UNVERIFIED` note to the task execution state and treat it as an open checklist item for UAT — do not treat commit of an unrun spec as equivalent to a passing test.
 
 ## Evidence
 
@@ -35,3 +39,7 @@ auto_generated: true
 | vitest/Playwright coexistence: exclude e2e/** | [reflection-TASK-011.md](../reflection/reflection-TASK-011.md) | 2026-06-18 |
 | SSE endpoints require native http.get, not supertest | [reflection-TASK-012.md](../reflection/reflection-TASK-012.md) | 2026-06-18 |
 | tsconfig exclude must use src/**/__tests__ recursive glob | [reflection-TASK-012.md](../reflection/reflection-TASK-012.md) | 2026-06-18 |
+| Synchronous fireEvent fails when listener deferred via rAF | [reflection-TASK-014.md](../reflection/reflection-TASK-014.md) | 2026-06-27 |
+| Fix pre-existing fixture type mismatches in same phase | [reflection-TASK-014.md](../reflection/reflection-TASK-014.md) | 2026-06-27 |
+| Playwright E2E needs HMR'd dev server before new DOM element tests | [reflection-TASK-014.md](../reflection/reflection-TASK-014.md) | 2026-06-27 |
+| Unrun Playwright specs committed without live-stack verification | [reflection-TASK-013.md](../reflection/reflection-TASK-013.md) | 2026-06-27 |
