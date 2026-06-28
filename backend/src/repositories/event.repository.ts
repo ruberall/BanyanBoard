@@ -15,8 +15,8 @@ export interface EventInput {
   cardId: string;
   actorId: string | null;
   eventType: string;
-  fromColumnId: string;
-  toColumnId: string;
+  fromColumnId: string | null;
+  toColumnId: string | null;
   payload: Record<string, unknown>;
 }
 
@@ -26,8 +26,8 @@ export interface EventRow {
   card_id: string;
   actor_id: string | null;
   event_type: string;
-  from_column_id: string;
-  to_column_id: string;
+  from_column_id: string | null;
+  to_column_id: string | null;
   payload: Record<string, unknown>;
   occurred_at: Date;
 }

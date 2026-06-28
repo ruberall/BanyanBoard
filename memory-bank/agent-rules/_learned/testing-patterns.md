@@ -3,7 +3,7 @@ name: "Learned: Testing Patterns"
 globs: ["*.test.*", "*.test.tsx", "*.test.ts", "*.spec.*"]
 topics: ["testing-patterns", "typescript", "test-fixtures"]
 priority: medium
-evidence_count: 10
+evidence_count: 12
 last_updated: 2026-06-27
 auto_generated: true
 ---
@@ -20,6 +20,8 @@ auto_generated: true
 - When a build phase produces only Playwright spec files and the live stack is not verified during the session, add a `PLAYWRIGHT_UNVERIFIED` note to the task execution state and treat it as an open checklist item for UAT — do not treat commit of an unrun spec as equivalent to a passing test.
 - Place frontend component tests co-located alongside the component file (`ComponentName.test.tsx`), never in a `__tests__/` subdirectory — extend existing test files when adding coverage to a component that already has tests.
 - When extending a function's signature with optional parameters, update all existing mock assertions to match the new full call signature (e.g., `(email, hash, undefined, undefined)`) rather than leaving them at the old arity.
+- When adding a new event type to a discriminated union consumed by an SSE hook, add a dedicated hook test for the new type's parser branch — component rendering tests do not exercise the hook's parse logic.
+- Use `page.waitForRequest((req) => req.url().includes('/events'))` as an SSE subscription barrier before API writes in live-push E2E tests — heading visibility alone does not guarantee the SSE connection is open and listening.
 
 ## Evidence
 
@@ -35,3 +37,5 @@ auto_generated: true
 | Unrun Playwright specs committed without live-stack verification | [reflection-TASK-013.md](../reflection/reflection-TASK-013.md) | 2026-06-27 |
 | Co-located test placement — test writer created `__tests__/` dirs for both BoardPage and RegisterPage | [reflection-TASK-015.md](../reflection/reflection-TASK-015.md) | 2026-06-27 |
 | Mock arity mismatch — `auth.service.test.ts` broke after `createUser` extended to 4-arg signature | [reflection-TASK-015.md](../reflection/reflection-TASK-015.md) | 2026-06-27 |
+| SSE hook union branch: `card.created` parser not covered by component test | [reflection-TASK-016.md](../reflection/reflection-TASK-016.md) | 2026-06-27 |
+| SSE waitForRequest barrier in live-push E2E tests | [reflection-TASK-016.md](../reflection/reflection-TASK-016.md) | 2026-06-27 |

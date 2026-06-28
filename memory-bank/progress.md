@@ -2,6 +2,38 @@
 
 ---
 
+## Task Archive: TASK-016
+
+**Task**: Activity Feed User Attribution (FEAT-013)
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-27
+**Archive**: `memory-bank/archive/archive-TASK-016.md`
+
+---
+
+## 2026-06-27 - Phase 3: E2E Attribution Tests — COMPLETE (TASK-016)
+
+### What Was Built
+- `frontend/e2e/activity-feed.spec.ts` (new): 4 Playwright E2E tests covering all acceptance criteria
+  - AC-HAPPY-1: `card.moved` live SSE push shows `"E2E Attribution moved 'Move card'"`
+  - AC-HAPPY-2: `card.created` live SSE push shows `"E2E Attribution created card 'Attribution card'"`
+  - AC-HAPPY-3: History replay on page load shows attributed `card.created` event
+  - AC-HAPPY-4: Attribution survives page reload (SSE reconnect + history replay)
+- `frontend/e2e/helpers/auth.ts`: Added `loginAsAttributionUser`, `ATTRIBUTION_EMAIL`, `ATTRIBUTION_DISPLAY_NAME`
+- `frontend/e2e/helpers/api.ts`: Added `moveCard(request, cardId, toColumnId, afterCardId?)`
+
+### Test Summary
+- TypeScript: clean (`tsc --noEmit` passes on E2E files)
+- Code Review: APPROVED — 3 recommendations applied (SSE sync barrier via `waitForRequest`, `aside` visibility guard, combined attribution text regex assertions)
+- Playwright E2E: requires running stack to execute; verified TypeScript correctness only
+
+### Strategy Notes
+- Attribution user: `e2e-attribution@banyanboard.test` registered with `first_name: 'E2E', last_name: 'Attribution'` — idempotent (409 silently ignored)
+- SSE live-push tests: navigate → wait for heading → `waitForRequest(/events)` → API write → assert
+- SSE history tests: API write BEFORE `page.goto()` → navigate → assert from history flush
+
+---
+
 ## 2026-06-27 - Phase 2: Frontend Attribution — COMPLETE (TASK-016)
 
 ### What Was Built
@@ -56,6 +88,7 @@
 
 ---
 
+<<<<<<< HEAD
 ## Creative Complete: TASK-016
 
 **Task**: Activity Feed User Attribution (FEAT-013)
@@ -77,6 +110,8 @@
 
 ---
 
+=======
+>>>>>>> feature/FEAT-013-activity-feed-user-attribution
 ## Task Archive: TASK-015
 
 **Task**: User Profile, Messaging, and Navigation Enhancements (FEAT-012)

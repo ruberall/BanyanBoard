@@ -16,6 +16,7 @@ export interface CardMovedEvent {
   cardTitle?: string;
   actorId: string | null;
   actorEmail?: string | null;
+  actorDisplayName?: string | null;
   fromColumnId: string;
   fromColumnName?: string | null;
   toColumnId: string;
@@ -23,7 +24,20 @@ export interface CardMovedEvent {
   occurredAt: Date;
 }
 
-export type DomainEvent = CardMovedEvent;
+export interface CardCreatedEvent {
+  type: 'card.created';
+  eventId: string;
+  boardId: string;
+  cardId: string;
+  cardTitle: string;
+  actorId: string | null;
+  actorDisplayName: string | null;
+  columnId: string;
+  columnName: string | null;
+  occurredAt: Date;
+}
+
+export type DomainEvent = CardMovedEvent | CardCreatedEvent;
 
 // ---------------------------------------------------------------------------
 // DomainEventBus interface

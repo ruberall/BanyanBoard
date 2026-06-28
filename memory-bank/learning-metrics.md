@@ -19,6 +19,7 @@
 | TASK-013 | 2026-06-27 | 4 | 1 | 3 | ui-patterns created; testing-patterns + react-query-patterns + data-integrity amended (Level 3) |
 | TASK-014 | 2026-06-27 | 3 | 0 | 2 | testing-patterns + frontend-accessibility amended; api-design promoted to medium (Level 2) |
 | TASK-015 | 2026-06-27 | 4 | 1 | 2 | data-validation created; testing-patterns + security amended (Level 3) |
+| TASK-016 | 2026-06-27 | 4 | 1 | 2 | architecture-patterns created; testing-patterns + service-design amended (Level 3) |
 
 ## Consolidation History
 
@@ -32,13 +33,14 @@
 | 2026-06-27 | TASK-014 archive | 11 | 11 | 0 | 0 | 1 | 0 |
 | 2026-06-27 | TASK-013 archive | 12 | 12 | 0 | 0 | 1 | 0 |
 | 2026-06-27 | TASK-015 archive | 14 | 14 | 0 | 0 | 0 | 6 |
+| 2026-06-27 | TASK-016 archive | 14 | 13 | 1 | 0 | 0 | 0 |
 
 ## Rule Effectiveness
 
 | File | Evidence Count | Priority | Last Updated | Status |
 |------|---------------|----------|--------------|--------|
-| testing-patterns.md | 10 | medium | 2026-06-27 | active (pruned 6 stale bullets) |
-| architecture-foundation.md | 3 | medium | 2026-06-18 | active (promoted) |
+| testing-patterns.md | 12 | medium | 2026-06-27 | active |
+| architecture-foundation.md | 4 | medium | 2026-06-27 | active (merged: architecture-patterns) |
 | api-design.md | 3 | medium | 2026-06-27 | active (promoted) |
 | react-query-patterns.md | 3 | medium | 2026-06-27 | active (promoted) |
 | observability-standards.md | 1 | low | 2026-06-13 | active |
@@ -48,5 +50,5 @@
 | frontend-accessibility.md | 2 | low | 2026-06-27 | active |
 | docker-compose.md | 2 | low | 2026-06-22 | active (merged: docker-dev-environment) |
 | sse-client.md | 2 | low | 2026-06-22 | active |
-| service-design.md | 1 | low | 2026-06-16 | active |
+| service-design.md | 2 | low | 2026-06-27 | active |
 | ui-patterns.md | 1 | low | 2026-06-27 | active |

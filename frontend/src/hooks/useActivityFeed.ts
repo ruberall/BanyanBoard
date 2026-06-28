@@ -1,20 +1,18 @@
 import { useState, useEffect } from 'react'
-import type { CardMovedEvent } from '@/types'
+import type { ActivityEvent, CardMovedEvent, CardCreatedEvent } from '@/types'
 
 type ConnectionStatus = 'connecting' | 'open' | 'closed' | 'error'
 
 interface UseActivityFeedResult {
-  events: CardMovedEvent[]
+  events: ActivityEvent[]
   connectionStatus: ConnectionStatus
 }
 
 export function useActivityFeed(boardId: string): UseActivityFeedResult {
-  const [events, setEvents] = useState<CardMovedEvent[]>([])
+  const [events, setEvents] = useState<ActivityEvent[]>([])
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting')
 
   useEffect(() => {
-    setEvents([])
-    setConnectionStatus('connecting')
     const seenIds = new Set<string>()
     const baseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
     const url = `${baseUrl}/boards/${boardId}/events`
@@ -26,10 +24,15 @@ export function useActivityFeed(boardId: string): UseActivityFeedResult {
 
     es.onmessage = (event: MessageEvent) => {
       try {
-        const data = JSON.parse(event.data) as CardMovedEvent
+        const data = JSON.parse(event.data) as { type?: string; eventId?: string }
+        if (!data.eventId) return
         if (seenIds.has(data.eventId)) return
         seenIds.add(data.eventId)
-        setEvents((prev) => [data, ...prev])
+        if (data.type === 'card.moved' && typeof (data as CardMovedEvent).cardId === 'string') {
+          setEvents((prev) => [data as CardMovedEvent, ...prev])
+        } else if (data.type === 'card.created' && typeof (data as CardCreatedEvent).cardId === 'string') {
+          setEvents((prev) => [data as CardCreatedEvent, ...prev])
+        }
       } catch {
         // ignore malformed messages
       }

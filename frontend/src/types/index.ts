@@ -54,13 +54,30 @@ export interface CardMovedEvent {
   cardId: string
   cardTitle: string
   actorId: string | null
-  actorEmail: string | null
+  actorDisplayName: string | null
+  actorEmail?: string | null
   fromColumnId: string
   fromColumnName: string | null
   toColumnId: string
   toColumnName: string | null
   occurredAt: string // ISO-8601
 }
+
+export interface CardCreatedEvent {
+  type: 'card.created'
+  eventId: string
+  boardId: string
+  cardId: string
+  cardTitle: string
+  actorId: string | null
+  actorDisplayName: string | null
+  actorEmail?: string | null
+  columnId: string
+  columnName: string | null
+  occurredAt: string // ISO-8601
+}
+
+export type ActivityEvent = CardMovedEvent | CardCreatedEvent
 
 export class ApiError extends Error {
   status: number

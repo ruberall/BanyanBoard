@@ -29,3 +29,30 @@ export async function loginAsTestUser(request: APIRequestContext): Promise<void>
 export async function logoutTestUser(request: APIRequestContext): Promise<void> {
   await request.post(`${API_BASE}/auth/logout`);
 }
+
+export const ATTRIBUTION_EMAIL = 'e2e-attribution@banyanboard.test';
+export const ATTRIBUTION_DISPLAY_NAME = 'E2E Attribution';
+
+/**
+ * Register (or no-op on 409) the attribution test user — a dedicated user with
+ * first_name and last_name set — then login. Used by activity-feed E2E tests
+ * that assert full-name attribution strings.
+ */
+export async function loginAsAttributionUser(request: APIRequestContext): Promise<void> {
+  // Register with first/last name; ignore 409 if the user already exists
+  await request.post(`${API_BASE}/auth/register`, {
+    data: {
+      email: ATTRIBUTION_EMAIL,
+      password: E2E_PASSWORD,
+      first_name: 'E2E',
+      last_name: 'Attribution',
+    },
+  });
+  // Login to get a fresh session
+  const res = await request.post(`${API_BASE}/auth/login`, {
+    data: { email: ATTRIBUTION_EMAIL, password: E2E_PASSWORD },
+  });
+  if (!res.ok()) {
+    throw new Error(`loginAsAttributionUser failed: ${res.status()} ${await res.text()}`);
+  }
+}

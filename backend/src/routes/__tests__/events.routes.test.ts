@@ -100,7 +100,10 @@ function makeEventRow(id: string, overrides?: Partial<Record<string, unknown>>) 
     card_id: CARD_ID,
     actor_id: USER_ID,
     event_type: 'card.moved',
-    payload: { fromColumnId: COL_FROM, toColumnId: COL_TO },
+    // actor_display_name in payload is read by projectEventRow() to populate actorDisplayName
+    payload: { fromColumnId: COL_FROM, toColumnId: COL_TO, actor_display_name: 'Rebecca Uberall' },
+    from_column_id: COL_FROM,
+    to_column_id: COL_TO,
     occurred_at: '2026-06-18T10:00:00.000Z',
     ...overrides,
   };
@@ -306,9 +309,26 @@ describe('GET /boards/:boardId/events — history flush', () => {
 
     // Both events should appear in the SSE stream as well-formed frames.
     // SSE format: "id: <eventId>\ndata: <json>\n\n"
+    //
+    // AC-HAPPY-3 (TASK-016 Phase 2): history replay frames MUST use the projected
+    // ActivityEvent camelCase shape (via projectEventRow()) — NOT raw EventRow snake_case.
+    // Specifically:
+    //   - "eventType" (not "event_type")
+    //   - "actorDisplayName" populated from payload.actor_display_name (not raw "actor_id")
+    //   - "boardId" / "cardId" / "actorId" / "fromColumnId" / "toColumnId" (camelCase)
+    //
+    // This test FAILS until feed.ts applies projectEventRow() in the history flush paths.
     expect(capturedBody).toContain(`id: ${EVENT_ID_1}`);
     expect(capturedBody).toContain(`id: ${EVENT_ID_2}`);
-    expect(capturedBody).toContain('"event_type":"card.moved"');
+    // Must use camelCase projected shape — not raw snake_case
+    expect(capturedBody).toContain('"eventType":"card.moved"');
+    expect(capturedBody).toContain('"actorDisplayName":"Rebecca Uberall"');
+    expect(capturedBody).toContain('"boardId"');
+    expect(capturedBody).toContain('"cardId"');
+    // Must NOT contain raw snake_case field names from EventRow
+    expect(capturedBody).not.toContain('"event_type"');
+    expect(capturedBody).not.toContain('"board_id"');
+    expect(capturedBody).not.toContain('"card_id"');
   });
 });
 

@@ -2,6 +2,29 @@
 
 ---
 
+## 2026-06-27 - Consolidation (during TASK-016 archive)
+
+- Files before: 14, Files after: 13
+- Merged: 1 file (`architecture-patterns.md` → `architecture-foundation.md`; evidence_count: 3→4)
+- Expired: 0 bullets (0 files deleted)
+- Promoted: 0 files
+- Pruned: 0 excess bullets
+- All rules recent (< 90 days); no stale expiry candidates
+
+---
+
+## 2026-06-27 - TASK-016 Reflection
+
+### Extracted Patterns
+- **testing-patterns** → amended `agent-rules/_learned/testing-patterns.md` (evidence count: 12) — union hook branch coverage, SSE waitForRequest E2E barrier
+- **service-design** → amended `agent-rules/_learned/service-design.md` (evidence count: 2) — construction site completeness
+- **architecture-patterns** → created `agent-rules/_learned/architecture-patterns.md` (evidence count: 1) — event service router wiring verification
+
+### systemPatterns.md Updates
+- None (architecture-patterns learning is captured in new _learned file; not a system-wide novel pattern)
+
+---
+
 ## 2026-06-27 - Consolidation (during TASK-013 archive)
 
 - Files before: 12, Files after: 12

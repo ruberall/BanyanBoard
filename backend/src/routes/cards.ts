@@ -2,11 +2,9 @@ import { Router } from 'express';
 import type { Queryable } from '../db/queryable';
 import { CardRepository } from '../repositories/card.repository';
 import { CardService } from '../services/card.service';
-import { EventService } from '../services/event.service';
+import type { EventService } from '../services/event.service';
 import { asyncHandler } from '../lib/asyncHandler';
 import { ValidationError } from '../errors';
-import type { DomainEventBus } from '../events/domain-event-bus';
-import { InProcessEventBus } from '../events/in-process-event-bus';
 
 const VALID_PATCH_FIELDS = new Set(['title', 'description', 'due_date', 'labels', 'color']);
 
@@ -69,14 +67,15 @@ function validateCardInput(body: Record<string, unknown>, requireTitle: boolean)
  *   POST   /columns/:columnId/cards
  *   GET    /columns/:columnId/cards
  */
-export function createColumnCardsRouter(db: Queryable): Router {
+export function createColumnCardsRouter(db: Queryable, eventService?: EventService): Router {
   const repo = new CardRepository(db);
-  const service = new CardService(repo, db);
+  const service = new CardService(repo, db, eventService);
   const router = Router();
 
   router.post('/:columnId/cards', asyncHandler(async (req, res) => {
     validateCardInput(req.body ?? {}, true);
-    const card = await service.createCard(req.params.columnId, req.body);
+    const actorId = req.session?.userId ?? null;
+    const card = await service.createCard(req.params.columnId, req.body, actorId);
     res.status(201).json(card);
   }));
 
@@ -97,13 +96,10 @@ export function createColumnCardsRouter(db: Queryable): Router {
  */
 export function createCardsRouter(
   db: Queryable,
-  bus?: DomainEventBus,
   eventService?: EventService,
 ): Router {
   const repo = new CardRepository(db);
-  const resolvedBus = bus ?? new InProcessEventBus();
-  const resolvedEventService = eventService ?? (bus ? new EventService(resolvedBus, db) : undefined);
-  const service = new CardService(repo, db, resolvedEventService);
+  const service = new CardService(repo, db, eventService);
   const router = Router();
 
   router.get('/:id', asyncHandler(async (req, res) => {
@@ -129,7 +125,8 @@ export function createCardsRouter(
       afterCardId = rawAfterCardId as string;
     }
 
-    const card = await service.moveCard(req.params.id, columnId as string, afterCardId);
+    const actorId = req.session?.userId ?? null;
+    const card = await service.moveCard(req.params.id, columnId as string, afterCardId, actorId);
     res.json(card);
   }));
 
