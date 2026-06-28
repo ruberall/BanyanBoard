@@ -2,6 +2,108 @@
 
 ---
 
+## Task Archive: TASK-017
+
+**Task**: Workflow Automation (FEAT-014)
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-28
+**Archive**: `memory-bank/archive/archive-TASK-017.md`
+
+---
+
+## 2026-06-28 - Phase 4: Frontend — COMPLETE (TASK-017)
+
+### What Was Built
+- `frontend/src/types/index.ts`: Added `WorkflowWarning { code, message, details? }` interface (matches backend contract); added `warnings?: WorkflowWarning[]` to `BoardWithColumns`
+- `frontend/src/api/hooks.ts`: `useMoveCard.onMutate` — reads board query cache via `getQueriesData<BoardWithColumns>` to find destination column name; if 'Done', applies `color: DONE_CARD_COLOR` (`#d4edda`) optimistically to moved card; rollback free via existing TanStack Query snapshot in `onError`; named constants `DONE_COLUMN_NAME`/`DONE_CARD_COLOR` at module scope
+
+### Test Summary
+- 10 new tests across 3 files: `useMoveCard.test.tsx` (+3), `BoardPage.test.tsx` (+3), `workflowWarning.test.ts` (new, 4)
+- Full suite: 237/237 passed, TypeScript clean
+- Code review: PASS (W1: `as const` removed, W2: named constants added)
+- Stale column rendering: already handled by existing column rendering — dnd-kit renders all columns from API response, no special case needed
+- Loading spinner: already present in existing `BoardPage` implementation
+
+### Strategy Notes
+- `WorkflowWarning` matches backend shape exactly — Test Writer initially invented a mismatched shape; corrected before commit
+- Done-color pattern: cross-slice cache read in `onMutate` avoids network round-trip; column name lookup is synchronous and cheap
+- warnings[] parsed but not rendered — field available for future UI without blocking this phase
+
+---
+
+## 2026-06-28 - Phase 3: Rule #2 + Async Retry Harness — COMPLETE (TASK-017)
+
+### What Was Built
+- `backend/src/repositories/workflow.repository.ts` (modified): added `setCardColor(cardId, color)` — parameterized UPDATE cards SET color
+- `backend/src/services/workflow.service.ts` (modified): added `triggerDoneColorRule(boardId, cardId)` — manual retry loop (not retryWithBackoff), always resolves; inserts trigger row after all retries with final `trigger_status` and `trigger_error` from last delivery; per-attempt delivery rows collected locally then inserted
+- `backend/src/services/card.service.ts` (modified): 4th optional constructor param `workflowService?`; `moveCard` fires Done-color trigger fire-and-forget when destination = 'Done'
+- `backend/src/routes/cards.ts` (modified): `createCardsRouter(db, eventService, workflowService?)` optional 3rd param
+- `backend/src/routes/index.ts` (modified): passes workflowService to createCardsRouter
+
+### Test Summary
+- Batch A (workflow.service): 12/12 passed — triggerDoneColorRule: happy path, retry on failure, exhaustion, never-throws, config-driven
+- Batch B (card.service): 23/23 passed — fire-and-forget Done-color trigger tests
+- Integration verification: 223/223 passed, TypeScript clean
+- Code review: WARNINGS only (no blocking) — W1 applied: trigger_error populated from last delivery error; W2/W3/W4 pre-existing/minor
+
+### Strategy Notes
+- Manual retry loop chosen over retryWithBackoff to enable per-attempt delivery row insertion (retryWithBackoff doesn't expose attempt number)
+- trigger_error carries last delivery_error on exhaustion — enables root-cause analysis from trigger table alone
+- Always-resolves contract: retry loop swallows per-attempt errors; outer try/catch swallows tracking failures; `.catch()` guard in CardService is belt-and-suspenders
+
+---
+
+## 2026-06-28 - Phase 2: WorkflowService + Rule #1 — COMPLETE (TASK-017)
+
+### What Was Built
+- `backend/src/repositories/workflow.repository.ts` (new): WorkflowRepository — insertTrigger, insertDelivery (RETURNING id), updateDeliveryStatus, findStaleCards, moveCardToStale
+- `backend/src/services/workflow.service.ts` (new): WorkflowService.applyBoardRules — Rule #1 stale-move via Promise.allSettled; graceful degradation on missing Stale column; WorkflowWarning[] return
+- `backend/src/repositories/card.repository.ts` (modified): added getColumnName(), setSuppressed() — eliminates SQL in service layer
+- `backend/src/services/card.service.ts` (modified): stale suppression via repo methods (not raw SQL); best-effort try-catch
+- `backend/src/services/board.service.ts` (modified): optional WorkflowService injection; getBoardById calls applyBoardRules; warnings[] in response
+- `backend/src/routes/boards.ts` + `routes/index.ts` (modified): WorkflowService wired end-to-end
+- `backend/src/config.ts` (modified): WORKFLOW_STALE_AGE_DAYS (2), WORKFLOW_RULE2_BASE_DELAY_MS (200), WORKFLOW_RULE2_MAX_ATTEMPTS (3)
+- `backend/migrations/20260629000000_add-workflow-indexes.js` (new): composite index on cards(column_id, created_at, stale_suppressed)
+
+### Test Summary
+- Batch A (WorkflowRepository): 6/6 passed
+- Batch B (WorkflowService): 7/7 passed
+- Batch C (BoardService): 11/11 passed
+- Batch D (CardService stale suppression): 19/19 passed
+- Batch E (boards.routes): 13/13 passed
+- Integration regression fixed: source column query moved inside try-catch (was 3 failures in cards.routes)
+- Code review: 2 blocking issues fixed (SQL in service → moved to CardRepository; insertDelivery RETURNING id)
+- Final full suite: 214/214 passed, TypeScript clean
+
+### Strategy Notes
+- WorkflowService follows optional constructor injection pattern (same as EventService)
+- column resolution by name from already-fetched columns array — no extra DB round-trip
+- stale suppression best-effort: failure logged at warn, never blocks card move response
+
+---
+
+## 2026-06-28 - Phase 1: DB Foundation — COMPLETE (TASK-017)
+
+### What Was Built
+- `backend/src/utils/retry.ts` (new): `retryWithBackoff<T>(fn, maxAttempts, baseDelayMs)` — exponential backoff utility. Pre-attaches no-op `.catch()` to suppress Node 26 + Jest fake-timer `UnhandledPromiseRejectionWarning`.
+- `backend/src/errors.ts` (modified): Added `WorkflowError extends AppError` — HTTP 400, code `WORKFLOW_ACTION_FAILED`, `details: Array<{field, error}>`.
+- `backend/src/middleware/errorHandler.ts` (modified): Duck-typed `details` serialization — included in response body when error has a non-empty `details` array.
+- `backend/src/repositories/board.repository.ts` (modified): `DEFAULT_COLUMNS` updated from 3 to 4: `['To Do', 'In Progress', 'Stale', 'Done']`.
+- `backend/migrations/20260628120000_add-workflow-foundation.js` (new): Adds `stale_suppressed boolean NOT NULL DEFAULT false` to cards; creates `workflow_rule_triggers` and `workflow_action_deliveries` tables; seeds Stale column (pos 3) for all existing boards; updates Done to pos 4.
+
+### Test Summary
+- Batch A (retry.ts): 6/6 passed — required fix for Node 26 + Jest fake timer pre-rejection guard
+- Batch B (errorHandler + WorkflowError): 7/7 passed
+- Batch C (integration): 9 tests SKIPPED (DATABASE_URL not set — expected)
+- Batch D (board.repository + boards.routes): 22 passed, 3 skipped
+- Integration verification: 193/193 passed (22 suites), TypeScript: clean
+
+### Strategy Notes
+- `cards.color` already existed from migration `20260627120000_add-color-to-cards.js` — NOT re-added
+- Node 26 + Jest 29 fake timers: `jest.runAllTimersAsync()` drives the retry loop to completion before the test's `.rejects` handler attaches; fixed by pre-attaching a no-op `.catch()` synchronously on the returned promise
+
+---
+
 ## Task Archive: TASK-016
 
 **Task**: Activity Feed User Attribution (FEAT-013)
@@ -88,30 +190,6 @@
 
 ---
 
-<<<<<<< HEAD
-## Creative Complete: TASK-016
-
-**Task**: Activity Feed User Attribution (FEAT-013)
-**Status**: ✅ CREATIVE_COMPLETE
-**Date**: 2026-06-27
-**Decision**: Payload Snapshot — resolve `actor_display_name` at emit time, store in `payload` jsonb
-**Document**: `memory-bank/creative/TASK-016-activity-feed-attribution-architecture.md`
-**Next**: /banyan-build TASK-016 (Phase 1: Backend)
-
----
-
-## Planning Complete: TASK-016
-
-**Task**: Activity Feed User Attribution (FEAT-013)
-**Status**: ✅ PLANNING_COMPLETE
-**Date**: 2026-06-27
-**Complexity**: Level 3
-**Next**: /banyan-creative TASK-016 (Architecture Design — storage strategy)
-
----
-
-=======
->>>>>>> feature/FEAT-013-activity-feed-user-attribution
 ## Task Archive: TASK-015
 
 **Task**: User Profile, Messaging, and Navigation Enhancements (FEAT-012)

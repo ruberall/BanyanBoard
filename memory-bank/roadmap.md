@@ -2,7 +2,7 @@
 
 ## Summary
 
-- **Total Features**: 13
+- **Total Features**: 14
 - **Released Versions**: 0
 - **Active Versions**: 0
 - **Planning Versions**: 1
@@ -36,6 +36,7 @@
   - FEAT-011: Card Color Picker (complete) [Level 3]
   - FEAT-012: User Profile, Messaging, and Navigation Enhancements (complete) [Level 3]
   - FEAT-013: Activity Feed User Attribution (complete) [Level 3]
+  - FEAT-014: Workflow Automation (complete) [Level 4]
 
 ---
 
@@ -208,6 +209,53 @@
 - **Branch**: feature/FEAT-006-user-authentication
 - **Created**: 2026-06-13
 - **Completed**: 2026-06-18
+
+---
+
+### FEAT-014: Workflow Automation
+
+- **Version**: next
+- **Status**: complete
+- **Priority**: high
+- **Complexity**: Level 4
+- **Description**: Trigger-action workflow automation that applies to all cards on every board. Two built-in rules: (1) **Stale rule** — on board display, move any card not in Done that is ≥ 2 calendar days old (by `cards.created_at`, which already exists) to a new "Stale" column inserted left of Done (column order: To Do → In Progress → Stale → Done). User-initiated moves out of Stale suppress re-staling permanently via a `stale_suppressed` boolean on the card; user move wins over the rule on subsequent board loads. Stale-move failures do not block board load; they are returned in a `warnings[]` array in the board response body. (2) **Done-color rule** — when a card is moved to Done via `PATCH /cards/:id/move`, the card's background `color` column is set to the pale green swatch hex asynchronously within 2 seconds after the move is committed. Action failure does not block or roll back the card move; failure is retried up to 3 times. Rule engine tracks trigger execution (`workflow_rule_triggers`) and action delivery (`workflow_action_deliveries`) in separate tables so delivery retries are independent of trigger status. All rule-failure error shapes follow `{ code, message, details: [{ field, error }] }`. Frontend covers loading indicators, optimistic color update on Done move, and rollback on action failure. Requires creative phases for workflow engine architecture and retry design.
+- **Linked Tasks**: TASK-017 (COMPLETE)
+- **Branch**: feature/FEAT-014-workflow-automation (merged → main 2026-06-28)
+- **Created**: 2026-06-27
+- **Completed**: 2026-06-28
+
+**Specification Notes** (for /banyan-plan reference):
+
+*Stale column:*
+- Seed 4 columns on new board creation: To Do (pos 1), In Progress (pos 2), Stale (pos 3), Done (pos 4)
+- Migration for existing boards: INSERT Stale column at position 3, UPDATE Done to position 4
+
+*cards.created_at:* Already present in DB schema — no new migration required
+
+*stale_suppressed flag:*
+- `stale_suppressed boolean NOT NULL DEFAULT false` added to `cards` table
+- Set to `true` when a user-initiated `PATCH /cards/:id/move` originates from the Stale column
+- Rule #1 skips any card where `stale_suppressed = true`
+
+*Rule #1 execution point:* Applied server-side during board load (inline with `GET /boards/:boardId` response). Stale-move failures do not abort the response; failures appear as `warnings: [{ code, message, details }]` in the response body.
+
+*Rule #2 execution:* Async callback (no `await`) fired from `CardService.moveCard` after the move DB write commits. Retried up to 3 times on failure (exponential backoff or fixed interval — decided in creative). Card move HTTP response (200) is not delayed. Frontend applies optimistic color update immediately; rolls back on next board data refresh if rule ultimately fails.
+
+*Pale green hex:* Use the closest pale green from the existing `CardColorPicker` swatch palette. If no pale green swatch exists, add `#d4edda` to the palette and use it.
+
+*Workflow tracking tables:*
+- `workflow_rule_triggers(id uuid PK, rule_id varchar, board_id FK, card_id FK nullable, triggered_at timestamptz, trigger_status varchar CHECK IN ('success','failed'), trigger_error text nullable)`
+- `workflow_action_deliveries(id uuid PK, trigger_id FK → workflow_rule_triggers, attempt int NOT NULL, attempted_at timestamptz, delivery_status varchar CHECK IN ('pending','success','failed'), delivery_error text nullable)`
+
+*Error shape for all workflow errors:*
+```json
+{ "code": "WORKFLOW_ACTION_FAILED", "message": "...", "details": [{ "field": "color", "error": "DB write failed" }] }
+```
+HTTP 400 for synchronous rule failures; stored as `delivery_error` JSON for async failures.
+
+*AC-ERROR coverage required per AC:* exact HTTP status code, exact response body shape `{ code, message, details: [{field, error}] }`.
+
+*Intermediate states required per AC:* loading spinner while board data fetches, optimistic update on Done move (color applied client-side before server confirms), rollback if `workflow_action_deliveries` final status = failed on next board refresh.
 
 ---
 

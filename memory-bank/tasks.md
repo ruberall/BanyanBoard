@@ -18,4 +18,4 @@
 | TASK-014 | Card Color Picker | ARCHIVE | COMPLETE | FEAT-011 |
 | TASK-015 | User Profile, Messaging, and Navigation Enhancements | ARCHIVE | COMPLETE | FEAT-012 |
 | TASK-016 | Activity Feed User Attribution | ARCHIVE | COMPLETE | FEAT-013 |
-| TASK-017 | Workflow Automation | REFLECT | REFLECTION_COMPLETE | FEAT-014 |
+| TASK-017 | Workflow Automation | ARCHIVE | COMPLETE | FEAT-014 |

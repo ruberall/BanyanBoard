@@ -35,15 +35,15 @@
 | 2026-06-27 | TASK-013 archive | 12 | 12 | 0 | 0 | 1 | 0 |
 | 2026-06-27 | TASK-015 archive | 14 | 14 | 0 | 0 | 0 | 6 |
 | 2026-06-27 | TASK-016 archive | 14 | 13 | 1 | 0 | 0 | 0 |
+| 2026-06-28 | TASK-017 archive | 15 | 14 | 1 | 0 | 0 | 0 |
 
 ## Rule Effectiveness
 
 | File | Evidence Count | Priority | Last Updated | Status |
 |------|---------------|----------|--------------|--------|
 | testing-patterns.md | 13 | medium | 2026-06-28 | active |
-| architecture-foundation.md | 4 | medium | 2026-06-27 | active (merged: architecture-patterns) |
+| architecture-foundation.md | 5 | medium | 2026-06-28 | active (merged: architecture-patterns) |
 | api-design.md | 4 | medium | 2026-06-28 | active (promoted) |
-| architecture-patterns.md | 1 | low | 2026-06-28 | active |
 | error-handling.md | 1 | low | 2026-06-28 | active |
 | react-query-patterns.md | 3 | medium | 2026-06-27 | active (promoted) |
 | observability-standards.md | 1 | low | 2026-06-13 | active |
