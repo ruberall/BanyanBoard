@@ -196,19 +196,6 @@
 
 ---
 
-### FEAT-013: Activity Feed User Attribution
-
-- **Version**: next
-- **Status**: planned
-- **Priority**: high
-- **Complexity**: Level 3
-- **Description**: Update the Activity board: (1) When the user moves a card to a different column, the Activity board should show a message like "[User] moved [card label] from column [column name] to [column name] on [date]" where [User] is the first name + last name of the user who moved the card. (2) When the user creates a card, the Activity board should show a message like "[User] created card [card label] on [date]".
-- **Linked Tasks**: TASK-016 (INITIALIZED)
-- **Branch**: feature/FEAT-013-activity-feed-user-attribution
-- **Created**: 2026-06-27
-
----
-
 ### FEAT-006: User Authentication
 
 - **Version**: v0.1.0

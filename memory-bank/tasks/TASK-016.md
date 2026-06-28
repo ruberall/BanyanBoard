@@ -286,3 +286,4 @@ Three build phases following the Architecture creative phase. The creative phase
 - Spec Writer Agent: COMPLETE (2026-06-27) — Specification section written to TASK-016.md
 - Implementation Plan: COMPLETE (2026-06-27) — written to TASK-016.md
 - Architecture Creative: COMPLETE (2026-06-27) — Output: memory-bank/creative/TASK-016-activity-feed-attribution-architecture.md — Decision: Payload Snapshot
+- Archive: COMPLETE (2026-06-27) — Merged to main (20b6df1), worktree removed, branch deleted
