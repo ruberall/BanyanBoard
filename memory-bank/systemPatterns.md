@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-27 (added Guiding Principles, DB schema, query patterns, domain event pattern, SSE transport layer, subscribe-before-flush race hardening; added cursor pagination principle; TASK-015 Phase 1: added first_name/last_name to users schema, added messages table; TASK-016 Phase 1: added CardCreatedEvent to DomainEvent union, actorDisplayName to CardMovedEvent, resolveDisplayName pattern, projectEventRow pure projection, userRepo DI in EventService; TASK-016 Phase 2: added frontend SSE type-guard discrimination pattern, ActivityEvent union in frontend types; TASK-016 Phase 3: added Playwright E2E SSE attribution test pattern)
+**Last updated**: 2026-06-28 (TASK-017 Phase 4: added frontend WorkflowWarning mirror type contract, optimistic Done-color cross-slice cache pattern)
 
 ## Guiding Principles
 
@@ -104,8 +104,194 @@ describeIfDb('MyRepo (integration)', () => {
 ## Error Handling
 
 - `asyncHandler(fn)` wraps async route handlers to forward rejections to `next(err)`
-- `AppError` hierarchy in `src/errors.ts`: `ValidationError`(400), `UnauthorizedError`(401), `ForbiddenError`(403), `NotFoundError`(404), `ConflictError`(409)
-- Terminal `errorHandler` middleware (last in `app.ts`): maps `AppError` to status + `{ error, message }` JSON; unknown to 500 with no detail leaked
+- `AppError` hierarchy in `src/errors.ts`: `ValidationError`(400), `UnauthorizedError`(401), `ForbiddenError`(403), `NotFoundError`(404), `ConflictError`(409), `WorkflowError`(400)
+- Terminal `errorHandler` middleware (last in `app.ts`): maps `AppError` to status + `{ error, message }` JSON; when the error carries a `details` array (duck-typed via `'details' in err`), serializes it into the response body; unknown to 500 with no detail leaked
+
+### WorkflowError Pattern (TASK-017 Phase 1)
+
+`WorkflowError` extends `AppError` for structured workflow rule failures:
+
+```typescript
+export class WorkflowError extends AppError {
+  constructor(
+    message: string,
+    public readonly details: Array<{ field: string; error: string }> = [],
+  ) {
+    super(400, 'WORKFLOW_ACTION_FAILED', message);
+  }
+}
+```
+
+- **HTTP status**: 400
+- **Error code**: `WORKFLOW_ACTION_FAILED`
+- **Response shape**: `{ error: 'WORKFLOW_ACTION_FAILED', message: string, details: [{ field, error }] }`
+- **Details field**: each entry identifies which field triggered the failure and the underlying error message
+- **Serialization**: `errorHandler` detects `details` via duck-typing (`'details' in err && Array.isArray(...)`) so no `instanceof WorkflowError` check is needed; any future `AppError` subclass with a `details` array gets the same treatment automatically
+- **Implementation**: `backend/src/errors.ts`
+
+## Retry Pattern (TASK-017 Phase 1)
+
+`retryWithBackoff<T>` (`backend/src/utils/retry.ts`) is a generic exponential-backoff retry harness for async operations:
+
+```typescript
+retryWithBackoff<T>(fn: () => Promise<T>, maxAttempts: number, baseDelayMs: number): Promise<T>
+```
+
+- **Attempt 1**: runs immediately (no initial delay)
+- **Subsequent attempts**: wait `baseDelayMs * 2^(attempt-1)` ms before retrying (attempt 2: `baseDelayMs`, attempt 3: `baseDelayMs * 2`, etc.)
+- **On exhaustion**: throws the error from the final attempt
+- **Use case**: suitable when callers need the final rejection and per-attempt persistence is not required
+
+**Node 26 + Jest fake-timer guard**: the function returns an outer promise that has `.catch(() => {})` attached synchronously before returning to the caller. This prevents Node from emitting `UnhandledPromiseRejectionWarning` / `PromiseRejectionHandledWarning` when `jest.runAllTimersAsync()` resolves the retry loop before `await expect(p).rejects` attaches a handler. Callers that `await` normally are unaffected. Any future async utility that follows the same fire-and-forget-then-await pattern should apply the same pre-rejection guard.
+
+## Rule #2 Manual Retry Loop Pattern (TASK-017 Phase 3)
+
+`WorkflowService.triggerDoneColorRule` uses an **explicit for-loop** rather than `retryWithBackoff` because it must insert an `action_delivery` row per attempt (for per-attempt observability) and insert a single `rule_trigger` row after all attempts with the final outcome. `retryWithBackoff` cannot interleave DB writes between attempts without imperative control flow.
+
+```
+triggerDoneColorRule(boardId, cardId): Promise<void>
+  1. lastError = null
+  2. for attempt = 1 to WORKFLOW_RULE2_MAX_ATTEMPTS:
+       a. insertDelivery(triggerId, attempt) → deliveryId
+       b. try setCardColor(cardId, 'green')
+          on success: updateDeliveryStatus(deliveryId, 'success') → insertTrigger('success') → return
+          on failure: updateDeliveryStatus(deliveryId, 'failed', err) → lastError = err
+          wait baseDelay * 2^(attempt-1) unless last attempt
+  3. insertTrigger('failed', lastError.message)
+  4. return (never throws)
+```
+
+**Key design decisions:**
+- **Always resolves**: `triggerDoneColorRule` never throws. Workflow failures are recorded in the DB and observable via `trigger_error`; they do not propagate to the caller.
+- **Per-attempt delivery rows**: each attempt gets its own `workflow_action_deliveries` row (`delivery_status`, `delivery_error`) for fine-grained observability, enabling diagnosis of which attempt failed and why.
+- **Trigger row inserted after all attempts**: `workflow_rule_triggers` receives one row with `trigger_status = 'failed'` and `trigger_error = lastError.message` only after the retry budget is exhausted — not pre-inserted before attempts.
+- **Why not `retryWithBackoff`**: `retryWithBackoff` throws on exhaustion and offers no hook for per-attempt side effects. The manual loop keeps DB writes and retry delay inside a single readable flow.
+- **Implementation**: `backend/src/services/workflow.service.ts`
+
+## Fire-and-Forget Trigger Pattern (TASK-017 Phase 3)
+
+`CardService.moveCard` fires Rule #2 without awaiting it:
+
+```typescript
+// In moveCard, after confirming destination column name === 'Done':
+if (this.workflowService && destinationColumnName === 'Done') {
+  this.workflowService.triggerDoneColorRule(boardId, cardId).catch((err) => {
+    logger.warn({ err }, 'triggerDoneColorRule unexpected rejection');
+  });
+}
+```
+
+- **Why fire-and-forget**: The Done-color action is a background side effect. The card move response must not be delayed by retry timing (up to ~WORKFLOW_RULE2_BASE_DELAY_MS * 3 seconds).
+- **`.catch()` is mandatory**: `triggerDoneColorRule` always resolves, but the `.catch()` guards against any unexpected future regression that causes it to throw. Without it, an unhandled rejection would crash the Node process.
+- **Observable outcome**: failures are recorded in `workflow_rule_triggers.trigger_error` and `workflow_action_deliveries.delivery_error` — the card move itself always succeeds.
+- **Implementation**: `backend/src/services/card.service.ts`
+
+## `trigger_error` Observability Contract (TASK-017 Phase 3)
+
+`workflow_rule_triggers.trigger_error` is populated with the last delivery error message when a rule's full retry budget is exhausted:
+
+- **On success** (any attempt): `trigger_error = NULL` — row is inserted at first success with `trigger_status = 'success'`
+- **On exhaustion**: `trigger_error = lastError.message` — the error from the final failed attempt; earlier attempt errors are visible in `workflow_action_deliveries` rows
+- **Purpose**: allows operators to query `WHERE trigger_status = 'failed'` and read `trigger_error` to understand the failure root cause without joining to the deliveries table for the common diagnostic case
+- **Implementation**: `backend/src/repositories/workflow.repository.ts` `insertTrigger(ruleId, boardId, cardId, status, error?)`
+
+## Webhook Delivery Pattern
+
+When a trigger with webhook configuration fires:
+
+1. Trigger execution completes first (decoupled from delivery)
+2. Webhook delivery queued as separate async job
+3. Delivery attempts: max 3, 30-second backoff between attempts
+4. Delivery record: `{ rule_id, attempt_count, status, http_response_code, error, created_at }`
+5. Status lifecycle: `pending` → `delivered` | `failed` → `exhausted`
+
+## WorkflowService Optional DI Pattern (TASK-017 Phase 2)
+
+`WorkflowService` follows the same optional constructor injection pattern already established by `EventService`. Services that need workflow side effects accept it as an optional parameter so tests that don't exercise workflow logic can skip wiring it up entirely.
+
+```typescript
+class BoardService {
+  constructor(
+    private readonly repo: BoardRepository,
+    private readonly workflowService?: WorkflowService,   // optional
+  ) {}
+
+  async getBoardById(id: string): Promise<BoardWithColumnsAndWarnings> {
+    const board = await this.repo.findBoardById(id);
+    if (this.workflowService) {
+      const warnings = await this.workflowService.applyBoardRules(board.id, board.columns);
+      if (warnings.length > 0) return { ...board, warnings };
+    }
+    return board;
+  }
+}
+```
+
+- **Wiring**: `createRouter` (in `routes/index.ts`) constructs a single `WorkflowService` instance and passes it to both `createBoardsRouter` and `createCardsRouter` (Phase 3+)
+- **Why optional**: Keeps unit tests for `BoardService`/`CardService` free of workflow infrastructure; the absence of the service is a valid no-op production configuration (e.g., feature-flagged rollout)
+- **Implementation files**: `backend/src/services/board.service.ts`, `backend/src/routes/boards.ts`, `backend/src/routes/index.ts`
+
+## Rule #1 Execution Pattern: Promise.allSettled + Warnings (TASK-017 Phase 2)
+
+`WorkflowService.applyBoardRules` applies Rule #1 (stale-move) in parallel across all eligible cards using `Promise.allSettled`. Failures from individual card moves do not block other moves or the board response.
+
+```
+applyBoardRules(boardId, columns)
+  1. Resolve Stale and Done column IDs from the columns array already in memory
+     (no extra DB query — columns are already fetched by BoardRepository.findBoardById)
+  2. findStaleCards() — single query for all eligible cards
+  3. Promise.allSettled(staleCards.map(moveCardToStale))
+  4. Collect rejected results → WorkflowWarning[]
+  5. Return warnings (empty array on full success)
+```
+
+**Key design decisions:**
+- **Name-match column resolution**: `columns.find(c => c.name === 'Stale')` — avoids a separate DB query; board data is already in memory at call site
+- **`Promise.allSettled` over `Promise.all`**: one card DB failure does not block the other moves; all settled results are inspected for partial-failure reporting
+- **Failures become warnings, never throws**: `applyBoardRules` never throws; callers (`getBoardById`) receive `WorkflowWarning[]` and decide how to surface them
+- **`getBoardById` outer try/catch**: if `applyBoardRules` itself throws unexpectedly (e.g., network partition during `findStaleCards`), the board still loads — the catch logs a warn and returns the board without warnings
+- **Implementation**: `backend/src/services/workflow.service.ts`
+
+## `warnings[]` Additive Response Field Contract (TASK-017 Phase 2)
+
+`GET /boards/:boardId` response shape is extended from `BoardWithColumns` to `BoardWithColumnsAndWarnings`:
+
+```typescript
+export type BoardWithColumnsAndWarnings = BoardWithColumns & { warnings?: WorkflowWarning[] };
+
+export interface WorkflowWarning {
+  code: string;
+  message: string;
+  details?: Array<{ field: string; error: string }>;
+}
+```
+
+**API stability contract:**
+- `warnings` is **optional** in the type but the board route returns it as `[]` when rules run with no failures — consumers can safely always read it as an array
+- Existing consumers that do not read `warnings` are unaffected (additive, not breaking)
+- The field is present in the response body even when empty so frontend code can rely on `board.warnings?.length ?? 0` without extra nil guards
+- **Implementation**: `backend/src/services/board.service.ts` (type definition + population), `backend/src/routes/boards.ts` (passes through from service)
+
+## CardRepository Cross-Table Query Pattern (TASK-017 Phase 2)
+
+When a service needs a value from a related table (e.g., a card's current column name), the lookup belongs in the repository layer — not as raw SQL in the service. Phase 2 added two canonical methods to `CardRepository`:
+
+```typescript
+// Look up the name of the column that currently owns a card.
+// Used by CardService.moveCard to detect moves out of the Stale column
+// without the service layer touching SQL directly.
+async getColumnName(columnId: string): Promise<string | null>
+
+// Set the stale_suppressed flag for a card.
+// Called when a user manually moves a card out of Stale, permanently
+// overriding the automatic stale-move rule for that card.
+async setSuppressed(cardId: string, suppressed: boolean): Promise<void>
+```
+
+**Why these methods exist:**
+- `getColumnName` allows `CardService.moveCard` to detect "source is Stale column" by name without embedding SQL or joining tables in the service layer — preserving Guiding Principle #1 (no SQL in services)
+- `setSuppressed` keeps the `stale_suppressed` update isolated in a single, testable repository method rather than duplicating an UPDATE statement across callers
+- **Implementation**: `backend/src/repositories/card.repository.ts` (lines 146–159)
 
 ## Logging
 
@@ -267,9 +453,11 @@ When `credentials: true`, browsers reject `Access-Control-Allow-Origin: *`. `bac
 | `users` | `id` uuid PK, `email` varchar UNIQUE, `password_hash` text, `first_name` varchar(100)?, `last_name` varchar(100)?, `created_at` timestamptz |
 | `boards` | `id` uuid PK, `name` varchar, `created_at` timestamptz |
 | `columns` | `id` uuid PK, `board_id` FK → boards CASCADE DELETE, `name` varchar, `position` int, `created_at` timestamptz |
-| `cards` | `id` uuid PK, `column_id` FK → columns CASCADE DELETE, `title` varchar, `description` text?, `due_date` timestamptz?, `labels` text[]?, `position` float8 DEFAULT 1.0, `created_at`/`updated_at` timestamptz |
+| `cards` | `id` uuid PK, `column_id` FK → columns CASCADE DELETE, `title` varchar, `description` text?, `due_date` timestamptz?, `labels` text[]?, `position` float8 DEFAULT 1.0, `stale_suppressed` boolean NOT NULL DEFAULT false, `created_at`/`updated_at` timestamptz |
 | `card_events` | `id` uuid PK, `board_id` FK → boards CASCADE DELETE, `card_id` FK → cards SET NULL, `actor_id` FK → users SET NULL, `event_type` varchar, `payload` jsonb, `occurred_at` timestamptz DEFAULT now() |
 | `messages` | `id` uuid PK gen_random_uuid(), `message` varchar(255) NOT NULL, `created_at` timestamptz DEFAULT now(), `recipient_user_id` uuid FK → users CASCADE DELETE |
+| `workflow_rule_triggers` | `id` uuid PK, `rule_id` varchar NOT NULL, `board_id` FK → boards CASCADE DELETE, `card_id` FK → cards SET NULL, `triggered_at` timestamptz DEFAULT now(), `trigger_status` varchar CHECK IN ('success','failed'), `trigger_error` text |
+| `workflow_action_deliveries` | `id` uuid PK, `trigger_id` FK → workflow_rule_triggers CASCADE DELETE, `attempt` int NOT NULL, `attempted_at` timestamptz DEFAULT now(), `delivery_status` varchar CHECK IN ('pending','success','failed'), `delivery_error` text |
 
 ## Query Patterns
 
@@ -430,6 +618,52 @@ To test attribution surviving a reconnect:
 Use a dedicated test account (`e2e-attribution@banyanboard.test`, `first_name: 'E2E'`, `last_name: 'Attribution'`) so display-name assertions (`"E2E Attribution"`) are unambiguous and isolated from the generic `loginAsTestUser` fixture. The helper `loginAsAttributionUser(request)` in `frontend/e2e/helpers/auth.ts` registers and logs in this user.
 
 Board and card fixture data are created/deleted in `beforeEach`/`afterEach` via the `createBoard`, `deleteBoard`, and `moveCard` API helpers so each test starts with a clean state.
+
+## Frontend `WorkflowWarning` Mirror Type Contract (TASK-017 Phase 4)
+
+The backend `WorkflowWarning` shape is mirrored in `frontend/src/types/index.ts` so the frontend type-system tracks the API contract without a shared package:
+
+```typescript
+export interface WorkflowWarning {
+  code: string
+  message: string
+  details?: Array<{ field: string; error: string }>
+}
+
+export interface BoardWithColumns extends Board {
+  columns: Column[]
+  warnings?: WorkflowWarning[]   // additive — undefined when no rules ran; [] when rules ran cleanly
+}
+```
+
+**Contract notes:**
+- `warnings` is optional on the frontend type, matching the backend `BoardWithColumnsAndWarnings` contract (field present as `[]` when rules run, absent when WorkflowService is not wired)
+- The field is parsed but **not rendered** in Phase 4 — it is available in the query cache for future UI surfacing (e.g., a stale-card banner) without a type-breaking API change
+- Consumers can safely read `board.warnings?.length ?? 0` without extra nil guards regardless of whether the field is present
+- **Implementation**: `frontend/src/types/index.ts` lines 39-48
+
+## Optimistic Done-Color Cross-Slice Cache Pattern (TASK-017 Phase 4)
+
+`useMoveCard.onMutate` applies a visual Done-color (`#d4edda`) to a card optimistically when the destination column is named 'Done'. Because the card query cache (`queryKeys.cards.byColumn`) does not contain column names, the hook reads the board query cache cross-slice to resolve the column name before mutating card state:
+
+```
+onMutate({ cardId, destColumnId, after_card_id })
+  1. getQueriesData<BoardWithColumns>({ queryKey: queryKeys.boards.all })
+     → iterates all cached board entries
+  2. For each board: columns.some(col => col.id === destColumnId && col.name === 'Done')
+     → isDoneColumn = true on first match
+  3. movedCard = isDoneColumn
+       ? { ...moving, column_id: destColumnId, color: '#d4edda' }
+       : { ...moving, column_id: destColumnId }
+  4. Optimistic card list written to both src and dest column caches
+```
+
+**Key design decisions:**
+- **Cross-slice read, not a separate query**: `getQueriesData` reads the already-cached board data synchronously — zero network cost. The board cache is populated by `useBoard` when the board page mounts, so it is always warm during a card drag.
+- **Rollback is free**: TanStack Query snapshots `prevSrc`/`prevDest` before the optimistic write; `onError` restores them automatically. The Done-color is included in the snapshot and disappears on rollback without any extra cleanup code.
+- **Backend is authoritative**: `onSettled` invalidates both column caches, causing a fresh fetch. The server-side `setCardColor` (Rule #2, Phase 3) sets the persistent color; the optimistic color is a UX affordance that minimises lag between drag and visual confirmation.
+- **Why '#d4edda'**: Matches the green background applied by the backend Done-color rule — same visual result before and after the server response arrives.
+- **Implementation**: `frontend/src/api/hooks.ts` — `useMoveCard`, `onMutate` handler (lines 109-166)
 
 ## Adding a New Feature (proven pattern — first used in FEAT-002 Board API)
 

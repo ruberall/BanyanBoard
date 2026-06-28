@@ -24,7 +24,7 @@ No clever abstractions. No microservices. One Express app.
 /
 ├── frontend/           # React + TypeScript SPA (Vite 8)
 │   ├── src/
-│   │   ├── types/      # Domain types (Board, Column, Card, User, ApiError, CardMovedEvent)
+│   │   ├── types/      # Domain types (Board, Column, Card, User, ApiError, CardMovedEvent; WorkflowWarning + warnings? on BoardWithColumns added Phase 4)
 │   │   ├── context/    # React contexts (AuthContext — currentUser, login, logout, register via TanStack Query)
 │   │   ├── components/ # UI components (common/ for shared, feature-specific otherwise; PrivateRoute for auth guard; ActivityFeed — collapsible right sidebar showing real-time card-move events, localStorage persistence for collapsed state; FilterBar — controlled text input with × clear button, client-side card filtering via prop drilling BoardPage → KanbanBoard → KanbanColumn)
 │   │   ├── pages/      # Route-level components (BoardListPage, BoardPage — includes Back button via useNavigate, LoginPage, RegisterPage — optional first/last name fields, NotFoundPage)
@@ -33,7 +33,7 @@ No clever abstractions. No microservices. One Express app.
 │   │   ├── api/        # API client
 │   │   │   ├── client.ts     # request<T>() fetch transport (credentials: 'include'; 401 triggers redirect to /login)
 │   │   │   ├── endpoints.ts  # Typed endpoint functions (board CRUD + auth: loginUser, registerUser, logoutUser, getCurrentUser)
-│   │   │   ├── hooks.ts      # TanStack Query hooks (useBoards, useBoard, useCreateBoard, etc.)
+│   │   │   ├── hooks.ts      # TanStack Query hooks (useBoards, useBoard, useCreateBoard, etc.; useMoveCard.onMutate applies optimistic color '#d4edda' when destination column is 'Done' — reads board cache cross-slice via getQueriesData to resolve column name, Phase 4)
 │   │   │   └── queryKeys.ts  # TanStack Query key factory (queryKeys.auth.me + board keys)
 │   │   └── test-setup.ts  # jest-dom setup
 │   ├── e2e/            # Playwright E2E tests (requires running stack: docker compose up)
@@ -55,18 +55,23 @@ No clever abstractions. No microservices. One Express app.
 │   │   ├── types/
 │   │   │   └── session.d.ts      # express-session module augmentation (adds userId to SessionData)
 │   │   ├── routes/
-│   │   │   ├── index.ts          # createRouter — mounts auth (public) then requireAuth then domain routes
+│   │   │   ├── index.ts          # createRouter — mounts auth (public) then requireAuth then domain routes; constructs and injects WorkflowService; passes workflowService to createCardsRouter (Phase 3)
 │   │   │   ├── health.ts         # GET /health
 │   │   │   ├── auth.ts           # createAuthRouter — POST /register (auto-login), /login, /logout; GET /me
-│   │   │   ├── boards.ts         # createBoardsRouter — CRUD for /boards
+│   │   │   ├── boards.ts         # createBoardsRouter — CRUD for /boards; accepts optional WorkflowService param
+│   │   │   ├── cards.ts          # createCardsRouter(db, eventService, workflowService?) — workflowService optional param added Phase 3; routes card CRUD and moves
 │   │   │   └── feed.ts           # createFeedRouter — GET /boards/:boardId/events (SSE activity feed)
 │   │   ├── services/
 │   │   │   ├── auth.service.ts   # AuthService — register, login, getMe (bcrypt cost 12, email-enum-safe)
-│   │   │   └── board.service.ts  # BoardService — input validation + business logic
+│   │   │   ├── board.service.ts  # BoardService — input validation + business logic; accepts optional WorkflowService; calls applyBoardRules in getBoardById
+│   │   │   ├── card.service.ts   # CardService — moveCard fires Done-color trigger fire-and-forget when destination column = 'Done' (Phase 3); accepts optional WorkflowService as 4th constructor param
+│   │   │   └── workflow.service.ts # WorkflowService — applyBoardRules (Rule #1 stale-move via Promise.allSettled); returns WorkflowWarning[]; triggerDoneColorRule (Rule #2 Done-color, Phase 3) — manual retry loop, always resolves, inserts trigger row after all attempts with final status + last delivery error
 │   │   ├── repositories/
 │   │   │   ├── user.repository.ts  # UserRepository — SQL + User/PublicUser types (no password_hash in PublicUser)
 │   │   │   ├── board.repository.ts # BoardRepository — SQL + Board/Column types
-│   │   │   └── event.repository.ts # EventRepository — insert/findRecentByBoard/findAfterById for card_events
+│   │   │   ├── card.repository.ts  # CardRepository — SQL + Card types; getColumnName() + setSuppressed() added (Phase 2)
+│   │   │   ├── event.repository.ts # EventRepository — insert/findRecentByBoard/findAfterById for card_events
+│   │   │   └── workflow.repository.ts # WorkflowRepository — insertTrigger, insertDelivery (RETURNING id), updateDeliveryStatus, findStaleCards, moveCardToStale, setCardColor (Phase 3)
 │   │   ├── middleware/
 │   │   │   ├── requireAuth.ts    # Synchronous session guard; throws UnauthorizedError if no userId
 │   │   │   └── cors.ts           # CORS with credentials: true; reflects origin for wildcard dev config
@@ -132,6 +137,9 @@ All config via environment variables. See `.env.example` for the full list.
 | `SESSION_SECURE` | Set `Secure` flag on session cookie (requires HTTPS) | `false` |
 | `FEED_MAX_HISTORY` | Maximum number of past events returned to a new SSE subscriber on connect | `20` |
 | `FEED_SSE_HEARTBEAT_MS` | Interval (ms) between SSE keep-alive comment frames | `15000` |
+| `WORKFLOW_STALE_AGE_DAYS` | Number of calendar days before a card is considered stale (Rule #1) | `2` |
+| `WORKFLOW_RULE2_BASE_DELAY_MS` | Base delay in ms for Rule #2 exponential-backoff retry (attempt 2: base, attempt 3: 2×base) | `200` |
+| `WORKFLOW_RULE2_MAX_ATTEMPTS` | Maximum retry attempts for Rule #2 done-color action | `3` |
 
 ### Frontend Variables
 | Variable | Purpose | Default |
@@ -173,9 +181,11 @@ React Router v6 (`BrowserRouter`) wraps the app in `main.tsx`. Routes are declar
 
 - **Engine**: PostgreSQL 15+
 - **Migrations**: node-pg-migrate — JS migration files in `backend/migrations/`; filenames are `<epoch-ms>_<description>.js` (e.g., `1749916800000_create-boards-and-columns.js`); run automatically on startup via `RUN_MIGRATIONS_ON_START=true`
-- **Schema**: boards → columns → cards (ordered); users (with optional `first_name`/`last_name`); messages (user-to-user messaging); board_members
+- **Schema**: boards → columns → cards (ordered); users (with optional `first_name`/`last_name`); messages (user-to-user messaging); board_members; workflow tracking tables (`workflow_rule_triggers`, `workflow_action_deliveries`)
 - **UUID primary keys**: all tables use `gen_random_uuid()` (PostgreSQL built-in, no extension required)
 - **Local**: Managed by Docker Compose (`postgres` service); data persisted in Docker volume
+- **Default board columns** (TASK-017): `DEFAULT_COLUMNS` in `board.repository.ts` is now 4 columns — `['To Do', 'In Progress', 'Stale', 'Done']`; new boards always seed all four; existing boards received the Stale column via migration `20260628120000_add-workflow-foundation.js`
+- **Performance index** (TASK-017 Phase 2): `cards(column_id, created_at, stale_suppressed)` — supports the stale-candidate query in `WorkflowRepository.findStaleCards`; added via migration `20260629000000_add-workflow-indexes.js`
 
 ## Frontend Auth
 
@@ -232,6 +242,10 @@ All endpoints are prefixed by the Express mount path. The app currently exposes:
 | `DELETE` | `/boards/:id` | Yes | Delete board | `204` or `404` |
 
 Error shape for all non-2xx responses: `{ error: string, message: string }`.
+
+## Shared Utilities
+
+- **`backend/src/utils/retry.ts`** — `retryWithBackoff<T>(fn, maxAttempts, baseDelayMs): Promise<T>` — generic exponential-backoff retry harness; first attempt is immediate, each subsequent attempt waits `baseDelayMs * 2^(attempt-1)` ms; throws the final error if all attempts fail. Used by WorkflowService (Phase 2+) for async rule-action retries. Implementation note: returns a pre-rejected-handled outer promise so Node 26 + Jest fake timers never emit `unhandledRejection` regardless of when the caller attaches `.catch()`.
 
 ## External Services
 

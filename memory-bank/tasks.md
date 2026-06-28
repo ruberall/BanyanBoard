@@ -19,3 +19,4 @@
 | TASK-015 | User Profile, Messaging, and Navigation Enhancements | ARCHIVE | COMPLETE | FEAT-012 |
 | TASK-016 | Activity Feed User Attribution | ARCHIVE | COMPLETE | FEAT-013 |
 | TASK-017 | Workflow Automation | ARCHIVE | COMPLETE | FEAT-014 |
+| TASK-018 | Delete Card UI | PLAN | PLANNING_COMPLETE | FEAT-015 |

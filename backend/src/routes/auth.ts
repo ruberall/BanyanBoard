@@ -36,8 +36,13 @@ export function createAuthRouter(db: Queryable): Router {
     req.session.regenerate((err) => {
       if (err) return next(err);
       req.session.userId = user.id;
-      req.log.info({ event: 'user.registered', userId: user.id }, 'User registered');
-      res.status(201).json(user);
+      // Explicitly save before responding so the session is committed to the
+      // Postgres store before the client fires its next request (e.g. /auth/me).
+      req.session.save((saveErr) => {
+        if (saveErr) return next(saveErr);
+        req.log.info({ event: 'user.registered', userId: user.id }, 'User registered');
+        res.status(201).json(user);
+      });
     });
   }));
 
@@ -53,8 +58,13 @@ export function createAuthRouter(db: Queryable): Router {
     req.session.regenerate((err) => {
       if (err) return next(err);
       req.session.userId = user.id;
-      req.log.info({ event: 'user.login', userId: user.id }, 'User logged in');
-      res.json(user);
+      // Explicitly save before responding so the session is committed to the
+      // Postgres store before the client fires its next request (e.g. /auth/me).
+      req.session.save((saveErr) => {
+        if (saveErr) return next(saveErr);
+        req.log.info({ event: 'user.login', userId: user.id }, 'User logged in');
+        res.json(user);
+      });
     });
   }));
 
