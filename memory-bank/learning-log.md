@@ -2,6 +2,19 @@
 
 ---
 
+## 2026-06-28 - TASK-017 Reflection
+
+### Extracted Patterns
+- **testing-patterns** → amended `agent-rules/_learned/testing-patterns.md` (evidence count: 13) — read backend type definitions before asserting frontend interface shapes
+- **architecture-patterns** → amended `agent-rules/_learned/architecture-patterns.md` (evidence count: 2) — annotate creative phase utilities when per-attempt callbacks require a manual loop (NOTE: file was created in this same session for TASK-017 learnings; merged here)
+- **error-handling** → created `agent-rules/_learned/error-handling.md` (evidence count: 1) — populate trigger_error from last delivery error on exhaustion for audit-trail self-sufficiency
+- **api-design** → amended `agent-rules/_learned/api-design.md` (evidence count: 4) — mark additive response fields optional so existing consumers compile without changes
+
+### systemPatterns.md Updates
+- None (no novel system-wide architectural patterns)
+
+---
+
 ## 2026-06-27 - Consolidation (during TASK-016 archive)
 
 - Files before: 14, Files after: 13

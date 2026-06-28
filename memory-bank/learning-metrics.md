@@ -20,6 +20,7 @@
 | TASK-014 | 2026-06-27 | 3 | 0 | 2 | testing-patterns + frontend-accessibility amended; api-design promoted to medium (Level 2) |
 | TASK-015 | 2026-06-27 | 4 | 1 | 2 | data-validation created; testing-patterns + security amended (Level 3) |
 | TASK-016 | 2026-06-27 | 4 | 1 | 2 | architecture-patterns created; testing-patterns + service-design amended (Level 3) |
+| TASK-017 | 2026-06-28 | 4 | 2 | 2 | error-handling + architecture-patterns created; testing-patterns + api-design amended (Level 4) |
 
 ## Consolidation History
 
@@ -39,9 +40,11 @@
 
 | File | Evidence Count | Priority | Last Updated | Status |
 |------|---------------|----------|--------------|--------|
-| testing-patterns.md | 12 | medium | 2026-06-27 | active |
+| testing-patterns.md | 13 | medium | 2026-06-28 | active |
 | architecture-foundation.md | 4 | medium | 2026-06-27 | active (merged: architecture-patterns) |
-| api-design.md | 3 | medium | 2026-06-27 | active (promoted) |
+| api-design.md | 4 | medium | 2026-06-28 | active (promoted) |
+| architecture-patterns.md | 1 | low | 2026-06-28 | active |
+| error-handling.md | 1 | low | 2026-06-28 | active |
 | react-query-patterns.md | 3 | medium | 2026-06-27 | active (promoted) |
 | observability-standards.md | 1 | low | 2026-06-13 | active |
 | data-integrity.md | 2 | low | 2026-06-27 | active |
