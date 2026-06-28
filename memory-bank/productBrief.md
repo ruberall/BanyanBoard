@@ -19,7 +19,7 @@ Core capabilities this product provides:
 - Create cards with titles, descriptions, due dates, and labels
 - Drag-and-drop cards between columns
 - Invite team members and collaborate on shared boards
-- Real-time activity feed on the board page showing card movement events (SSE-based, collapsible sidebar)
+- Real-time activity feed on the board page showing card movement and card creation events with user attribution (actor display name; SSE-based, collapsible sidebar)
 - Filter cards across all columns simultaneously by title or description (client-side, instant, no server round-trip)
 
 ## Markets Serviced
@@ -224,7 +224,8 @@ Core capabilities this product provides:
 | 2026-06-17 | build-documentation-agent | Updated Security NFR to reflect TASK-011 Phase 1 auth implementation |
 | 2026-06-18 | build-documentation-agent | Added activity feed to Key Functionality; updated real-time constraint to reflect SSE (TASK-012 Phase 3) |
 | 2026-06-25 | build-documentation-agent | Added card filtering to Key Functionality (TASK-013 Phase 1 — FilterBar) |
+| 2026-06-27 | build-documentation-agent | Updated activity feed description to include card creation events and user attribution (TASK-016 Phase 1) |
 
 ## Last Refreshed
 
-2026-06-25
+2026-06-27

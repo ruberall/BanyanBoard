@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-27 (added Guiding Principles, DB schema, query patterns, domain event pattern, SSE transport layer, subscribe-before-flush race hardening; added cursor pagination principle; TASK-015 Phase 1: added first_name/last_name to users schema, added messages table)
+**Last updated**: 2026-06-27 (added Guiding Principles, DB schema, query patterns, domain event pattern, SSE transport layer, subscribe-before-flush race hardening; added cursor pagination principle; TASK-015 Phase 1: added first_name/last_name to users schema, added messages table; TASK-016 Phase 1: added CardCreatedEvent to DomainEvent union, actorDisplayName to CardMovedEvent, resolveDisplayName pattern, projectEventRow pure projection, userRepo DI in EventService; TASK-016 Phase 2: added frontend SSE type-guard discrimination pattern, ActivityEvent union in frontend types)
 
 ## Guiding Principles
 
@@ -289,8 +289,9 @@ Card actions (create, move, label, assign, delete) emit domain events. Consumers
 
 **Interface** (`backend/src/events/domain-event-bus.ts`):
 - `DomainEventBus` — `publish(event): void | Promise<void>` and `subscribe(boardId, handler): () => void` (returns unsubscribe)
-- `DomainEvent` union type (currently `CardMovedEvent`); new event types extend the union
-- `CardMovedEvent` carries: `type`, `boardId`, `cardId`, `cardTitle?`, `actorId`, `actorEmail?`, `fromColumnId/Name?`, `toColumnId/Name?`, `occurredAt`
+- `DomainEvent` union type — currently `CardMovedEvent | CardCreatedEvent`; new event types extend the union
+- `CardMovedEvent` carries: `type`, `boardId`, `cardId`, `cardTitle?`, `actorId`, `actorEmail?`, `actorDisplayName?`, `fromColumnId/Name?`, `toColumnId/Name?`, `occurredAt`
+- `CardCreatedEvent` carries: `type`, `boardId`, `cardId`, `cardTitle`, `actorId`, `actorDisplayName`, `columnId`, `columnName?`, `occurredAt`
 
 **In-process implementation** (`backend/src/events/in-process-event-bus.ts`):
 - `InProcessEventBus` — `Map<boardId, Set<handler>>` for O(1) fan-out per board
@@ -298,10 +299,18 @@ Card actions (create, move, label, assign, delete) emit domain events. Consumers
 - `_subscribers` is `readonly` but exposed for test memory-leak assertions
 
 **Service layer** (`backend/src/services/event.service.ts`):
-- `EventService.emitCardMoved(payload)` — persists to `card_events` via `EventRepository`, then publishes on the bus; returns the persisted event
-- Bus is optional in `AppDeps` (`bus?: DomainEventBus`); service skips publish when not provided (safe in contexts without SSE)
+- `EventService(bus, db, userRepo?)` — `userRepo` is an optional constructor injection; when present, `resolveDisplayName()` looks up the user and returns `"First Last"`, falling back to email then null
+- `EventService.emitCardMoved(input)` — resolves actor display name, persists to `card_events` via `EventRepository`, then publishes on the bus
+- `EventService.emitCardCreated(input)` — same resolve-persist-publish flow for `card.created` events; `fromColumnId`/`toColumnId` stored as `null` in the event row (not applicable for card creation)
+- Display name is snapshotted at emit time into the `payload` jsonb — no JOIN to `users` needed when reading events back
 
-**Wiring**:
+**`projectEventRow` pure projection** (`backend/src/routes/feed.ts`):
+- `projectEventRow(row: EventRow): ActivityEvent` — normalizes a raw DB row to the `ActivityEvent` shape used by SSE frames and history replay
+- Reads `actor_display_name` from `row.payload` jsonb rather than querying `users`; works uniformly for both `card.moved` and `card.created` rows
+
+**Wiring** (`backend/src/routes/index.ts`):
+- `UserRepository` constructed once in `createRouter`; injected into `EventService` as the optional third argument
+- `eventService` instance passed to both `createColumnCardsRouter` (for card creation) and `createCardsRouter` (for card moves)
 - `AppDeps` (in `app.ts`) extended with optional `bus?: DomainEventBus`
 - Production entry point constructs `InProcessEventBus` and passes it through `AppDeps`
 
@@ -336,6 +345,22 @@ Each frame carries the full `EventRow` serialized as JSON; the `id` field enable
 **Subscribe-before-flush ordering (Phase 4 — TASK-012)**: The bus subscription must be registered _before_ flushing historical events to the client. A request-scoped buffer accumulates live events that arrive during the history flush; once the flush completes, buffered events are drained (with dedup against already-flushed IDs) before handing off to the normal live-publish path. Reversing the order (flush then subscribe) leaves a window between the last historical event and the first live event where events are silently lost — a race condition that only manifests under concurrent write load. Client-side, `useActivityFeed` maintains a `Set<string>` of seen `eventId`s scoped to the `useEffect` lifetime so that duplicate frames from SSE reconnection do not re-render.
 
 **`EventRepository.findAfterById`** (added in Phase 2): selects events for a board whose `occurred_at` is greater than the anchor event's `occurred_at` (correlated subquery), ordered `ASC` to deliver chronological replay.
+
+### Frontend SSE Type-Guard Discrimination Pattern (Phase 2 — TASK-016)
+
+`useActivityFeed` receives raw SSE frames as `unknown`-ish JSON. Two guards run before the frame is accepted into state:
+
+1. **Discriminant check** — `data.type === 'card.moved'` or `data.type === 'card.created'` (the union discriminant)
+2. **Structural property check** — `typeof (data as SpecificEvent).cardId === 'string'` confirms a required field is present
+
+Both guards are needed because the SSE stream is untyped at the network boundary; the discriminant alone would allow malformed frames with the right `type` string but missing required fields to pass into state with incorrect shape.
+
+Frontend `ActivityEvent` types (`frontend/src/types/index.ts`):
+- `CardMovedEvent` — `type: 'card.moved'`, includes `fromColumnId/toColumnId`
+- `CardCreatedEvent` — `type: 'card.created'`, includes `columnId`
+- `ActivityEvent = CardMovedEvent | CardCreatedEvent` — discriminated union; `type` is the discriminant
+
+The `actorDisplayName ?? actorEmail ?? 'Someone'` fallback in `ActivityFeed.tsx` renders a display name from whichever field the backend populated at emit time (snapshot in payload), without any runtime user lookups.
 
 ## FilterBar / Client-Side Filter Pattern (FEAT-010, TASK-013)
 
