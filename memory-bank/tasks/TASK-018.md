@@ -228,7 +228,7 @@ The one design decision that might prompt review: the delete button is **always 
 **Is Multi-Phase**: NO
 
 ### Current Build Step
-**Step**: Step 0.5 - Git Setup
+**Step**: Step 0.5 - Git Setup (retry)
 **Status**: RUNNING
 **Started**: 2026-06-28
 
