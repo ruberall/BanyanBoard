@@ -21,9 +21,14 @@
  *  - filterText filters cards by title substring (case-insensitive)
  *  - filterText filters cards by description substring (case-insensitive)
  *  - Non-matching filterText shows the existing empty state message
+ *
+ * Phase 6 (TASK-018) — delete card wiring (AC-HAPPY-1, AC-ERROR-1):
+ *  - onDelete passed to each KanbanCard triggers useDeleteCard.mutate(cardId)
+ *  - ErrorBanner appears when the delete mutation reports an error
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { Mock } from 'vitest'
@@ -39,6 +44,7 @@ vi.mock('@/api/hooks')
 
 const mockedUseCards = hooks.useCards as Mock
 const mockedUseCreateCard = hooks.useCreateCard as Mock
+const mockedUseDeleteCard = hooks.useDeleteCard as Mock
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -59,6 +65,7 @@ interface MutationMock {
   isPending: boolean
   isError: boolean
   isSuccess: boolean
+  error: Error | null
   reset: ReturnType<typeof vi.fn>
 }
 
@@ -69,6 +76,7 @@ function mockMutation(overrides: Partial<MutationMock> = {}): MutationMock {
     isPending: false,
     isError: false,
     isSuccess: false,
+    error: null,
     reset: vi.fn(),
     ...overrides,
   }
@@ -110,6 +118,9 @@ function makeCard(overrides: Partial<Card> = {}): Card {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // Default stub for useDeleteCard so existing tests don't need to set it up explicitly.
+  // Tests that need specific delete behaviour override this in their own arrange step.
+  mockedUseDeleteCard?.mockReturnValue(mockMutation())
 })
 
 // ===========================================================================
@@ -347,5 +358,58 @@ describe('KanbanColumn — filterText prop', () => {
       screen.queryByText(/empty/i) ??
       screen.queryByText(/add a card/i)
     expect(emptyMsg).toBeInTheDocument()
+  })
+})
+
+// ===========================================================================
+// Phase 6 (TASK-018) — Delete card wiring
+//
+// Acceptance criteria covered:
+//  - AC-HAPPY-1: clicking a card's delete button causes useDeleteCard.mutate
+//                to be called with that card's id (optimistic removal driven by the hook)
+//  - AC-ERROR-1: when the delete mutation errors the column shows an ErrorBanner
+// ===========================================================================
+
+describe('KanbanColumn — delete card wiring (Phase 6 / TASK-018)', () => {
+  it('AC-HAPPY-1: clicking a card delete button calls useDeleteCard.mutate with the card id', async () => {
+    const deleteMutate = vi.fn()
+    mockedUseDeleteCard.mockReturnValue(mockMutation({ mutate: deleteMutate }))
+    mockedUseCards.mockReturnValue({
+      data: [makeCard({ id: 'card-99', title: 'Delete Target' })],
+      isLoading: false,
+      isError: false,
+      error: null,
+    })
+    mockedUseCreateCard.mockReturnValue(mockMutation())
+
+    const user = userEvent.setup()
+    renderColumn(COLUMN)
+
+    // The delete button's aria-label must match "Delete card: Delete Target"
+    const deleteBtn = screen.getByRole('button', { name: /delete card: delete target/i })
+    await user.click(deleteBtn)
+
+    // KanbanColumn should forward the card id to the mutation
+    expect(deleteMutate).toHaveBeenCalledOnce()
+    expect(deleteMutate).toHaveBeenCalledWith('card-99')
+  })
+
+  it('AC-ERROR-1: shows ErrorBanner when the delete mutation is in error state', () => {
+    // Simulate a failed delete: isError=true, error.message set
+    mockedUseDeleteCard.mockReturnValue(
+      mockMutation({ isError: true, error: new Error('Delete failed') })
+    )
+    mockedUseCards.mockReturnValue({
+      data: [makeCard({ id: 'c1', title: 'Any Card' })],
+      isLoading: false,
+      isError: false,
+      error: null,
+    })
+    mockedUseCreateCard.mockReturnValue(mockMutation())
+
+    renderColumn(COLUMN)
+
+    // ErrorBanner renders with role="alert"; it must be present when delete errors
+    expect(screen.getByRole('alert')).toBeInTheDocument()
   })
 })

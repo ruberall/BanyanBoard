@@ -11,6 +11,7 @@ interface KanbanCardProps {
   overlay?: boolean
   onLabelColorChange?: (cardId: string, newLabels: Label[]) => void
   onCardColorChange?: (cardId: string, color: string | null) => void
+  onDelete?: (cardId: string) => void
 }
 
 interface PickerState {
@@ -20,7 +21,7 @@ interface PickerState {
 
 const DEFAULT_LABEL_COLOR = '#95B9C7'
 
-export function KanbanCard({ card, overlay, onLabelColorChange, onCardColorChange }: KanbanCardProps) {
+export function KanbanCard({ card, overlay, onLabelColorChange, onCardColorChange, onDelete }: KanbanCardProps) {
   const { setNodeRef, transform, transition, isDragging, attributes, listeners } = useSortable({ id: card.id })
   const [pickerState, setPickerState] = useState<PickerState | null>(null)
   const [colorPickerOpen, setColorPickerOpen] = useState(false)
@@ -108,6 +109,16 @@ export function KanbanCard({ card, overlay, onLabelColorChange, onCardColorChang
           🎨
         </button>
         <h3 className={styles.title} title={card.title}>{card.title}</h3>
+        {onDelete && (
+          <button
+            type="button"
+            className={styles.deleteButton}
+            aria-label={`Delete card: ${card.title}`}
+            onClick={() => onDelete(card.id)}
+          >
+            ×
+          </button>
+        )}
       </div>
       {pickerState !== null && (
         <LabelColorPicker
