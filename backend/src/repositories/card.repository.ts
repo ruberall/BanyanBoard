@@ -142,4 +142,19 @@ export class CardRepository {
       throw new NotFoundError('Card not found');
     }
   }
+
+  async getColumnName(columnId: string): Promise<string | null> {
+    const result = await this.db.query<{ name: string }>(
+      'SELECT name FROM columns WHERE id = $1',
+      [columnId],
+    );
+    return result.rows[0]?.name ?? null;
+  }
+
+  async setSuppressed(cardId: string, suppressed: boolean): Promise<void> {
+    await this.db.query(
+      'UPDATE cards SET stale_suppressed = $2 WHERE id = $1',
+      [cardId, suppressed],
+    );
+  }
 }

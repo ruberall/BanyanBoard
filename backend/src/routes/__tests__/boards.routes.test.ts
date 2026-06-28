@@ -75,7 +75,8 @@ const fixBoard = { id: BOARD_ID, name: BOARD_NAME, created_at: CREATED_AT };
 const fixColumns = [
   { id: 'col-1', board_id: BOARD_ID, name: 'To Do',       position: 1 },
   { id: 'col-2', board_id: BOARD_ID, name: 'In Progress',  position: 2 },
-  { id: 'col-3', board_id: BOARD_ID, name: 'Done',         position: 3 },
+  { id: 'col-3', board_id: BOARD_ID, name: 'Stale',        position: 3 },
+  { id: 'col-4', board_id: BOARD_ID, name: 'Done',         position: 4 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -102,11 +103,11 @@ describe('POST /boards', () => {
   });
 
   it('AC-ENTRY-1 + AC-HAPPY-1: returns 201 with board JSON and auto-seeded columns', async () => {
-    // Arrange — stub pool for: INSERT boards, 3x INSERT columns
+    // Arrange — stub pool for: INSERT boards, 4x INSERT columns (To Do, In Progress, Stale, Done)
     stubPool.query
       // First call: INSERT INTO boards → returns the new board row
       .mockResolvedValueOnce({ rows: [fixBoard], rowCount: 1 })
-      // Next 3 calls: INSERT INTO columns → each returns nothing (rowCount = 1)
+      // Next 4 calls: INSERT INTO columns → each returns nothing (rowCount = 1)
       .mockResolvedValue({ rows: [], rowCount: 1 });
 
     // Act
@@ -247,17 +248,20 @@ describe('GET /boards/:id', () => {
     // Arrange — stub pool for: SELECT board, SELECT columns
     stubPool.query
       .mockResolvedValueOnce({ rows: [fixBoard],   rowCount: 1 })   // board lookup
-      .mockResolvedValueOnce({ rows: fixColumns,   rowCount: 3 });   // columns lookup
+      .mockResolvedValueOnce({ rows: fixColumns,   rowCount: 4 });   // columns lookup
 
     // Act
     const response = await agent.get(`/boards/${BOARD_ID}`);
 
-    // Assert
+    // Assert — AC-STALE-COL-1: board returns 4 columns including Stale at position 3
     expect(response.status).toBe(200);
     expect(response.body).toMatchObject({ id: BOARD_ID, name: BOARD_NAME });
     expect(Array.isArray(response.body.columns)).toBe(true);
-    expect(response.body.columns).toHaveLength(3);
-    expect(response.body.columns[0]).toMatchObject({ name: 'To Do', position: 1 });
+    expect(response.body.columns).toHaveLength(4);
+    expect(response.body.columns[0]).toMatchObject({ name: 'To Do',       position: 1 });
+    expect(response.body.columns[1]).toMatchObject({ name: 'In Progress', position: 2 });
+    expect(response.body.columns[2]).toMatchObject({ name: 'Stale',       position: 3 });
+    expect(response.body.columns[3]).toMatchObject({ name: 'Done',        position: 4 });
   });
 
   it('AC-ERROR-2: returns 404 with { error, message } for unknown board id', async () => {
@@ -272,6 +276,57 @@ describe('GET /boards/:id', () => {
     expect(response.status).toBe(404);
     expect(response.body.error).toBeDefined();
     expect(response.body.message).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /boards/:id — warnings[] field (Phase 2 TASK-017)
+//
+// These tests FAIL until:
+//   1. createBoardsRouter accepts optional WorkflowService
+//   2. BoardService.getBoardById merges WorkflowService warnings into response
+//   3. createRouter wires WorkflowService into createBoardsRouter
+//
+// Strategy: We test the FULL route stack to verify the warnings field appears
+// in the HTTP response. Because WorkflowService is injected at createRouter
+// level (not createApp level), these tests exercise the board GET response shape
+// and verify additive backward-compatibility.
+// ---------------------------------------------------------------------------
+
+describe('GET /boards/:id — workflow warnings (Phase 2)', () => {
+  const stubPool = { query: jest.fn() } as any;
+  const app = createApp({ config: stubConfig, logger: stubLogger, pool: stubPool });
+  const agent = supertest.agent(app);
+
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 });
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+  });
+
+  it('AC-HAPPY-3 (no workflow): response has no warnings field when WorkflowService is not wired', async () => {
+    // Arrange — standard board + columns lookup; no WorkflowService in stubbed pool setup
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixBoard],   rowCount: 1 })  // board lookup
+      .mockResolvedValueOnce({ rows: fixColumns,   rowCount: 4 }); // columns lookup
+
+    // Act
+    const response = await agent.get(`/boards/${BOARD_ID}`);
+
+    // Assert — 200 with board data; warnings absent (backward-compatible)
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ id: BOARD_ID });
+    // When WorkflowService is not wired, warnings MUST NOT appear
+    // (consumers must not be broken by the new field)
+    expect(response.body.warnings).toBeUndefined();
   });
 });
 

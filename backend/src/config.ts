@@ -19,6 +19,9 @@ const configSchema = z.object({
   SESSION_SECURE: z.coerce.boolean().default(false),
   FEED_MAX_HISTORY: z.coerce.number().default(20),
   FEED_SSE_HEARTBEAT_MS: z.coerce.number().default(15000),
+  WORKFLOW_STALE_AGE_DAYS: z.coerce.number().default(2),
+  WORKFLOW_RULE2_BASE_DELAY_MS: z.coerce.number().default(200),
+  WORKFLOW_RULE2_MAX_ATTEMPTS: z.coerce.number().default(3),
 });
 
 // Config exposes the 8 core fields as required (matching test stubs)
@@ -41,6 +44,9 @@ export type Config = {
   SESSION_SECURE?: boolean;
   FEED_MAX_HISTORY?: number;
   FEED_SSE_HEARTBEAT_MS?: number;
+  WORKFLOW_STALE_AGE_DAYS?: number;
+  WORKFLOW_RULE2_BASE_DELAY_MS?: number;
+  WORKFLOW_RULE2_MAX_ATTEMPTS?: number;
 };
 
 const parseResult = configSchema.safeParse(process.env);

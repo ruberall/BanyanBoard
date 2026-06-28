@@ -7,12 +7,13 @@
  *   src/repositories/board.repository.ts — BoardRepository class
  *
  * Acceptance Criteria covered:
- *   AC-ENTRY-1 — createBoard inserts a row and returns it (repo layer)
- *   AC-HAPPY-1 — createBoard seeds exactly 3 columns: "To Do", "In Progress", "Done"
- *   AC-HAPPY-2 — findAllBoards returns array (including empty array when no rows)
- *   AC-HAPPY-3 — findBoardById returns board with nested columns array
- *   AC-HAPPY-4 — deleteBoard removes the board (columns cascade at DB level)
- *   AC-ERROR-2 — findBoardById throws NotFoundError for unknown id
+ *   AC-ENTRY-1    — createBoard inserts a row and returns it (repo layer)
+ *   AC-HAPPY-1    — createBoard seeds exactly 4 columns: "To Do", "In Progress", "Stale", "Done"
+ *   AC-STALE-COL-1 — Stale column seeded at position 3, Done at position 4
+ *   AC-HAPPY-2    — findAllBoards returns array (including empty array when no rows)
+ *   AC-HAPPY-3    — findBoardById returns board with nested columns array
+ *   AC-HAPPY-4    — deleteBoard removes the board (columns cascade at DB level)
+ *   AC-ERROR-2    — findBoardById throws NotFoundError for unknown id
  */
 
 import { Pool } from 'pg';
@@ -55,10 +56,11 @@ describe('BoardRepository', () => {
         const mockDb = makeMockDb([
           // First query: INSERT INTO boards → returns new board
           { rows: [{ id: 'board-uuid-1', name: 'My Board', created_at: createdAt }] },
-          // Subsequent queries: INSERT INTO columns (called 3 times) → each returns one column row
-          { rows: [{ id: 'col-1', board_id: 'board-uuid-1', name: 'To Do', position: 1 }] },
+          // Subsequent queries: INSERT INTO columns (called 4 times) → each returns one column row
+          { rows: [{ id: 'col-1', board_id: 'board-uuid-1', name: 'To Do',       position: 1 }] },
           { rows: [{ id: 'col-2', board_id: 'board-uuid-1', name: 'In Progress', position: 2 }] },
-          { rows: [{ id: 'col-3', board_id: 'board-uuid-1', name: 'Done', position: 3 }] },
+          { rows: [{ id: 'col-3', board_id: 'board-uuid-1', name: 'Stale',       position: 3 }] },
+          { rows: [{ id: 'col-4', board_id: 'board-uuid-1', name: 'Done',        position: 4 }] },
         ]);
 
         const { BoardRepository } = await import('../board.repository');
@@ -73,13 +75,14 @@ describe('BoardRepository', () => {
         expect(board.created_at).toEqual(createdAt);
       });
 
-      it('AC-HAPPY-1: seeds exactly 3 columns with correct names in order: "To Do", "In Progress", "Done"', async () => {
+      it('AC-STALE-COL-1: seeds exactly 4 columns in order: "To Do", "In Progress", "Stale", "Done"', async () => {
         // Arrange
         const mockDb = makeMockDb([
           { rows: [{ id: 'board-uuid-2', name: 'Sprint Board', created_at: new Date() }] },
-          { rows: [{ id: 'col-1', board_id: 'board-uuid-2', name: 'To Do', position: 1 }] },
+          { rows: [{ id: 'col-1', board_id: 'board-uuid-2', name: 'To Do',       position: 1 }] },
           { rows: [{ id: 'col-2', board_id: 'board-uuid-2', name: 'In Progress', position: 2 }] },
-          { rows: [{ id: 'col-3', board_id: 'board-uuid-2', name: 'Done', position: 3 }] },
+          { rows: [{ id: 'col-3', board_id: 'board-uuid-2', name: 'Stale',       position: 3 }] },
+          { rows: [{ id: 'col-4', board_id: 'board-uuid-2', name: 'Done',        position: 4 }] },
         ]);
 
         const { BoardRepository } = await import('../board.repository');
@@ -88,18 +91,18 @@ describe('BoardRepository', () => {
         // Act
         await repo.createBoard('Sprint Board');
 
-        // Assert — 4 total DB calls: 1 board insert + 3 column inserts
-        expect(mockDb.query).toHaveBeenCalledTimes(4);
+        // Assert — 5 total DB calls: 1 board insert + 4 column inserts
+        expect(mockDb.query).toHaveBeenCalledTimes(5);
 
-        // The 2nd, 3rd, and 4th calls must each INSERT a column with the right name
+        // The 2nd through 5th calls must INSERT columns with the right names in order
         const columnInsertCalls = mockDb.query.mock.calls.slice(1);
+        const expectedColumns = ['To Do', 'In Progress', 'Stale', 'Done'];
         const insertedNames = columnInsertCalls.map((call: unknown[]) => {
-          // values array contains the column name; find it among the call arguments
           const values = call[1] as unknown[];
-          return values.find((v) => typeof v === 'string' && ['To Do', 'In Progress', 'Done'].includes(v as string));
+          return values.find((v) => typeof v === 'string' && expectedColumns.includes(v as string));
         });
 
-        expect(insertedNames).toEqual(['To Do', 'In Progress', 'Done']);
+        expect(insertedNames).toEqual(expectedColumns);
       });
     });
 
@@ -203,9 +206,10 @@ describe('BoardRepository', () => {
         // We model two separate queries to stay implementation-agnostic and flexible.
         const boardRow = { id: 'board-1', name: 'My Board', created_at: new Date('2026-01-01') };
         const columnRows = [
-          { id: 'col-1', board_id: 'board-1', name: 'To Do', position: 1 },
+          { id: 'col-1', board_id: 'board-1', name: 'To Do',       position: 1 },
           { id: 'col-2', board_id: 'board-1', name: 'In Progress', position: 2 },
-          { id: 'col-3', board_id: 'board-1', name: 'Done', position: 3 },
+          { id: 'col-3', board_id: 'board-1', name: 'Stale',       position: 3 },
+          { id: 'col-4', board_id: 'board-1', name: 'Done',        position: 4 },
         ];
         const mockDb = makeMockDb([
           { rows: [boardRow] },
@@ -217,13 +221,14 @@ describe('BoardRepository', () => {
         // Act
         const result = await repo.findBoardById('board-1');
 
-        // Assert
+        // Assert — AC-STALE-COL-1: 4 columns with Stale at position 3, Done at position 4
         expect(result).toMatchObject({ id: 'board-1', name: 'My Board' });
         expect(Array.isArray(result?.columns)).toBe(true);
-        expect(result?.columns).toHaveLength(3);
-        expect(result?.columns?.[0]).toMatchObject({ name: 'To Do' });
-        expect(result?.columns?.[1]).toMatchObject({ name: 'In Progress' });
-        expect(result?.columns?.[2]).toMatchObject({ name: 'Done' });
+        expect(result?.columns).toHaveLength(4);
+        expect(result?.columns?.[0]).toMatchObject({ name: 'To Do',       position: 1 });
+        expect(result?.columns?.[1]).toMatchObject({ name: 'In Progress', position: 2 });
+        expect(result?.columns?.[2]).toMatchObject({ name: 'Stale',       position: 3 });
+        expect(result?.columns?.[3]).toMatchObject({ name: 'Done',        position: 4 });
       });
 
       it('AC-ERROR-2: throws NotFoundError when board id does not exist', async () => {
@@ -288,7 +293,7 @@ describe('BoardRepository', () => {
       await pool.end();
     });
 
-    it('createBoard inserts a board and seeds 3 columns in the real database', async () => {
+    it('AC-STALE-COL-1: createBoard inserts a board and seeds 4 columns in the real database', async () => {
       const { BoardRepository } = await import('../board.repository');
       const repo = new BoardRepository(pool);
 
@@ -299,11 +304,11 @@ describe('BoardRepository', () => {
       expect(board.id).toBeDefined();
       expect(board.name).toBe('Integration Test Board');
 
-      // Verify columns exist via findBoardById
+      // Verify 4 columns exist via findBoardById — To Do, In Progress, Stale, Done
       const fetched = await repo.findBoardById(board.id);
-      expect(fetched?.columns).toHaveLength(3);
+      expect(fetched?.columns).toHaveLength(4);
       const names = fetched?.columns?.map((c) => c.name);
-      expect(names).toEqual(['To Do', 'In Progress', 'Done']);
+      expect(names).toEqual(['To Do', 'In Progress', 'Stale', 'Done']);
 
       // Cleanup
       await repo.deleteBoard(board.id);

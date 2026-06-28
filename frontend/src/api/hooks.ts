@@ -12,6 +12,9 @@ import {
 } from '@/api/endpoints'
 import type { PaginatedResponse, Board, BoardWithColumns, Card, Label, ApiError } from '@/types'
 
+const DONE_COLUMN_NAME = 'Done'
+const DONE_CARD_COLOR = '#d4edda'
+
 export function useBoards() {
   return useQuery<PaginatedResponse<Board>>({
     queryKey: queryKeys.boards.list(),
@@ -136,9 +139,23 @@ export function useMoveCard(setBannerError: (m: string | null) => void) {
         ? 0
         : destBase.findIndex((c) => c.id === after_card_id) + 1
 
+      // Check if the destination column is named 'Done' to apply workflow color
+      const allBoardQueries = qc.getQueriesData<BoardWithColumns>({ queryKey: queryKeys.boards.all })
+      let isDoneColumn = false
+      for (const [, boardData] of allBoardQueries) {
+        if (boardData?.columns?.some((col) => col.id === destColumnId && col.name === DONE_COLUMN_NAME)) {
+          isDoneColumn = true
+          break
+        }
+      }
+
+      const movedCard = isDoneColumn
+        ? { ...moving, column_id: destColumnId, color: DONE_CARD_COLOR }
+        : { ...moving, column_id: destColumnId }
+
       const destAfter = [
         ...destBase.slice(0, insertAt),
-        { ...moving, column_id: destColumnId },
+        movedCard,
         ...destBase.slice(insertAt),
       ]
 

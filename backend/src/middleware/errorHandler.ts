@@ -8,7 +8,11 @@ export function errorHandler(
   _next: NextFunction,
 ): void {
   if (err instanceof AppError) {
-    res.status(err.statusCode).json({ error: err.code, message: err.message });
+    const body: Record<string, unknown> = { error: err.code, message: err.message };
+    if ('details' in err && Array.isArray((err as { details: unknown }).details)) {
+      body.details = (err as { details: unknown[] }).details;
+    }
+    res.status(err.statusCode).json(body);
   } else if (err instanceof SyntaxError && 'body' in err) {
     // body-parser sets `body` on the SyntaxError it throws for malformed JSON
     res.status(400).json({ error: 'BAD_REQUEST', message: 'Malformed JSON in request body' });

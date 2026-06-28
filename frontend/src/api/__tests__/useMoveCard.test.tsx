@@ -1,5 +1,5 @@
 /**
- * Unit tests for useMoveCard hook (Phase 4 — Drag-and-Drop).
+ * Unit tests for useMoveCard hook (Phase 4 — Drag-and-Drop + Workflow Automation).
  *
  * useMoveCard is an optimistic mutation hook that:
  *  - Removes a card from its source column cache
@@ -7,10 +7,16 @@
  *  - Reverts both columns on error and calls setBannerError
  *  - Invalidates both column caches on settle
  *
- * Covers AC-7 (optimistic move) and AC-8 (revert on error).
+ * Phase 4 Workflow Automation additions (TASK-017):
+ *  - When the destination column is named 'Done', onMutate applies color '#d4edda'
+ *    to the moved card optimistically in the cache (Done-color rule)
+ *  - When the destination column is NOT named 'Done', no color is applied
+ *  - On error, snapshot rollback restores the original card color
+ *
+ * Covers AC-7 (optimistic move), AC-8 (revert on error), and Done-color rule.
  *
  * Strategy:
- *  - Real QueryClient (retry: false) pre-seeded with column card lists
+ *  - Real QueryClient (retry: false) pre-seeded with column card lists AND board detail
  *  - vi.mock('@/api/endpoints') to control moveCard resolution
  *  - renderHook with a QueryClientProvider wrapper
  */
@@ -18,7 +24,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
-import type { Card } from '@/types'
+import type { Card, Column, BoardWithColumns } from '@/types'
 import { queryKeys } from '@/api/queryKeys'
 
 // ---------------------------------------------------------------------------
@@ -366,6 +372,145 @@ describe('useMoveCard — same-column move', () => {
       const srcCards = qc.getQueryData<Card[]>(queryKeys.cards.byColumn(SRC_COLUMN_ID))
       // card-1 should still be in the source column
       expect(srcCards?.find((c) => c.id === 'card-1')).toBeDefined()
+    })
+  })
+})
+
+// ===========================================================================
+// TASK-017 Phase 4 — Workflow Automation: Done-column color rule
+//
+// When a card is moved to a column named 'Done', onMutate must optimistically
+// set card.color = '#d4edda' in the destination column cache.
+// The hook looks up the destination column name via the board detail in the
+// query cache (queryKeys.boards.detail).
+// ===========================================================================
+
+const BOARD_ID = 'board-1'
+
+// Minimal column fixtures — the hook needs name to identify 'Done'
+const DONE_COLUMN: Column = {
+  id: DEST_COLUMN_ID,
+  name: 'Done',
+  position: 2,
+  created_at: '2026-01-01T00:00:00Z',
+}
+
+const IN_PROGRESS_COLUMN: Column = {
+  id: 'col-in-progress',
+  name: 'In Progress',
+  position: 1,
+  created_at: '2026-01-01T00:00:00Z',
+}
+
+const SRC_COL_FIXTURE: Column = {
+  id: SRC_COLUMN_ID,
+  name: 'Backlog',
+  position: 0,
+  created_at: '2026-01-01T00:00:00Z',
+}
+
+function makeBoardWithColumns(columns: Column[]): BoardWithColumns {
+  return {
+    id: BOARD_ID,
+    name: 'Test Board',
+    created_at: '2026-01-01T00:00:00Z',
+    columns,
+  }
+}
+
+/** Seeds board detail so useMoveCard can resolve destination column names. */
+function seedBoardDetail(qc: QueryClient, columns: Column[]) {
+  qc.setQueryData(queryKeys.boards.detail(BOARD_ID), makeBoardWithColumns(columns))
+}
+
+describe('useMoveCard — Done-column color rule (TASK-017 Phase 4)', () => {
+  it('applies color #d4edda to the moved card when destination column is named "Done"', async () => {
+    // Arrange: seed board detail with a 'Done' column at DEST_COLUMN_ID
+    seedBoardDetail(qc, [SRC_COL_FIXTURE, DONE_COLUMN])
+
+    const { result } = renderHook(() => useMoveCard(setBannerError), {
+      wrapper: makeWrapper(qc),
+    })
+
+    // Act: move card-1 to the Done column
+    await act(async () => {
+      result.current.mutate({
+        cardId: 'card-1',
+        column_id: DEST_COLUMN_ID,
+        after_card_id: undefined,
+      })
+    })
+
+    // Assert: card-1 in dest cache should have color '#d4edda' applied optimistically
+    await waitFor(() => {
+      const destCards = qc.getQueryData<Card[]>(queryKeys.cards.byColumn(DEST_COLUMN_ID))
+      const movedCard = destCards?.find((c) => c.id === 'card-1')
+      expect(movedCard).toBeDefined()
+      expect(movedCard?.color).toBe('#d4edda')
+    })
+  })
+
+  it('does NOT apply a color when destination column is not named "Done"', async () => {
+    // Arrange: seed board detail with 'In Progress' as the destination column
+    const IN_PROGRESS_CARDS: Card[] = [
+      makeCard({ id: 'card-5', column_id: IN_PROGRESS_COLUMN.id, position: 0, title: 'Card Five' }),
+    ]
+    qc.setQueryData(queryKeys.cards.byColumn(IN_PROGRESS_COLUMN.id), IN_PROGRESS_CARDS)
+    seedBoardDetail(qc, [SRC_COL_FIXTURE, IN_PROGRESS_COLUMN])
+
+    const { result } = renderHook(() => useMoveCard(setBannerError), {
+      wrapper: makeWrapper(qc),
+    })
+
+    // Move card-1 to 'In Progress' (not Done)
+    mockedMoveCard.mockResolvedValue(makeCard({ id: 'card-1', column_id: IN_PROGRESS_COLUMN.id }))
+
+    await act(async () => {
+      result.current.mutate({
+        cardId: 'card-1',
+        column_id: IN_PROGRESS_COLUMN.id,
+        after_card_id: undefined,
+      })
+    })
+
+    await waitFor(() => {
+      const destCards = qc.getQueryData<Card[]>(queryKeys.cards.byColumn(IN_PROGRESS_COLUMN.id))
+      const movedCard = destCards?.find((c) => c.id === 'card-1')
+      expect(movedCard).toBeDefined()
+      // color must NOT be set to the Done color
+      expect(movedCard?.color).not.toBe('#d4edda')
+    })
+  })
+
+  it('restores original card color via snapshot rollback when move to Done column fails', async () => {
+    // Arrange: card-1 starts with color null, seed Done column
+    const originalCard = makeCard({ id: 'card-1', column_id: SRC_COLUMN_ID, color: null })
+    qc.setQueryData(queryKeys.cards.byColumn(SRC_COLUMN_ID), [
+      originalCard,
+      makeCard({ id: 'card-2', column_id: SRC_COLUMN_ID, position: 1, title: 'Card Two' }),
+    ])
+    seedBoardDetail(qc, [SRC_COL_FIXTURE, DONE_COLUMN])
+
+    mockedMoveCard.mockRejectedValue({ message: 'Network error', status: 500 })
+
+    const { result } = renderHook(() => useMoveCard(setBannerError), {
+      wrapper: makeWrapper(qc),
+    })
+
+    await act(async () => {
+      result.current.mutate({
+        cardId: 'card-1',
+        column_id: DEST_COLUMN_ID,
+        after_card_id: undefined,
+      })
+    })
+
+    // After error + rollback: card-1 is back in source with original color (null)
+    await waitFor(() => {
+      const srcCards = qc.getQueryData<Card[]>(queryKeys.cards.byColumn(SRC_COLUMN_ID))
+      const restoredCard = srcCards?.find((c) => c.id === 'card-1')
+      expect(restoredCard).toBeDefined()
+      expect(restoredCard?.color).toBeNull()
     })
   })
 })

@@ -26,7 +26,7 @@ export interface PaginatedResult<T> {
   limit: number;
 }
 
-const DEFAULT_COLUMNS = ['To Do', 'In Progress', 'Done'] as const;
+const DEFAULT_COLUMNS = ['To Do', 'In Progress', 'Stale', 'Done'] as const;
 
 export class BoardRepository {
   constructor(private readonly db: Queryable) {}
@@ -39,7 +39,7 @@ export class BoardRepository {
 
     const board = result.rows[0];
 
-    // Seed the three default columns concurrently. Positions are 1-indexed
+    // Seed the four default columns concurrently. Positions are 1-indexed
     // to leave headroom for inserting columns before position 1 in the future.
     await Promise.all(
       DEFAULT_COLUMNS.map((colName, i) =>

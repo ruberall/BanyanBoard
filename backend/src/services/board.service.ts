@@ -1,9 +1,15 @@
 import type { BoardRepository, Board, BoardWithColumns, PaginatedResult } from '../repositories/board.repository';
 import { ValidationError } from '../errors';
 import { logger } from '../logger';
+import type { WorkflowService, WorkflowWarning } from './workflow.service';
+
+export type BoardWithColumnsAndWarnings = BoardWithColumns & { warnings?: WorkflowWarning[] };
 
 export class BoardService {
-  constructor(private readonly repo: BoardRepository) {}
+  constructor(
+    private readonly repo: BoardRepository,
+    private readonly workflowService?: WorkflowService,
+  ) {}
 
   async createBoard(name: string): Promise<Board> {
     // Normalise before validation so callers don't need to pre-trim,
@@ -24,8 +30,21 @@ export class BoardService {
     return this.repo.findAllBoards(page, limit);
   }
 
-  async getBoardById(id: string): Promise<BoardWithColumns> {
-    return this.repo.findBoardById(id);
+  async getBoardById(id: string): Promise<BoardWithColumnsAndWarnings> {
+    const board = await this.repo.findBoardById(id);
+
+    if (this.workflowService) {
+      try {
+        const warnings = await this.workflowService.applyBoardRules(board.id, board.columns);
+        if (warnings.length > 0) {
+          return { ...board, warnings };
+        }
+      } catch (err) {
+        logger.warn({ err, boardId: id }, 'workflow.applyBoardRules.failed');
+      }
+    }
+
+    return board;
   }
 
   async deleteBoard(id: string): Promise<void> {

@@ -5,6 +5,7 @@ import { BoardService } from '../services/board.service';
 import { asyncHandler } from '../lib/asyncHandler';
 import { requireFields } from '../middleware/validate';
 import { ValidationError } from '../errors';
+import type { WorkflowService } from '../services/workflow.service';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -31,10 +32,11 @@ function parsePagination(query: Record<string, unknown>): { page: number; limit:
  * Factory for the /boards router.
  * Receives the shared Queryable so the same db connection/pool flows through
  * the repository — consistent with the app-factory DI pattern.
+ * An optional WorkflowService enables rule execution on board load.
  */
-export function createBoardsRouter(db: Queryable): Router {
+export function createBoardsRouter(db: Queryable, workflowService?: WorkflowService): Router {
   const repo = new BoardRepository(db);
-  const service = new BoardService(repo);
+  const service = new BoardService(repo, workflowService);
   const router = Router();
 
   router.get('/', asyncHandler(async (req, res) => {

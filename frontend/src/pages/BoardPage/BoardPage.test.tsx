@@ -18,6 +18,10 @@
  * Phase 5 additions:
  *  AC-FILTER-ENTRY-1  FilterBar input is present on every board load
  *
+ * TASK-017 Phase 4 — Workflow Automation additions:
+ *  - BoardWithColumns type accepts optional warnings field without crashing
+ *  - Board renders normally when warnings array is present (field is parsed, not rendered)
+ *
  * Mocking strategy:
  *  - vi.mock('@/api/hooks') for useBoard, useCards, useCreateCard, useMoveCard
  *  - Wrap in MemoryRouter with route /boards/:boardId
@@ -369,5 +373,80 @@ describe('BoardPage — Back button navigation (Phase 2, AC-S5-HAPPY-2)', () => 
 
     expect(mockNavigate).toHaveBeenCalledOnce()
     expect(mockNavigate).toHaveBeenCalledWith('/')
+  })
+})
+
+// ===========================================================================
+// TASK-017 Phase 4 — Workflow Automation: warnings field (silent parsing)
+//
+// The backend may return warnings?: WorkflowWarning[] in the board response.
+// The frontend must accept this field without throwing. No UI is rendered for
+// warnings in Phase 4 — the field is parsed and available for future use.
+// ===========================================================================
+
+describe('BoardPage — workflow warnings field (TASK-017 Phase 4)', () => {
+  it('renders board normally when warnings array is present in the board response', () => {
+    // BoardWithColumns with warnings — TypeScript must accept this shape
+    const boardWithWarnings: BoardWithColumns = {
+      ...BOARD_WITH_COLUMNS,
+      warnings: [
+        { code: 'WORKFLOW_ACTION_FAILED', message: 'Stale rule failed for card card-1', details: [{ field: 'column_id', error: 'DB write failed' }] },
+      ],
+    }
+
+    mockedUseBoard.mockReturnValue({
+      data: boardWithWarnings,
+      isLoading: false,
+      isError: false,
+      error: null,
+    })
+
+    renderBoardPage()
+
+    // Board renders normally — columns visible, no crash
+    expect(screen.getByText('Sprint Board')).toBeInTheDocument()
+    expect(screen.getByText('To Do')).toBeInTheDocument()
+  })
+
+  it('renders board normally when warnings is undefined (field absent)', () => {
+    // warnings is optional — absence must not break rendering
+    const boardWithoutWarnings: BoardWithColumns = {
+      ...BOARD_WITH_COLUMNS,
+      // no warnings field
+    }
+
+    mockedUseBoard.mockReturnValue({
+      data: boardWithoutWarnings,
+      isLoading: false,
+      isError: false,
+      error: null,
+    })
+
+    renderBoardPage()
+
+    expect(screen.getByText('Sprint Board')).toBeInTheDocument()
+  })
+
+  it('does NOT render any toast, banner, or UI element for warnings (no UI in Phase 4)', () => {
+    const boardWithWarnings: BoardWithColumns = {
+      ...BOARD_WITH_COLUMNS,
+      warnings: [
+        { code: 'WORKFLOW_ACTION_FAILED', message: 'Stale rule failed for card card-1', details: [{ field: 'column_id', error: 'DB write failed' }] },
+      ],
+    }
+
+    mockedUseBoard.mockReturnValue({
+      data: boardWithWarnings,
+      isLoading: false,
+      isError: false,
+      error: null,
+    })
+
+    renderBoardPage()
+
+    // No toast, no warning banner — warnings are silently ignored in Phase 4
+    expect(screen.queryByText(/stale/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/warning/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/old task/i)).not.toBeInTheDocument()
   })
 })

@@ -3,12 +3,14 @@ import { logger } from '../logger';
 import { NotFoundError } from '../errors';
 import type { Queryable } from '../db/queryable';
 import type { EventService } from './event.service';
+import type { WorkflowService } from './workflow.service';
 
 export class CardService {
   constructor(
     private readonly repo: CardRepository,
     private readonly db: Queryable,
     private readonly eventService?: EventService,
+    private readonly workflowService?: WorkflowService,
   ) {}
 
   async createCard(columnId: string, input: CardInput, actorId?: string | null): Promise<Card> {
@@ -67,14 +69,16 @@ export class CardService {
   async moveCard(id: string, columnId: string, afterCardId: string | null, actorId?: string | null): Promise<Card> {
     const existingCard = await this.repo.findCardById(id);
 
-    const colResult = await this.db.query<{ id: string; board_id: string }>(
-      'SELECT id, board_id FROM columns WHERE id = $1',
+    // Query destination column (required for board_id and existence check).
+    const colResult = await this.db.query<{ id: string; board_id: string; name: string }>(
+      'SELECT id, board_id, name FROM columns WHERE id = $1',
       [columnId],
     );
     if (colResult.rows.length === 0) {
       throw new NotFoundError('Column not found');
     }
-    const boardId = colResult.rows[0].board_id;
+    const boardId      = colResult.rows[0].board_id;
+    const destColName  = colResult.rows[0].name;
 
     const cards = await this.repo.findCardsByColumnId(columnId);
 
@@ -94,6 +98,24 @@ export class CardService {
 
     const card = await this.repo.moveCard(id, columnId, newPosition);
     logger.info({ cardId: id, columnId, position: newPosition }, 'card.moved');
+
+    // Stale suppression: best-effort UPDATE when card was moved FROM the Stale column.
+    // Query the source column name inside try/catch so any failure is non-fatal.
+    try {
+      const sourceColumnName = await this.repo.getColumnName(existingCard.column_id);
+      if (sourceColumnName === 'Stale') {
+        await this.repo.setSuppressed(id, true);
+      }
+    } catch (err) {
+      logger.warn({ err, cardId: id }, 'card.stale_suppression.failed');
+    }
+
+    // Done-color rule: fire-and-forget when card is moved to the Done column.
+    if (this.workflowService && destColName === 'Done') {
+      this.workflowService.triggerDoneColorRule(boardId, card.id).catch((err) => {
+        logger.warn({ err, cardId: card.id }, 'workflow.rule2.trigger_failed');
+      });
+    }
 
     if (this.eventService) {
       try {

@@ -3,6 +3,7 @@ import type { Queryable } from '../db/queryable';
 import { CardRepository } from '../repositories/card.repository';
 import { CardService } from '../services/card.service';
 import type { EventService } from '../services/event.service';
+import type { WorkflowService } from '../services/workflow.service';
 import { asyncHandler } from '../lib/asyncHandler';
 import { ValidationError } from '../errors';
 
@@ -97,9 +98,10 @@ export function createColumnCardsRouter(db: Queryable, eventService?: EventServi
 export function createCardsRouter(
   db: Queryable,
   eventService?: EventService,
+  workflowService?: WorkflowService,
 ): Router {
   const repo = new CardRepository(db);
-  const service = new CardService(repo, db, eventService);
+  const service = new CardService(repo, db, eventService, workflowService);
   const router = Router();
 
   router.get('/:id', asyncHandler(async (req, res) => {

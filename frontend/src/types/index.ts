@@ -36,8 +36,15 @@ export interface Card {
   updated_at: string
 }
 
+export interface WorkflowWarning {
+  code: string
+  message: string
+  details?: Array<{ field: string; error: string }>
+}
+
 export interface BoardWithColumns extends Board {
   columns: Column[]
+  warnings?: WorkflowWarning[]
 }
 
 export interface PaginatedResponse<T> {

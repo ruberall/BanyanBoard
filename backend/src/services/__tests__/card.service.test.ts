@@ -3,12 +3,29 @@
  *
  * Phase 1 coverage: CardService (unit tests — mock CardRepository)
  * Phase 1 attribution: actor propagation into EventService (WI-016-001, WI-016-002)
+ *
+ * Phase 2 additions (TASK-017):
+ *   Stale suppression — when moveCard source column is Stale, repo.setSuppressed(id, true)
+ *   is called after the move. Failure to set suppression is best-effort (does not block move).
+ *   These tests FAIL until CardService.moveCard queries the source column name and calls
+ *   repo.setSuppressed when moving from Stale.
+ *
+ * Phase 3 additions (TASK-017):
+ *   Done-color rule trigger — when moveCard target column name is 'Done',
+ *   workflowService.triggerDoneColorRule(boardId, cardId) is called fire-and-forget.
+ *   The move response must not be blocked or delayed by the rule.
+ *   Tests FAIL until CardService.moveCard:
+ *     - Detects destination column name === 'Done' from the colResult query
+ *     - Calls this.workflowService?.triggerDoneColorRule(boardId, card.id) fire-and-forget
+ *     - Swallows any rejection from triggerDoneColorRule (does not propagate to caller)
+ *     - Does NOT call triggerDoneColorRule when destination column is not 'Done'
  */
 
 import { CardService } from '../card.service';
 import { CardRepository } from '../../repositories/card.repository';
 import type { Card } from '../../repositories/card.repository';
 import type { EventService } from '../event.service';
+import type { WorkflowService } from '../workflow.service';
 import { NotFoundError } from '../../errors';
 
 const BASE_CARD: Card = {
@@ -31,6 +48,8 @@ function makeMockRepo(): jest.Mocked<CardRepository> {
     updateCard: jest.fn(),
     deleteCard: jest.fn(),
     moveCard: jest.fn(),
+    getColumnName: jest.fn().mockResolvedValue(null),
+    setSuppressed: jest.fn().mockResolvedValue(undefined),
   } as unknown as jest.Mocked<CardRepository>;
 }
 
@@ -268,6 +287,93 @@ describe('CardService', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Phase 2 (TASK-017): stale suppression in moveCard
+  //
+  // When a card is moved FROM the Stale column, CardService must:
+  //   1. Query the source column name (parallel with destination column query)
+  //   2. If source name === 'Stale', issue UPDATE cards SET stale_suppressed = true
+  //   3. Suppression write failure is best-effort — does NOT block the move response
+  //
+  // These tests FAIL until CardService.moveCard:
+  //   - fetches source column name via db.query
+  //   - calls repo.setSuppressed OR issues a direct UPDATE when isFromStale is true
+  // ---------------------------------------------------------------------------
+
+  describe('moveCard — stale suppression (Phase 2)', () => {
+    it('AC-STALE-SUPPRESS-1: sets stale_suppressed=true when card moves FROM Stale column', async () => {
+      // Arrange — db responds for destination column query only;
+      // source column name and suppression update go through repo methods.
+      const db = makeMockDb([
+        { rows: [{ id: 'col-inprogress', board_id: 'board-uuid-1', name: 'In Progress' }] }, // dest col
+      ]);
+      const r = makeMockRepo();
+      r.getColumnName.mockResolvedValueOnce('Stale');
+      r.setSuppressed.mockResolvedValueOnce(undefined);
+      const svc = new CardService(r, db);
+
+      const staleCard = { ...BASE_CARD, column_id: 'col-stale' };
+      r.findCardById.mockResolvedValueOnce(staleCard);
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      const movedCard = { ...BASE_CARD, column_id: 'col-inprogress', position: 1.0 };
+      r.moveCard.mockResolvedValueOnce(movedCard);
+
+      // Act
+      const result = await svc.moveCard('card-uuid-1', 'col-inprogress', null);
+
+      // Assert — card moved successfully
+      expect(result.column_id).toBe('col-inprogress');
+
+      // repo.getColumnName called with the source column id
+      expect(r.getColumnName).toHaveBeenCalledWith('col-stale');
+      // repo.setSuppressed called with the card id and true
+      expect(r.setSuppressed).toHaveBeenCalledWith('card-uuid-1', true);
+    });
+
+    it('does NOT set stale_suppressed when card moves from a non-Stale column', async () => {
+      // Arrange — source column is 'To Do', not 'Stale'
+      const db = makeMockDb([
+        { rows: [{ id: 'col-stale', board_id: 'board-uuid-1', name: 'Stale' }] }, // dest col
+      ]);
+      const r = makeMockRepo();
+      r.getColumnName.mockResolvedValueOnce('To Do');
+      const svc = new CardService(r, db);
+
+      r.findCardById.mockResolvedValueOnce(BASE_CARD); // BASE_CARD.column_id = 'col-uuid-1'
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      const movedCard = { ...BASE_CARD, column_id: 'col-stale', position: 1.0 };
+      r.moveCard.mockResolvedValueOnce(movedCard);
+
+      // Act
+      await svc.moveCard('card-uuid-1', 'col-stale', null);
+
+      // Assert — repo.setSuppressed NOT called when source is not Stale
+      expect(r.setSuppressed).not.toHaveBeenCalled();
+    });
+
+    it('stale suppression write failure does NOT block the move response', async () => {
+      // Arrange — source is Stale; repo.setSuppressed throws a DB error
+      const db = makeMockDb([
+        { rows: [{ id: 'col-inprogress', board_id: 'board-uuid-1', name: 'In Progress' }] }, // dest col
+      ]);
+      const r = makeMockRepo();
+      r.getColumnName.mockResolvedValueOnce('Stale');
+      r.setSuppressed.mockRejectedValueOnce(new Error('suppress write failed'));
+      const svc = new CardService(r, db);
+
+      const staleCard = { ...BASE_CARD, column_id: 'col-stale' };
+      r.findCardById.mockResolvedValueOnce(staleCard);
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      const movedCard = { ...BASE_CARD, column_id: 'col-inprogress', position: 1.0 };
+      r.moveCard.mockResolvedValueOnce(movedCard);
+
+      // Act — must resolve (not throw) even when suppression write fails
+      await expect(svc.moveCard('card-uuid-1', 'col-inprogress', null)).resolves.toMatchObject({
+        column_id: 'col-inprogress',
+      });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Phase 1 attribution — createCard with emitCardCreated (WI-016-002)
   // These tests FAIL until:
   //   1. CardCreatedEvent is added to DomainEvent union
@@ -311,6 +417,121 @@ describe('CardService', () => {
 
       // Act + Assert — createCard still succeeds without eventService
       await expect(svc.createCard('col-uuid-1', { title: 'Write tests' })).resolves.toBe(BASE_CARD);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 3 (TASK-017): Done-color rule fire-and-forget trigger in moveCard
+  //
+  // When moveCard is called with a destination column named 'Done', CardService
+  // must call workflowService.triggerDoneColorRule(boardId, cardId) without
+  // awaiting it (fire-and-forget). The card move response must not be blocked.
+  //
+  // These tests FAIL until CardService.moveCard:
+  //   - Uses the column name from the existing colResult query (SELECT id, board_id, name)
+  //   - Detects toColumnName === 'Done' and calls triggerDoneColorRule fire-and-forget
+  //   - Uses .catch(() => {}) or similar to swallow rejections
+  //   - Does NOT call triggerDoneColorRule when destination column name is not 'Done'
+  //   - Does NOT call triggerDoneColorRule when workflowService is not injected
+  // ---------------------------------------------------------------------------
+
+  describe('moveCard — Done-color rule trigger (Phase 3)', () => {
+    /** Build a WorkflowService mock with triggerDoneColorRule as a spy */
+    function makeMockWorkflowService(): jest.Mocked<Pick<WorkflowService, 'triggerDoneColorRule'>> {
+      return {
+        triggerDoneColorRule: jest.fn().mockResolvedValue(undefined),
+      } as unknown as jest.Mocked<Pick<WorkflowService, 'triggerDoneColorRule'>>;
+    }
+
+    it('AC-HAPPY-4: calls triggerDoneColorRule when moving card to Done column', async () => {
+      // Arrange — destination column name is 'Done'
+      const db = makeMockDb([
+        { rows: [{ id: 'col-done', board_id: 'board-uuid-1', name: 'Done' }] },
+      ]);
+      const r = makeMockRepo();
+      const mockWorkflow = makeMockWorkflowService();
+      const svc = new CardService(r, db, undefined, mockWorkflow as unknown as WorkflowService);
+
+      r.findCardById.mockResolvedValueOnce(BASE_CARD);
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      const movedCard = { ...BASE_CARD, column_id: 'col-done', position: 1.0 };
+      r.moveCard.mockResolvedValueOnce(movedCard);
+      r.getColumnName.mockResolvedValueOnce('In Progress'); // source column name (not Stale)
+
+      // Act
+      const result = await svc.moveCard('card-uuid-1', 'col-done', null);
+
+      // Assert — move succeeded
+      expect(result.column_id).toBe('col-done');
+
+      // triggerDoneColorRule was called with correct boardId and cardId
+      expect(mockWorkflow.triggerDoneColorRule).toHaveBeenCalledTimes(1);
+      expect(mockWorkflow.triggerDoneColorRule).toHaveBeenCalledWith('board-uuid-1', movedCard.id);
+    });
+
+    it('does NOT call triggerDoneColorRule when destination column is not Done', async () => {
+      // Arrange — destination column name is 'In Progress'
+      const db = makeMockDb([
+        { rows: [{ id: 'col-inprogress', board_id: 'board-uuid-1', name: 'In Progress' }] },
+      ]);
+      const r = makeMockRepo();
+      const mockWorkflow = makeMockWorkflowService();
+      const svc = new CardService(r, db, undefined, mockWorkflow as unknown as WorkflowService);
+
+      r.findCardById.mockResolvedValueOnce(BASE_CARD);
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      r.moveCard.mockResolvedValueOnce({ ...BASE_CARD, column_id: 'col-inprogress', position: 1.0 });
+      r.getColumnName.mockResolvedValueOnce('To Do'); // source column is To Do — not Stale
+
+      // Act
+      await svc.moveCard('card-uuid-1', 'col-inprogress', null);
+
+      // Assert — NOT triggered for non-Done columns
+      expect(mockWorkflow.triggerDoneColorRule).not.toHaveBeenCalled();
+    });
+
+    it('does NOT call triggerDoneColorRule when workflowService is not injected', async () => {
+      // Arrange — no workflowService provided; destination is Done
+      const db = makeMockDb([
+        { rows: [{ id: 'col-done', board_id: 'board-uuid-1', name: 'Done' }] },
+      ]);
+      const r = makeMockRepo();
+      // CardService constructed without workflowService
+      const svc = new CardService(r, db);
+
+      r.findCardById.mockResolvedValueOnce(BASE_CARD);
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      r.moveCard.mockResolvedValueOnce({ ...BASE_CARD, column_id: 'col-done', position: 1.0 });
+      r.getColumnName.mockResolvedValueOnce('To Do');
+
+      // Act + Assert — must not throw; no WorkflowService to call
+      await expect(svc.moveCard('card-uuid-1', 'col-done', null)).resolves.toMatchObject({
+        column_id: 'col-done',
+      });
+    });
+
+    it('AC-ERROR-2: move response resolves successfully even when triggerDoneColorRule rejects', async () => {
+      // Arrange — triggerDoneColorRule rejects; card move must still succeed
+      const db = makeMockDb([
+        { rows: [{ id: 'col-done', board_id: 'board-uuid-1', name: 'Done' }] },
+      ]);
+      const r = makeMockRepo();
+      const mockWorkflow = makeMockWorkflowService();
+      // triggerDoneColorRule is designed to never reject (it catches internally),
+      // but we simulate a leaked rejection to verify CardService also swallows it.
+      mockWorkflow.triggerDoneColorRule.mockRejectedValueOnce(new Error('workflow rejected'));
+      const svc = new CardService(r, db, undefined, mockWorkflow as unknown as WorkflowService);
+
+      r.findCardById.mockResolvedValueOnce(BASE_CARD);
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      const movedCard = { ...BASE_CARD, column_id: 'col-done', position: 1.0 };
+      r.moveCard.mockResolvedValueOnce(movedCard);
+      r.getColumnName.mockResolvedValueOnce('In Progress');
+
+      // Act + Assert — must not throw; fire-and-forget rejection does not block response
+      await expect(svc.moveCard('card-uuid-1', 'col-done', null)).resolves.toMatchObject({
+        column_id: 'col-done',
+      });
     });
   });
 });

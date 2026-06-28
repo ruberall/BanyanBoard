@@ -26,3 +26,11 @@ export class NotFoundError extends AppError {
 export class ConflictError extends AppError {
   constructor(message: string) { super(409, 'CONFLICT', message); }
 }
+export class WorkflowError extends AppError {
+  constructor(
+    message: string,
+    public readonly details: Array<{ field: string; error: string }> = [],
+  ) {
+    super(400, 'WORKFLOW_ACTION_FAILED', message);
+  }
+}
