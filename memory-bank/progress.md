@@ -2,6 +2,23 @@
 
 ---
 
+## 2026-06-28 - TASK-018: Delete Card UI — REFLECTION_COMPLETE
+
+**Task**: Delete Card UI (FEAT-015)
+**Phase**: Reflection — COMPLETE
+**Reflection**: `memory-bank/reflection/reflection-TASK-018.md`
+
+### Evaluation Summary
+- **Task Quality**: Excellent — all 5 ACs met, 245/245 tests, 8 new tests, 0 blocking issues in code review
+- **Ecosystem Effectiveness**: Highly Effective — Level 2 workflow correctly scoped, single-phase build aligned to task scope
+- **Regressions fixed**: 3 (wholesale vi.mock gap in BoardPage + KanbanBoard; missing vi import in KanbanCard.test.tsx)
+
+### Pattern Extraction
+- 2 learnings added to `agent-rules/_learned/testing-patterns.md` (evidence count: 15)
+- No novel architectural patterns — testing practice improvements only
+
+---
+
 ## Task Archive: TASK-017
 
 **Task**: Workflow Automation (FEAT-014)
