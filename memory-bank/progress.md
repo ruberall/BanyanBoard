@@ -2,6 +2,15 @@
 
 ---
 
+## Task Archive: TASK-016
+
+**Task**: Activity Feed User Attribution (FEAT-013)
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-27
+**Archive**: `memory-bank/archive/archive-TASK-016.md`
+
+---
+
 ## 2026-06-27 - Phase 3: E2E Attribution Tests — COMPLETE (TASK-016)
 
 ### What Was Built

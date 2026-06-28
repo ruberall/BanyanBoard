@@ -17,4 +17,4 @@
 | TASK-013 | Card Labels | ARCHIVE | COMPLETE | FEAT-010 |
 | TASK-014 | Card Color Picker | ARCHIVE | COMPLETE | FEAT-011 |
 | TASK-015 | User Profile, Messaging, and Navigation Enhancements | ARCHIVE | COMPLETE | FEAT-012 |
-| TASK-016 | Activity Feed User Attribution | REFLECT | REFLECTION_COMPLETE | FEAT-013 |
+| TASK-016 | Activity Feed User Attribution | ARCHIVE | COMPLETE | FEAT-013 |

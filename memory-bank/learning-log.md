@@ -2,6 +2,17 @@
 
 ---
 
+## 2026-06-27 - Consolidation (during TASK-016 archive)
+
+- Files before: 14, Files after: 13
+- Merged: 1 file (`architecture-patterns.md` → `architecture-foundation.md`; evidence_count: 3→4)
+- Expired: 0 bullets (0 files deleted)
+- Promoted: 0 files
+- Pruned: 0 excess bullets
+- All rules recent (< 90 days); no stale expiry candidates
+
+---
+
 ## 2026-06-27 - TASK-016 Reflection
 
 ### Extracted Patterns

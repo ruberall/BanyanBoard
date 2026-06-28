@@ -2,7 +2,7 @@
 
 ## Summary
 
-- **Total Features**: 12
+- **Total Features**: 13
 - **Released Versions**: 0
 - **Active Versions**: 0
 - **Planning Versions**: 1
@@ -35,6 +35,7 @@
   - FEAT-010: Card Labels (complete) [Level 3]
   - FEAT-011: Card Color Picker (complete) [Level 3]
   - FEAT-012: User Profile, Messaging, and Navigation Enhancements (complete) [Level 3]
+  - FEAT-013: Activity Feed User Attribution (complete) [Level 3]
 
 ---
 
@@ -207,3 +208,17 @@
 - **Branch**: feature/FEAT-006-user-authentication
 - **Created**: 2026-06-13
 - **Completed**: 2026-06-18
+
+---
+
+### FEAT-013: Activity Feed User Attribution
+
+- **Version**: next
+- **Status**: complete
+- **Priority**: high
+- **Complexity**: Level 3
+- **Description**: User attribution for ActivityFeed card events. Card-move events show "[FirstName LastName] moved '[Card]' from [Col] to [Col]". New card.created event type shows "[FirstName LastName] created card '[Card]'". Actor display name snapshotted into payload jsonb at emit time (Payload Snapshot pattern). Fallback chain: full name → email → "Someone".
+- **Linked Tasks**: TASK-016 (COMPLETE)
+- **Branch**: feature/FEAT-013-activity-feed-user-attribution
+- **Created**: 2026-06-27
+- **Completed**: 2026-06-27
