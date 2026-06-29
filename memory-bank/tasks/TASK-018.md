@@ -1,11 +1,13 @@
 # TASK-018: Delete Card UI
 
 **Complexity**: Level 2
-**Status**: REFLECTION_COMPLETE
+**Status**: COMPLETE
 **Reflection**: memory-bank/reflection/reflection-TASK-018.md
+**Archive**: memory-bank/archive/archive-TASK-018.md
 **Roadmap Link**: FEAT-015
 **Branch**: feature/FEAT-015-delete-card-ui
 **Worktree**: .claude-worktrees/FEAT-015
+**Completed**: 2026-06-28
 
 ## Task Description
 
@@ -223,7 +225,7 @@ The one design decision that might prompt review: the delete button is **always 
 ## Execution State
 
 **Build Status**: IDLE
-**Current Phase**: REFLECT → ARCHIVE
+**Current Phase**: COMPLETE
 **Current Build**: Phase 1: Mutation Hook + Endpoint Wiring (TASK-018)
 **Build Started**: 2026-06-28
 **Build Completed**: 2026-06-28

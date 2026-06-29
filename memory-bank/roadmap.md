@@ -37,7 +37,7 @@
   - FEAT-012: User Profile, Messaging, and Navigation Enhancements (complete) [Level 3]
   - FEAT-013: Activity Feed User Attribution (complete) [Level 3]
   - FEAT-014: Workflow Automation (complete) [Level 4]
-  - FEAT-015: Delete Card UI (planned) [Level 2]
+  - FEAT-015: Delete Card UI (complete) [Level 2]
 
 ---
 
@@ -263,7 +263,7 @@ HTTP 400 for synchronous rule failures; stored as `delivery_error` JSON for asyn
 ### FEAT-015: Delete Card UI
 
 - **Version**: next
-- **Status**: planned
+- **Status**: complete
 - **Priority**: medium
 - **Complexity**: Level 2
 - **Description**: Enable users to delete a card by clicking an X icon visible on each card in the kanban board. Uses the existing `DELETE /cards/:id` backend endpoint. Requires a new `useDeleteCard` mutation hook, an X button in the `KanbanCard` component, and wiring in `KanbanColumn`.

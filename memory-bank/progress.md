@@ -2,6 +2,15 @@
 
 ---
 
+## Task Archive: TASK-018
+
+**Task**: Delete Card UI (FEAT-015)
+**Status**: ✅ ARCHIVED
+**Date**: 2026-06-28
+**Archive**: `memory-bank/archive/archive-TASK-018.md`
+
+---
+
 ## 2026-06-28 - TASK-018: Delete Card UI — REFLECTION_COMPLETE
 
 **Task**: Delete Card UI (FEAT-015)
