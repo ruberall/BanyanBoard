@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { Column, Label, Card } from '@/types'
-import { useCards, useUpdateCard } from '@/api/hooks'
+import { useCards, useUpdateCard, useDeleteCard } from '@/api/hooks'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner/LoadingSpinner'
 import { ErrorBanner } from '@/components/common/ErrorBanner/ErrorBanner'
 import { KanbanCard } from '@/components/board/KanbanCard/KanbanCard'
@@ -17,6 +17,7 @@ export function KanbanColumn({ column, filterText }: KanbanColumnProps) {
   const { data: cards, isLoading, isError, error } = useCards(column.id)
   const { setNodeRef } = useDroppable({ id: column.id })
   const updateCard = useUpdateCard(column.id)
+  const deleteCard = useDeleteCard(column.id)
 
   function handleLabelColorChange(cardId: string, newLabels: Label[]) {
     updateCard?.mutate({ cardId, labels: newLabels })
@@ -26,6 +27,10 @@ export function KanbanColumn({ column, filterText }: KanbanColumnProps) {
     const card = (cards ?? []).find((c: Card) => c.id === cardId)
     if (!card) return
     updateCard?.mutate({ cardId, labels: card.labels, color })
+  }
+
+  function handleCardDelete(cardId: string) {
+    deleteCard.mutate(cardId)
   }
 
   if (isLoading) {
@@ -56,11 +61,16 @@ export function KanbanColumn({ column, filterText }: KanbanColumnProps) {
   return (
     <section ref={setNodeRef} aria-label={`Column: ${column.name}`} className={styles.column}>
       <h2 className={styles.heading}>{column.name}</h2>
+      {deleteCard.isError && (
+        <ErrorBanner
+          message={deleteCard.error?.message ?? 'Failed to delete card'}
+        />
+      )}
       <SortableContext items={visibleCards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
         {visibleCards.length === 0 ? (
           <p className={styles.empty}>No cards yet</p>
         ) : (
-          visibleCards.map((c) => <KanbanCard key={c.id} card={c} onLabelColorChange={handleLabelColorChange} onCardColorChange={handleCardColorChange} />)
+          visibleCards.map((c) => <KanbanCard key={c.id} card={c} onLabelColorChange={handleLabelColorChange} onCardColorChange={handleCardColorChange} onDelete={handleCardDelete} />)
         )}
       </SortableContext>
       <CreateCardForm columnId={column.id} />

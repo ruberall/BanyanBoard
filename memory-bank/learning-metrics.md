@@ -21,6 +21,7 @@
 | TASK-015 | 2026-06-27 | 4 | 1 | 2 | data-validation created; testing-patterns + security amended (Level 3) |
 | TASK-016 | 2026-06-27 | 4 | 1 | 2 | architecture-patterns created; testing-patterns + service-design amended (Level 3) |
 | TASK-017 | 2026-06-28 | 4 | 2 | 2 | error-handling + architecture-patterns created; testing-patterns + api-design amended (Level 4) |
+| TASK-018 | 2026-06-28 | 2 | 0 | 1 | testing-patterns amended: wholesale vi.mock gap + missing vi import (Level 2) |
 
 ## Consolidation History
 
@@ -41,7 +42,7 @@
 
 | File | Evidence Count | Priority | Last Updated | Status |
 |------|---------------|----------|--------------|--------|
-| testing-patterns.md | 13 | medium | 2026-06-28 | active |
+| testing-patterns.md | 15 | medium | 2026-06-28 | active |
 | architecture-foundation.md | 5 | medium | 2026-06-28 | active (merged: architecture-patterns) |
 | api-design.md | 4 | medium | 2026-06-28 | active (promoted) |
 | error-handling.md | 1 | low | 2026-06-28 | active |

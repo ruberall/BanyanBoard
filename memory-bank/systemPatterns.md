@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-28 (TASK-017 Phase 4: added frontend WorkflowWarning mirror type contract, optimistic Done-color cross-slice cache pattern)
+**Last updated**: 2026-06-28 (TASK-018 Phase 1: added useDeleteCard optimistic delete pattern with removeQueries for detail cache)
 
 ## Guiding Principles
 
@@ -664,6 +664,35 @@ onMutate({ cardId, destColumnId, after_card_id })
 - **Backend is authoritative**: `onSettled` invalidates both column caches, causing a fresh fetch. The server-side `setCardColor` (Rule #2, Phase 3) sets the persistent color; the optimistic color is a UX affordance that minimises lag between drag and visual confirmation.
 - **Why '#d4edda'**: Matches the green background applied by the backend Done-color rule — same visual result before and after the server response arrives.
 - **Implementation**: `frontend/src/api/hooks.ts` — `useMoveCard`, `onMutate` handler (lines 109-166)
+
+## Optimistic Delete Pattern (TASK-018 Phase 1)
+
+`useDeleteCard(columnId)` follows the same optimistic mutation lifecycle as `useUpdateCard(columnId)` with one additional step: evicting the card's detail cache entry.
+
+```
+useDeleteCard(columnId).onMutate(cardId)
+  1. cancelQueries(cards.byColumn(columnId))          — stop any in-flight fetch that would restore the card
+  2. prevCards = getQueryData(cards.byColumn(columnId)) — snapshot for rollback
+  3. setQueryData(cards.byColumn(columnId), filter out cardId) — optimistic removal from column list
+  4. removeQueries(cards.detail(cardId))              — evict detail cache so a navigation to the
+                                                        card detail page won't flash stale data for
+                                                        a card that no longer exists
+  5. return { prevCards }
+
+onError(ctx)
+  → setQueryData(cards.byColumn(columnId), ctx.prevCards)  — restore column list on failure
+
+onSettled
+  → invalidateQueries(cards.byColumn(columnId))  — reconcile with server
+```
+
+**Difference from `useUpdateCard`**: Step 4 (`removeQueries` on the detail key) is specific to delete. An update leaves the card alive so its detail cache remains valid; a delete must evict the detail entry to prevent stale-data display on any subsequent navigation.
+
+**Why `removeQueries` and not `invalidateQueries` for the detail key**: `invalidateQueries` marks the entry stale and triggers a background refetch. For a deleted card, the refetch would produce a 404 and leave an error entry in the cache. `removeQueries` drops the entry immediately and cleanly.
+
+**Error surface**: `deleteCard.isError` is read in `KanbanColumn` and renders an `<ErrorBanner role="alert">` above the card list. The optimistic removal is reversed via the `onError` snapshot restore, so the card reappears if the server rejects the delete.
+
+**Implementation**: `frontend/src/api/hooks.ts` — `useDeleteCard`, lines 94–116
 
 ## Adding a New Feature (proven pattern — first used in FEAT-002 Board API)
 

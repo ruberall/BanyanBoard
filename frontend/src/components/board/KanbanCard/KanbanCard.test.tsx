@@ -19,8 +19,15 @@
  *  - Drag handle has correct aria-label (contains card title)
  *  - Drag handle has aria-roledescription="draggable"
  *  - Drag handle is a focusable, non-disabled button
+ *
+ * Phase 5 (TASK-018) — Delete card button (AC-ENTRY-1, AC-HAPPY-1, AC-A11Y-1).
+ *
+ * Covers:
+ *  - Delete button renders with aria-label matching "Delete card: <title>" (AC-ENTRY-1, AC-A11Y-1)
+ *  - Clicking the delete button calls onDelete with the card's id (AC-HAPPY-1)
+ *  - Delete button is absent when onDelete prop is not provided
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Card } from '@/types'
@@ -316,5 +323,53 @@ describe('KanbanCard — drag handle (Phase 4)', () => {
     const dragHandle = screen.queryByRole('button', { name: /reorder card/i })
     expect(dragHandle).not.toBeDisabled()
     expect(dragHandle?.tagName.toLowerCase()).toBe('button')
+  })
+})
+
+// ===========================================================================
+// Phase 5 (TASK-018) — Delete card button
+//
+// Acceptance criteria covered:
+//  - AC-ENTRY-1: delete button visible on every card, aria-label = "Delete card: <title>"
+//  - AC-HAPPY-1: clicking the button calls onDelete(cardId) immediately
+//  - AC-A11Y-1:  button is keyboard accessible with correct aria-label
+// ===========================================================================
+
+describe('KanbanCard — delete button (Phase 5 / TASK-018)', () => {
+  it('AC-ENTRY-1 / AC-A11Y-1: renders a delete button with aria-label "Delete card: <title>"', () => {
+    const onDelete = vi.fn()
+    render(<KanbanCard card={makeCard({ title: 'My Task' })} onDelete={onDelete} />)
+
+    // aria-label must be exactly "Delete card: My Task"
+    const deleteBtn = screen.getByRole('button', { name: /delete card: my task/i })
+    expect(deleteBtn).toBeInTheDocument()
+    expect(deleteBtn).not.toBeDisabled()
+  })
+
+  it('AC-HAPPY-1: clicking the delete button calls onDelete with the card id', async () => {
+    const onDelete = vi.fn()
+    const user = userEvent.setup()
+
+    render(
+      <KanbanCard
+        card={makeCard({ id: 'card-42', title: 'Delete Me' })}
+        onDelete={onDelete}
+      />
+    )
+
+    const deleteBtn = screen.getByRole('button', { name: /delete card: delete me/i })
+    await user.click(deleteBtn)
+
+    // onDelete must be called with the card's id, not the title or any other value
+    expect(onDelete).toHaveBeenCalledOnce()
+    expect(onDelete).toHaveBeenCalledWith('card-42')
+  })
+
+  it('does not render a delete button when onDelete prop is not provided', () => {
+    // Omitting onDelete: the button must be absent so the UI is not broken for
+    // callers that do not wire up deletion (e.g., read-only views)
+    render(<KanbanCard card={makeCard({ title: 'Read-only Card' })} />)
+
+    expect(screen.queryByRole('button', { name: /delete card/i })).not.toBeInTheDocument()
   })
 })

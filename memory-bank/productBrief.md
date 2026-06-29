@@ -21,6 +21,7 @@ Core capabilities this product provides:
 - Invite team members and collaborate on shared boards
 - Real-time activity feed on the board page showing card movement and card creation events with user attribution (actor display name; SSE-based, collapsible sidebar)
 - Filter cards across all columns simultaneously by title or description (client-side, instant, no server round-trip)
+- Delete cards instantly via a per-card delete button (optimistic removal; no confirmation dialog — matches the fast, focused product ethos)
 
 ## Markets Serviced
 
@@ -225,7 +226,8 @@ Core capabilities this product provides:
 | 2026-06-18 | build-documentation-agent | Added activity feed to Key Functionality; updated real-time constraint to reflect SSE (TASK-012 Phase 3) |
 | 2026-06-25 | build-documentation-agent | Added card filtering to Key Functionality (TASK-013 Phase 1 — FilterBar) |
 | 2026-06-27 | build-documentation-agent | Updated activity feed description to include card creation events and user attribution (TASK-016 Phase 1) |
+| 2026-06-28 | build-documentation-agent | Added card deletion to Key Functionality (TASK-018 Phase 1) |
 
 ## Last Refreshed
 
-2026-06-27
+2026-06-28

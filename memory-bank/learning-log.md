@@ -2,6 +2,18 @@
 
 ---
 
+## 2026-06-28 - TASK-018 Reflection
+
+### Extracted Patterns
+- **testing-patterns** → amended `agent-rules/_learned/testing-patterns.md` (evidence count: 15)
+  - Wholesale `vi.mock` gap: new hook export → undefined in dependent tests (BoardPage, KanbanBoard)
+  - Missing `vi` import in existing component test files
+
+### systemPatterns.md Updates
+- None (learnings are testing practices, not architectural patterns)
+
+---
+
 ## 2026-06-28 - Consolidation (during TASK-017 archive)
 
 - Files before: 15, Files after: 14

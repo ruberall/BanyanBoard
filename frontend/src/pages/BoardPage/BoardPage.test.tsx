@@ -58,6 +58,7 @@ const mockedUseCards = hooks.useCards as Mock
 const mockedUseCreateCard = hooks.useCreateCard as Mock
 // useMoveCard is new in Phase 4 — mock it so BoardPage doesn't break
 const mockedUseMoveCard = hooks.useMoveCard as Mock
+const mockedUseDeleteCard = hooks.useDeleteCard as Mock
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -120,6 +121,10 @@ beforeEach(() => {
   // Default stub for useMoveCard (Phase 4) — returns a no-op mutation
   if (mockedUseMoveCard) {
     mockedUseMoveCard.mockReturnValue(mockMutation())
+  }
+  // Default stub for useDeleteCard (Phase 5 / TASK-018) — returns a no-op mutation
+  if (mockedUseDeleteCard) {
+    mockedUseDeleteCard.mockReturnValue(mockMutation())
   }
 })
 

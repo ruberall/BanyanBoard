@@ -3,7 +3,7 @@ name: "Learned: Testing Patterns"
 globs: ["*.test.*", "*.test.tsx", "*.test.ts", "*.spec.*"]
 topics: ["testing-patterns", "typescript", "test-fixtures"]
 priority: medium
-evidence_count: 13
+evidence_count: 15
 last_updated: 2026-06-28
 auto_generated: true
 ---
@@ -23,6 +23,8 @@ auto_generated: true
 - When adding a new event type to a discriminated union consumed by an SSE hook, add a dedicated hook test for the new type's parser branch — component rendering tests do not exercise the hook's parse logic.
 - Use `page.waitForRequest((req) => req.url().includes('/events'))` as an SSE subscription barrier before API writes in live-push E2E tests — heading visibility alone does not guarantee the SSE connection is open and listening.
 - When writing frontend type tests, read the backend's contract type definition first — do not invent an interface shape independently of the source-of-truth type.
+- When adding a new export to a wholesale-mocked module (`vi.mock('@/api/module')`), grep for all test files using that mock and add an explicit stub for the new export in each — auto-mocked undefined exports silently break component renders.
+- Before adding `vi.fn()` or `vi.spyOn` calls to an existing test file, verify `vi` is included in the vitest import statement — component test files often import only `{ describe, it, expect }` and lack `vi`.
 
 ## Evidence
 
@@ -41,3 +43,5 @@ auto_generated: true
 | SSE hook union branch: `card.created` parser not covered by component test | [reflection-TASK-016.md](../reflection/reflection-TASK-016.md) | 2026-06-27 |
 | SSE waitForRequest barrier in live-push E2E tests | [reflection-TASK-016.md](../reflection/reflection-TASK-016.md) | 2026-06-27 |
 | Test Writer invented WorkflowWarning { type, cardId } instead of reading backend { code, message, details? } | [reflection-TASK-017.md](../reflection/reflection-TASK-017.md) | 2026-06-28 |
+| Wholesale vi.mock gap: new hook export → undefined in dependent tests (BoardPage, KanbanBoard) | [reflection-TASK-018.md](../reflection/reflection-TASK-018.md) | 2026-06-28 |
+| Missing `vi` import in existing component test file (KanbanCard.test.tsx) | [reflection-TASK-018.md](../reflection/reflection-TASK-018.md) | 2026-06-28 |

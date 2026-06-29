@@ -1,10 +1,13 @@
 # TASK-018: Delete Card UI
 
 **Complexity**: Level 2
-**Status**: PLANNING_COMPLETE
+**Status**: COMPLETE
+**Reflection**: memory-bank/reflection/reflection-TASK-018.md
+**Archive**: memory-bank/archive/archive-TASK-018.md
 **Roadmap Link**: FEAT-015
 **Branch**: feature/FEAT-015-delete-card-ui
-**Worktree**: N/A
+**Worktree**: .claude-worktrees/FEAT-015
+**Completed**: 2026-06-28
 
 ## Task Description
 
@@ -200,7 +203,7 @@ The one design decision that might prompt review: the delete button is **always 
 
 ## Implementation Roadmap
 
-### Phase 1 — Mutation Hook + Endpoint Wiring (backend-free, pure frontend)
+### [x] Phase 1 — Mutation Hook + Endpoint Wiring (backend-free, pure frontend) — COMPLETE
 
 1. Add `deleteCard` to the import list in `frontend/src/api/hooks.ts`
 2. Implement `useDeleteCard(columnId: string)` in `hooks.ts`:
@@ -221,27 +224,37 @@ The one design decision that might prompt review: the delete button is **always 
 
 ## Execution State
 
-**Build Status**: RUNNING
+**Build Status**: IDLE
+**Current Phase**: COMPLETE
 **Current Build**: Phase 1: Mutation Hook + Endpoint Wiring (TASK-018)
 **Build Started**: 2026-06-28
+**Build Completed**: 2026-06-28
 **Phase Number**: 1 of 1
 **Is Multi-Phase**: NO
 
 ### Current Build Step
-**Step**: Step 0.5 - Git Setup (retry)
-**Status**: RUNNING
-**Started**: 2026-06-28
+**Step**: Step 5 - Report Completion
+**Status**: COMPLETE
+**Completed**: 2026-06-28
 
 ### Completed Steps
 - Planning: COMPLETE — spec approved, PLANNING_COMPLETE
 - Step 0: Parse task ID — COMPLETE
 - Step 0.1: No interrupted build — NEW BUILD
 - Step 0.6: Phase gate — PASSED
+- Step 1: Git setup — COMPLETE
+- Step 2: Implementation (Phase 1) — COMPLETE
+- Step 3: Tests — COMPLETE (useDeleteCard.test.ts new; KanbanCard.test.tsx, KanbanColumn.test.tsx, BoardPage.test.tsx, KanbanBoard.test.tsx extended)
+- Step 4: Documentation — COMPLETE
+- REFLECT Step 1: Verify Prerequisites — COMPLETE
+- REFLECT Step 2: Load Complexity Context — COMPLETE (Level 2 reflection rules loaded)
 
 ### Sub-Agents
-(none yet)
+- coding-agent: Phase 1 implementation — COMPLETE
+- test-writer-agent: Phase 1 tests — COMPLETE
+- documentation-agent: Memory bank updates — COMPLETE
+- Reflection Agent: COMPLETE (2026-06-28) — Output: memory-bank/reflection/reflection-TASK-018.md
 
 ### Resumption Notes
-**Can Resume**: YES
-**Resume From**: Step 0.5 Git Setup
-**Notes**: New build, Phase 1 of 1
+**Can Resume**: NO
+**Notes**: Reflection complete. Ready for /banyan-archive.

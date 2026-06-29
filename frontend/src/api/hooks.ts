@@ -9,6 +9,7 @@ import {
   createCard,
   moveCard,
   updateCard,
+  deleteCard,
 } from '@/api/endpoints'
 import type { PaginatedResponse, Board, BoardWithColumns, Card, Label, ApiError } from '@/types'
 
@@ -78,6 +79,35 @@ export function useUpdateCard(columnId: string) {
       return { prevCards }
     },
     onError: (_err, _vars, ctx) => {
+      if (ctx?.prevCards !== undefined) {
+        qc.setQueryData(queryKeys.cards.byColumn(columnId), ctx.prevCards)
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.cards.byColumn(columnId) })
+    },
+  })
+}
+
+type DeleteCardCtx = { prevCards: Card[] | undefined }
+
+export function useDeleteCard(columnId: string) {
+  const qc = useQueryClient()
+  return useMutation<void, ApiError, string, DeleteCardCtx>({
+    mutationFn: (cardId) => deleteCard(cardId),
+    onMutate: async (cardId) => {
+      await qc.cancelQueries({ queryKey: queryKeys.cards.byColumn(columnId) })
+      const prevCards = qc.getQueryData<Card[]>(queryKeys.cards.byColumn(columnId))
+      qc.setQueryData<Card[]>(queryKeys.cards.byColumn(columnId), (old) =>
+        (old ?? []).filter((c) => c.id !== cardId)
+      )
+      // Remove the card detail cache entry so a subsequent navigation to the card
+      // detail page doesn't flash stale data from a card that no longer exists.
+      // useUpdateCard skips this step because the card still exists after an update.
+      qc.removeQueries({ queryKey: queryKeys.cards.detail(cardId) })
+      return { prevCards }
+    },
+    onError: (_err, _cardId, ctx) => {
       if (ctx?.prevCards !== undefined) {
         qc.setQueryData(queryKeys.cards.byColumn(columnId), ctx.prevCards)
       }

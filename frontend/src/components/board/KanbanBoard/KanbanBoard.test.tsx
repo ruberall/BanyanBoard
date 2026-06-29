@@ -30,6 +30,7 @@ vi.mock('@/api/hooks')
 
 const mockedUseCards = hooks.useCards as Mock
 const mockedUseCreateCard = hooks.useCreateCard as Mock
+const mockedUseDeleteCard = hooks.useDeleteCard as Mock
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -81,6 +82,10 @@ beforeEach(() => {
   // Default: each column's cards are empty and not loading
   mockedUseCards.mockReturnValue({ data: [], isLoading: false, isError: false, error: null })
   mockedUseCreateCard.mockReturnValue(mockMutation())
+  // Default stub for useDeleteCard (TASK-018) — returns a no-op mutation
+  if (mockedUseDeleteCard) {
+    mockedUseDeleteCard.mockReturnValue(mockMutation())
+  }
 })
 
 // ===========================================================================
