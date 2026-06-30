@@ -2,11 +2,11 @@
 
 ## Summary
 
-- **Total Features**: 15
+- **Total Features**: 16
 - **Released Versions**: 0
 - **Active Versions**: 0
 - **Planning Versions**: 1
-- **Backlog (next)**: 2
+- **Backlog (next)**: 3
 
 ---
 
@@ -38,6 +38,7 @@
   - FEAT-013: Activity Feed User Attribution (complete) [Level 3]
   - FEAT-014: Workflow Automation (complete) [Level 4]
   - FEAT-015: Delete Card UI (complete) [Level 2]
+  - FEAT-016: Webhook Delivery for Workflow Rules (planned) [Level 4]
 
 ---
 
@@ -270,6 +271,19 @@ HTTP 400 for synchronous rule failures; stored as `delivery_error` JSON for asyn
 - **Linked Tasks**: TASK-018
 - **Branch**: feature/FEAT-015-delete-card-ui
 - **Created**: 2026-06-28
+
+---
+
+### FEAT-016: Webhook Delivery for Workflow Rules
+
+- **Version**: next
+- **Status**: planned
+- **Priority**: high
+- **Complexity**: Level 4
+- **Description**: Extend workflow automation so that trigger rules can optionally POST a JSON payload to a user-configured webhook URL when the trigger fires. Webhook delivery retries up to 3 times on failure. Delivery status is tracked in a separate `webhook_deliveries` table, decoupled from trigger execution status, following the Webhook Delivery Pattern in `systemPatterns.md`. Users configure rules and webhook URLs via a Board Settings → Automation tab in the frontend. Four implementation phases: (1) Data model + CRUD API for `automation_rules`, `trigger_executions`, and `webhook_deliveries`; (2) Trigger evaluation engine (event listeners, rule matching, execution dispatch); (3) Webhook dispatcher + retry logic + delivery record lifecycle (pending → delivered | failed → exhausted); (4) UI settings panel (rule creation form, webhook URL input, delivery history).
+- **Linked Tasks**: TASK-019
+- **Branch**: feature/FEAT-016-webhook-delivery
+- **Created**: 2026-06-30
 
 ---
 

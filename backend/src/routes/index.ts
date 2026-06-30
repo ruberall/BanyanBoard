@@ -6,6 +6,7 @@ import { requireAuth } from '../middleware/requireAuth';
 import { createBoardsRouter } from './boards';
 import { createColumnCardsRouter, createCardsRouter } from './cards';
 import { createFeedRouter } from './feed';
+import { createAutomationRouter, createWebhookDeliveriesRouter } from './automation';
 import type { DomainEventBus } from '../events/domain-event-bus';
 import { EventService } from '../services/event.service';
 import { UserRepository } from '../repositories/user.repository';
@@ -40,6 +41,10 @@ export function createRouter(db: Queryable, bus?: DomainEventBus, config?: Confi
   router.use('/boards', createBoardsRouter(db, workflowService));
   router.use('/columns', createColumnCardsRouter(db, eventService));
   router.use('/cards', createCardsRouter(db, eventService, workflowService));
+
+  // Automation webhook routes
+  router.use('/boards/:boardId/automation-rules', createAutomationRouter(db));
+  router.use('/boards/:boardId/webhook-deliveries', createWebhookDeliveriesRouter(db));
 
   // SSE activity feed — only mounted when a bus is provided
   if (bus) {

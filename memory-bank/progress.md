@@ -2,6 +2,25 @@
 
 ---
 
+## 2026-06-30 - TASK-019: Webhook Delivery — Phase 1 COMPLETE
+
+**Task**: Webhook Delivery for Workflow Rules (FEAT-016)
+**Phase**: Phase 1 — Data model + CRUD API
+
+### What Was Built
+- DB migration (`20260630120000_add-automation-webhooks.js`): 3 new tables — `automation_rules`, `trigger_executions`, `webhook_deliveries`; CHECK constraint on `status`; partial index on `(board_id, trigger_type) WHERE enabled = true`
+- `AutomationRepository` (9 methods): full parameterized SQL, RETURNING on all writes, ID-based cursor pagination returning `DeliveryPage { data, hasMore, nextCursor }` envelope
+- `AutomationService`: webhook URL validation (`new URL()` + scheme), `trigger_type` allowlist (`ALLOWED_TRIGGER_TYPES`), `NotFoundError` on PATCH/DELETE for missing rule
+- Two route factories: `createAutomationRouter` (POST/GET/PATCH/DELETE on automation-rules) and `createWebhookDeliveriesRouter` (GET with cursor pagination); both `mergeParams: true`
+- `WEBHOOK_*` config fields (max attempts, backoff, timeout, block private ranges); `envBoolean` Zod fix for all boolean env vars
+- 258/258 tests passing; TypeScript clean; Code Review APPROVED
+
+### Issues Encountered
+- `z.coerce.boolean()` bug: `Boolean('false') === true`; fixed with custom `envBoolean` transformer
+- Code Review (iteration 1) required fixes: cursor pagination (timestamp → ID-based), PATCH/DELETE 404 guards, trigger_type allowlist, limit NaN guard; all resolved in iteration 2
+
+---
+
 ## Task Archive: TASK-018
 
 **Task**: Delete Card UI (FEAT-015)

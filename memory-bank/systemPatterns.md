@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-28 (TASK-018 Phase 1: added useDeleteCard optimistic delete pattern with removeQueries for detail cache)
+**Last updated**: 2026-06-30 (TASK-019 Phase 1: added envBoolean transformer, service-layer allowlist validation, webhook URL validation patterns; Webhook Delivery Pattern updated with concrete implementation details)
 
 ## Guiding Principles
 
@@ -195,15 +195,72 @@ if (this.workflowService && destinationColumnName === 'Done') {
 - **Purpose**: allows operators to query `WHERE trigger_status = 'failed'` and read `trigger_error` to understand the failure root cause without joining to the deliveries table for the common diagnostic case
 - **Implementation**: `backend/src/repositories/workflow.repository.ts` `insertTrigger(ruleId, boardId, cardId, status, error?)`
 
-## Webhook Delivery Pattern
+## Webhook Delivery Pattern (TASK-019 Phase 1)
 
-When a trigger with webhook configuration fires:
+Data model for webhook automation (three tables, migration `20260630120000_add-automation-webhooks.js`):
 
-1. Trigger execution completes first (decoupled from delivery)
-2. Webhook delivery queued as separate async job
-3. Delivery attempts: max 3, 30-second backoff between attempts
-4. Delivery record: `{ rule_id, attempt_count, status, http_response_code, error, created_at }`
-5. Status lifecycle: `pending` → `delivered` | `failed` → `exhausted`
+- `automation_rules` — stores the rule definition (`board_id`, `trigger_type`, `webhook_url`, `enabled`)
+- `trigger_executions` — one row per firing of a rule (`rule_id`, `status`, `executed_at`, `error`)
+- `webhook_deliveries` — one row per HTTP delivery attempt (`execution_id`, `attempt`, `status`, `http_status`, `error`, `delivered_at`)
+
+Status lifecycle: `pending` → `delivered` | `failed` → `exhausted`
+
+Retry configuration is injected from `config.ts` (not hardcoded):
+- `WEBHOOK_MAX_ATTEMPTS` — max delivery attempts (default 3)
+- `WEBHOOK_BACKOFF_MS` — flat backoff between attempts (default 30 000 ms)
+- `WEBHOOK_REQUEST_TIMEOUT_MS` — per-request HTTP timeout (default 5 000 ms)
+- `WEBHOOK_BLOCK_PRIVATE_RANGES` — block SSRF via private-IP ranges (default `true`)
+
+## `envBoolean` Zod Transformer Pattern (TASK-019 Phase 1)
+
+`z.coerce.boolean()` incorrectly coerces the string `'false'` to `true` (any non-empty string → `true`). Use a custom transformer instead:
+
+```typescript
+const envBoolean = z.string().optional().transform((v) => {
+  return !['false', '0', 'no', ''].includes((v ?? '').toLowerCase());
+});
+```
+
+- Maps `'false'`, `'0'`, `'no'`, `''`, and `undefined` to `false`; any other value to `true`
+- Applied to all boolean config fields: `RUN_MIGRATIONS_ON_START`, `OTEL_SDK_DISABLED`, `SESSION_SECURE`, `WEBHOOK_BLOCK_PRIVATE_RANGES`
+- **Implementation**: `backend/src/config.ts`
+
+## Service-Layer Allowlist Validation Pattern (TASK-019 Phase 1)
+
+Enum-constrained fields (e.g., `trigger_type`) are validated against a constant allowlist in the service layer before any DB write:
+
+```typescript
+const ALLOWED_TRIGGER_TYPES = ['card.moved', 'card.created'] as const;
+
+if (!ALLOWED_TRIGGER_TYPES.includes(input.triggerType)) {
+  throw new ValidationError(`Unsupported trigger_type: ${input.triggerType}`);
+}
+```
+
+- Allowlist is a `const` array at the top of the service file (single source of truth)
+- Validation throws `ValidationError` (400) before any DB call
+- Keeps invalid enum values from silently persisting and surfacing as runtime errors later
+- **Implementation**: `backend/src/services/automation.service.ts`
+
+## Webhook URL Validation Pattern (TASK-019 Phase 1)
+
+Webhook URLs are validated at the service layer using the WHATWG `URL` constructor plus a scheme allow-check before any DB write:
+
+```typescript
+try {
+  const parsed = new URL(input.webhookUrl);
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new ValidationError('webhookUrl must use http or https');
+  }
+} catch {
+  throw new ValidationError('webhookUrl is not a valid URL');
+}
+```
+
+- `new URL()` throws on malformed URLs — catch maps to `ValidationError` (400)
+- Explicit protocol check prevents non-HTTP schemes (`ftp:`, `file:`, etc.)
+- Private-range SSRF blocking is a separate runtime concern (`WEBHOOK_BLOCK_PRIVATE_RANGES` config flag)
+- **Implementation**: `backend/src/services/automation.service.ts`
 
 ## WorkflowService Optional DI Pattern (TASK-017 Phase 2)
 
@@ -458,6 +515,9 @@ When `credentials: true`, browsers reject `Access-Control-Allow-Origin: *`. `bac
 | `messages` | `id` uuid PK gen_random_uuid(), `message` varchar(255) NOT NULL, `created_at` timestamptz DEFAULT now(), `recipient_user_id` uuid FK → users CASCADE DELETE |
 | `workflow_rule_triggers` | `id` uuid PK, `rule_id` varchar NOT NULL, `board_id` FK → boards CASCADE DELETE, `card_id` FK → cards SET NULL, `triggered_at` timestamptz DEFAULT now(), `trigger_status` varchar CHECK IN ('success','failed'), `trigger_error` text |
 | `workflow_action_deliveries` | `id` uuid PK, `trigger_id` FK → workflow_rule_triggers CASCADE DELETE, `attempt` int NOT NULL, `attempted_at` timestamptz DEFAULT now(), `delivery_status` varchar CHECK IN ('pending','success','failed'), `delivery_error` text |
+| `automation_rules` | `id` uuid PK gen_random_uuid(), `board_id` FK → boards CASCADE DELETE, `trigger_type` varchar NOT NULL, `webhook_url` text NOT NULL, `enabled` boolean NOT NULL DEFAULT true, `created_at` timestamptz DEFAULT now() |
+| `trigger_executions` | `id` uuid PK gen_random_uuid(), `rule_id` FK → automation_rules CASCADE DELETE, `status` varchar CHECK IN ('pending','success','failed'), `executed_at` timestamptz DEFAULT now(), `error` text |
+| `webhook_deliveries` | `id` uuid PK gen_random_uuid(), `execution_id` FK → trigger_executions CASCADE DELETE, `attempt` int NOT NULL, `status` varchar CHECK IN ('pending','delivered','failed','exhausted'), `http_status` int, `error` text, `delivered_at` timestamptz |
 
 ## Query Patterns
 

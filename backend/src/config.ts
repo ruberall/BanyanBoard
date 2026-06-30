@@ -1,6 +1,16 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+// z.coerce.boolean() uses Boolean() which treats any non-empty string as true,
+// so 'false' would be coerced to true. This custom coercion correctly handles
+// string env var values: 'false', '0', 'no', '' → false; everything else → true.
+const envBoolean = z
+  .union([z.boolean(), z.string()])
+  .transform((val) => {
+    if (typeof val === 'boolean') return val;
+    return !['false', '0', 'no', ''].includes(val.toLowerCase());
+  });
+
 const configSchema = z.object({
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.string().default('development'),
@@ -11,17 +21,21 @@ const configSchema = z.object({
   DB_POOL_IDLE_TIMEOUT_MS: z.coerce.number().default(30000),
   DB_POOL_CONNECTION_TIMEOUT_MS: z.coerce.number().default(5000),
   MIGRATIONS_DIR: z.string().default('migrations'),
-  RUN_MIGRATIONS_ON_START: z.coerce.boolean().default(true),
-  OTEL_SDK_DISABLED: z.coerce.boolean().default(true),
+  RUN_MIGRATIONS_ON_START: envBoolean.default(true),
+  OTEL_SDK_DISABLED: envBoolean.default(true),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters').optional(),
   SESSION_COOKIE_MAX_AGE_MS: z.coerce.number().default(7 * 24 * 60 * 60 * 1000),
-  SESSION_SECURE: z.coerce.boolean().default(false),
+  SESSION_SECURE: envBoolean.default(false),
   FEED_MAX_HISTORY: z.coerce.number().default(20),
   FEED_SSE_HEARTBEAT_MS: z.coerce.number().default(15000),
   WORKFLOW_STALE_AGE_DAYS: z.coerce.number().default(2),
   WORKFLOW_RULE2_BASE_DELAY_MS: z.coerce.number().default(200),
   WORKFLOW_RULE2_MAX_ATTEMPTS: z.coerce.number().default(3),
+  WEBHOOK_MAX_ATTEMPTS: z.coerce.number().default(3),
+  WEBHOOK_BACKOFF_MS: z.coerce.number().default(30000),
+  WEBHOOK_REQUEST_TIMEOUT_MS: z.coerce.number().default(5000),
+  WEBHOOK_BLOCK_PRIVATE_RANGES: envBoolean.default(true),
 });
 
 // Config exposes the 8 core fields as required (matching test stubs)
@@ -47,6 +61,10 @@ export type Config = {
   WORKFLOW_STALE_AGE_DAYS?: number;
   WORKFLOW_RULE2_BASE_DELAY_MS?: number;
   WORKFLOW_RULE2_MAX_ATTEMPTS?: number;
+  WEBHOOK_MAX_ATTEMPTS?: number;
+  WEBHOOK_BACKOFF_MS?: number;
+  WEBHOOK_REQUEST_TIMEOUT_MS?: number;
+  WEBHOOK_BLOCK_PRIVATE_RANGES?: boolean;
 };
 
 const parseResult = configSchema.safeParse(process.env);
