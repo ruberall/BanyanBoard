@@ -28,6 +28,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { Mock } from 'vitest'
@@ -44,6 +45,20 @@ vi.mock('@/api/hooks')
 // Mock useActivityFeed to prevent EventSource creation in jsdom
 vi.mock('@/hooks/useActivityFeed', () => ({
   useActivityFeed: () => ({ events: [], connectionStatus: 'connecting' as const }),
+}))
+
+// Mock BoardSettingsModal to avoid pulling in the full automation hook tree.
+// The BoardPage tests for the modal only need to verify open/close behaviour,
+// not the Automation tab internals (those are covered in BoardSettingsModal.test.tsx).
+vi.mock('@/components/BoardSettings/BoardSettingsModal', () => ({
+  BoardSettingsModal: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
+    open ? (
+      <dialog open>
+        <h2>Board Settings</h2>
+        <p>Automation</p>
+        <button type="button" aria-label="Close" onClick={onClose}>×</button>
+      </dialog>
+    ) : null,
 }))
 
 // Mock useNavigate while keeping MemoryRouter, Route, Routes intact (Phase 2)
@@ -378,6 +393,62 @@ describe('BoardPage — Back button navigation (Phase 2, AC-S5-HAPPY-2)', () => 
 
     expect(mockNavigate).toHaveBeenCalledOnce()
     expect(mockNavigate).toHaveBeenCalledWith('/')
+  })
+})
+
+// ===========================================================================
+// TASK-019 Phase 4 — Board Settings gear button + modal (AC-ENTRY-1)
+//
+// A gear icon button with aria-label="Board settings" is added to the heading row.
+// Clicking it opens the BoardSettingsModal; clicking the modal's close button hides it.
+// The modal renders the Automation tab content.
+// ===========================================================================
+
+describe('BoardPage — Board Settings gear button (TASK-019 Phase 4)', () => {
+  beforeEach(() => {
+    mockedUseBoard.mockReturnValue({
+      data: BOARD_WITH_COLUMNS,
+      isLoading: false,
+      isError: false,
+      error: null,
+    })
+  })
+
+  it('renders a gear button with aria-label="Board settings"', () => {
+    renderBoardPage()
+
+    expect(screen.getByRole('button', { name: /board settings/i })).toBeInTheDocument()
+  })
+
+  it('opens the settings modal when the gear button is clicked', async () => {
+    const user = userEvent.setup()
+    renderBoardPage()
+
+    await user.click(screen.getByRole('button', { name: /board settings/i }))
+
+    // Modal content should be visible after clicking
+    const modalContent =
+      screen.queryByRole('heading', { name: /board settings/i }) ??
+      screen.queryByText(/automation/i)
+    expect(modalContent).toBeInTheDocument()
+  })
+
+  it('closes the modal when the modal close button is clicked', async () => {
+    const user = userEvent.setup()
+    renderBoardPage()
+
+    // Open modal
+    await user.click(screen.getByRole('button', { name: /board settings/i }))
+
+    // Close modal via the × button inside it
+    const closeBtn = screen.getByRole('button', { name: /close|dismiss|×|✕/i })
+    await user.click(closeBtn)
+
+    // Modal content should no longer be open
+    const dialog = document.querySelector('dialog')
+    if (dialog) {
+      expect(dialog).not.toHaveAttribute('open')
+    }
   })
 })
 

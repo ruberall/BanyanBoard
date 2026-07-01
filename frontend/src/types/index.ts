@@ -94,3 +94,25 @@ export class ApiError extends Error {
     this.name = 'ApiError'
   }
 }
+
+export interface AutomationRule {
+  id: string
+  board_id: string
+  trigger_type: string
+  webhook_url: string
+  enabled: boolean
+  created_at: string
+}
+
+export interface WebhookDelivery {
+  id: string
+  trigger_execution_id: string
+  automation_rule_id: string
+  board_id: string
+  attempt_count: number
+  status: 'pending' | 'delivered' | 'failed' | 'exhausted'
+  http_response_code: number | null
+  error: Array<{ field: string; error: string }> | null
+  created_at: string
+  updated_at: string
+}

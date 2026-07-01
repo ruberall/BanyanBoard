@@ -1,0 +1,33 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.icon {
+  font-size: 0.65rem;
+}
+
+.pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.delivered {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.failed {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.exhausted {
+  background-color: #f3f4f6;
+  color: #374151;
+}
