@@ -20,4 +20,4 @@
 | TASK-016 | Activity Feed User Attribution | ARCHIVE | COMPLETE | FEAT-013 |
 | TASK-017 | Workflow Automation | ARCHIVE | COMPLETE | FEAT-014 |
 | TASK-018 | Delete Card UI | ARCHIVE | COMPLETE | FEAT-015 |
-| TASK-019 | Webhook Delivery for Workflow Rules | BUILD | Phase 2/4 | FEAT-016 |
+| TASK-019 | Webhook Delivery for Workflow Rules | REFLECT | REFLECTION_COMPLETE | FEAT-016 |
