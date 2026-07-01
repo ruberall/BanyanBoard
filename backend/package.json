@@ -12,6 +12,7 @@
     "migrate:down": "node-pg-migrate down"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
     "bcrypt": "^6.0.0",
     "connect-pg-simple": "^10.0.0",
     "cors": "^2.8.6",

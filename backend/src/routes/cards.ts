@@ -4,6 +4,7 @@ import { CardRepository } from '../repositories/card.repository';
 import { CardService } from '../services/card.service';
 import type { EventService } from '../services/event.service';
 import type { WorkflowService } from '../services/workflow.service';
+import type { AutomationService } from '../services/automation.service';
 import { asyncHandler } from '../lib/asyncHandler';
 import { ValidationError } from '../errors';
 
@@ -99,9 +100,10 @@ export function createCardsRouter(
   db: Queryable,
   eventService?: EventService,
   workflowService?: WorkflowService,
+  automationService?: AutomationService,
 ): Router {
   const repo = new CardRepository(db);
-  const service = new CardService(repo, db, eventService, workflowService);
+  const service = new CardService(repo, db, eventService, workflowService, automationService);
   const router = Router();
 
   router.get('/:id', asyncHandler(async (req, res) => {

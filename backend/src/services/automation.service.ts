@@ -1,6 +1,7 @@
 import { WorkflowError, NotFoundError } from '../errors';
 import type { AutomationRepository, AutomationRule, DeliveryPage } from '../repositories/automation.repository';
 import { logger } from '../logger';
+import type { WebhookDispatcher, WebhookPayload } from './webhook.dispatcher';
 
 function validateWebhookUrl(url: string): void {
   try {
@@ -21,7 +22,10 @@ function validateWebhookUrl(url: string): void {
 const ALLOWED_TRIGGER_TYPES = ['card.moved.done'] as const;
 
 export class AutomationService {
-  constructor(private readonly repo: AutomationRepository) {}
+  constructor(
+    private readonly repo: AutomationRepository,
+    private readonly dispatcher?: WebhookDispatcher,
+  ) {}
 
   async createRule(boardId: string, input: { trigger_type: string; webhook_url: string; enabled?: boolean }): Promise<AutomationRule> {
     validateWebhookUrl(input.webhook_url);
@@ -52,18 +56,38 @@ export class AutomationService {
     return this.repo.findDeliveriesByBoard(boardId, limit, cursor);
   }
 
-  async evaluateCardMovedToDone(boardId: string, card: { id: string; title: string }): Promise<void> {
+  async evaluateCardMovedToDone(
+    boardId: string,
+    card: { id: string; title: string; fromColumnName?: string | null; toColumnName?: string },
+  ): Promise<void> {
     const rules = await this.repo.findEnabledRulesByBoardAndTrigger(boardId, 'card.moved.done');
-    for (const rule of rules) {
-      try {
-        await this.repo.insertTriggerExecution({
-          automation_rule_id: rule.id,
-          board_id: boardId,
-          card_id: card.id,
-        });
-      } catch (err) {
-        logger.warn({ err, ruleId: rule.id, boardId, cardId: card.id }, 'automation.trigger_execution.insert_failed');
-      }
-    }
+    await Promise.allSettled(
+      rules.map(async (rule) => {
+        try {
+          const execution = await this.repo.insertTriggerExecution({
+            automation_rule_id: rule.id,
+            board_id: boardId,
+            card_id: card.id,
+          });
+          const payload: WebhookPayload = {
+            version: '1',
+            event: 'card.moved.done',
+            rule_id: rule.id,
+            board_id: boardId,
+            trigger_execution_id: execution.id,
+            occurred_at: execution.occurred_at.toISOString(),
+            data: {
+              card_id: card.id,
+              card_title: card.title,
+              from_column: card.fromColumnName ?? null,
+              to_column: card.toColumnName ?? '',
+            },
+          };
+          this.dispatcher?.dispatch(rule, execution, payload).catch(() => {});
+        } catch (err) {
+          logger.warn({ err, ruleId: rule.id, boardId, cardId: card.id }, 'automation.trigger_execution.insert_failed');
+        }
+      })
+    );
   }
 }

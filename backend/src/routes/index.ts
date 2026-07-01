@@ -13,6 +13,10 @@ import { UserRepository } from '../repositories/user.repository';
 import type { Config } from '../config';
 import { WorkflowService } from '../services/workflow.service';
 import { WorkflowRepository } from '../repositories/workflow.repository';
+import { AutomationRepository } from '../repositories/automation.repository';
+import { AutomationService } from '../services/automation.service';
+import { WebhookTransport } from '../services/webhook.transport';
+import { WebhookDispatcher } from '../services/webhook.dispatcher';
 
 export function createRouter(db: Queryable, bus?: DomainEventBus, config?: Config): Router {
   const router = Router();
@@ -28,6 +32,17 @@ export function createRouter(db: Queryable, bus?: DomainEventBus, config?: Confi
     workflowRule2MaxAttempts: config?.WORKFLOW_RULE2_MAX_ATTEMPTS  ?? 3,
   });
 
+  // Automation + webhook dispatch — always wired.
+  const automationRepo = new AutomationRepository(db);
+  const webhookTransport = new WebhookTransport();
+  const webhookDispatcher = new WebhookDispatcher(automationRepo, webhookTransport, {
+    maxAttempts:         config?.WEBHOOK_MAX_ATTEMPTS         ?? 3,
+    backoffMs:           config?.WEBHOOK_BACKOFF_MS           ?? 30000,
+    timeoutMs:           config?.WEBHOOK_REQUEST_TIMEOUT_MS   ?? 5000,
+    blockPrivateRanges:  config?.WEBHOOK_BLOCK_PRIVATE_RANGES ?? true,
+  });
+  const automationService = new AutomationService(automationRepo, webhookDispatcher);
+
   // Public routes — must be registered before requireAuth.
   // Express matches middleware in registration order; mounting auth routes after
   // requireAuth would block login/register with a 401 before they could respond.
@@ -40,7 +55,7 @@ export function createRouter(db: Queryable, bus?: DomainEventBus, config?: Confi
   // Protected routes
   router.use('/boards', createBoardsRouter(db, workflowService));
   router.use('/columns', createColumnCardsRouter(db, eventService));
-  router.use('/cards', createCardsRouter(db, eventService, workflowService));
+  router.use('/cards', createCardsRouter(db, eventService, workflowService, automationService));
 
   // Automation webhook routes
   router.use('/boards/:boardId/automation-rules', createAutomationRouter(db));

@@ -121,7 +121,10 @@ export class CardService {
 
     // Automation trigger evaluation: fire-and-forget when card is moved to the Done column.
     if (this.automationService && destColName === 'Done') {
-      this.automationService.evaluateCardMovedToDone(boardId, card).catch((err) => {
+      this.automationService.evaluateCardMovedToDone(boardId, {
+        ...card,
+        toColumnName: destColName,
+      }).catch((err) => {
         logger.warn({ err, cardId: card.id }, 'automation.evaluate.trigger_failed');
       });
     }
