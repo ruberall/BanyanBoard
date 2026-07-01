@@ -2,7 +2,7 @@
 name: "Learned: Security"
 globs: ["backend/src/routes/auth.ts", "backend/src/routes/*.ts", "backend/src/middleware/*.ts", "backend/migrations/*.js", "backend/src/**/*.ts", "frontend/src/**/*.tsx"]
 topics: ["security", "authentication", "session-management", "pii", "migrations", "outbound-http", "credential-exposure", "ssrf", "trace-context"]
-priority: low
+priority: medium
 evidence_count: 4
 last_updated: 2026-07-01
 auto_generated: true

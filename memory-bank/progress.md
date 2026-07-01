@@ -2,6 +2,15 @@
 
 ---
 
+## Task Archive: TASK-019
+
+**Task**: Webhook Delivery for Workflow Rules
+**Status**: ✅ ARCHIVED
+**Date**: 2026-07-01
+**Archive**: `memory-bank/archive/archive-TASK-019.md`
+
+---
+
 ## 2026-07-01 - TASK-019: Webhook Delivery — REFLECTION_COMPLETE
 
 **Task**: Webhook Delivery for Workflow Rules (FEAT-016)

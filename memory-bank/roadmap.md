@@ -38,7 +38,7 @@
   - FEAT-013: Activity Feed User Attribution (complete) [Level 3]
   - FEAT-014: Workflow Automation (complete) [Level 4]
   - FEAT-015: Delete Card UI (complete) [Level 2]
-  - FEAT-016: Webhook Delivery for Workflow Rules (planned) [Level 4]
+  - FEAT-016: Webhook Delivery for Workflow Rules (complete) [Level 4]
 
 ---
 
