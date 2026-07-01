@@ -65,9 +65,9 @@ No clever abstractions. No microservices. One Express app.
 │   │   ├── services/
 │   │   │   ├── auth.service.ts   # AuthService — register, login, getMe (bcrypt cost 12, email-enum-safe)
 │   │   │   ├── board.service.ts  # BoardService — input validation + business logic; accepts optional WorkflowService; calls applyBoardRules in getBoardById
-│   │   │   ├── card.service.ts   # CardService — moveCard fires Done-color trigger fire-and-forget when destination column = 'Done' (Phase 3); accepts optional WorkflowService as 4th constructor param
+│   │   │   ├── card.service.ts   # CardService — moveCard fires Done-color trigger fire-and-forget when destination column = 'Done' (Phase 3); accepts optional WorkflowService as 4th constructor param, optional AutomationService as 5th constructor param (TASK-019 Phase 2)
 │   │   │   ├── workflow.service.ts # WorkflowService — applyBoardRules (Rule #1 stale-move via Promise.allSettled); returns WorkflowWarning[]; triggerDoneColorRule (Rule #2 Done-color, Phase 3) — manual retry loop, always resolves, inserts trigger row after all attempts with final status + last delivery error
-│   │   │   └── automation.service.ts # AutomationService — createRule (URL + allowlist validation), listRules, updateRuleEnabled, deleteRule, listDeliveries; ALLOWED_TRIGGER_TYPES allowlist (TASK-019)
+│   │   │   └── automation.service.ts # AutomationService — createRule (URL + allowlist validation), listRules, updateRuleEnabled, deleteRule, listDeliveries; ALLOWED_TRIGGER_TYPES allowlist; evaluateCardMovedToDone(boardId, card) fans out to trigger_executions for all matching enabled rules, always resolves (TASK-019)
 │   │   ├── repositories/
 │   │   │   ├── user.repository.ts  # UserRepository — SQL + User/PublicUser types (no password_hash in PublicUser)
 │   │   │   ├── board.repository.ts # BoardRepository — SQL + Board/Column types

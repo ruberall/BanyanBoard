@@ -2,6 +2,21 @@
 
 ---
 
+## 2026-07-01 - TASK-019: Webhook Delivery — Phase 2 COMPLETE
+
+**Task**: Webhook Delivery for Workflow Rules (FEAT-016)
+**Phase**: Phase 2 — Trigger evaluation engine
+
+### What Was Built
+- `AutomationService.evaluateCardMovedToDone(boardId, card)`: queries enabled rules by board + trigger type, inserts one `trigger_executions` row per matching rule, wraps each insertion in try/catch with `logger.warn` on failure, always resolves
+- `CardService` updated: optional `automationService?: AutomationService` as 5th constructor param; fire-and-forget call in `moveCard` when `destColName === 'Done'`, following Fire-and-Forget Trigger Pattern
+- 13 new tests (8 AutomationService unit + 5 CardService integration); 271/271 total pass; TypeScript clean; Code Review APPROVED
+
+### Issues Encountered
+- None — straightforward implementation; code review recommended adding `logger.warn` to the silent catch block (applied before commit)
+
+---
+
 ## 2026-06-30 - TASK-019: Webhook Delivery — Phase 1 COMPLETE
 
 **Task**: Webhook Delivery for Workflow Rules (FEAT-016)

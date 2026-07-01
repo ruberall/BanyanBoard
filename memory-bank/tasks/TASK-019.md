@@ -208,7 +208,7 @@ Tests follow the existing patterns in `systemPatterns.md` Testing Patterns: **Je
 ## Implementation Roadmap
 
 - [x] Phase 1: Data model + CRUD API
-- [ ] Phase 2: Trigger evaluation engine
+- [x] Phase 2: Trigger evaluation engine
 - [ ] Phase 3: Webhook delivery + retry
 - [ ] Phase 4: UI settings panel
 
@@ -228,9 +228,20 @@ Tests follow the existing patterns in `systemPatterns.md` Testing Patterns: **Je
 **Is Multi-Phase**: YES
 
 ### Current Build Step
-**Step**: Step 9-10 - Documentation + Memory Bank
-**Status**: RUNNING
-**Started**: 2026-06-30
+**Step**: Phase 2 COMPLETE — awaiting /banyan-build Phase 3
+**Status**: IDLE
+**Completed**: 2026-07-01
+
+**Build Status**: IDLE
+**Current Build**: Phase 2: Trigger evaluation engine (TASK-019) — COMPLETE
+**Phase Number**: 2 of 4
+**Is Multi-Phase**: YES
+
+**Build Status**: RUNNING
+**Current Build**: Phase 2: Trigger evaluation engine (TASK-019)
+**Build Started**: 2026-07-01
+**Phase Number**: 2 of 4
+**Is Multi-Phase**: YES
 
 ### Completed Steps
 - Step 0.5 Git Setup: COMPLETE (2026-06-30) - Worktree created at .claude-worktrees/FEAT-016, branch feature/FEAT-016-webhook-delivery
@@ -244,6 +255,13 @@ Tests follow the existing patterns in `systemPatterns.md` Testing Patterns: **Je
 - Step 8 Coding Agent fix (iteration 2): COMPLETE (2026-06-30) - All 5 issues fixed; 258/258 tests passing
 - Step 8 Code Review (iteration 2): COMPLETE (2026-06-30) - APPROVED: all 5 fixes confirmed, 13 Guiding Principles satisfied
 
+### Phase 2 Completed Steps
+- Step 3 Test Writer: COMPLETE (2026-07-01) - 13 tests in 2 files (automation.service.evaluate/card.service)
+- Step 4 Coding Agent: COMPLETE (2026-07-01) - evaluateCardMovedToDone + CardService 5th param implemented; 36/36 pass
+- Step 7 Integration Verification: COMPLETE (2026-07-01) - 271/271 tests PASS, tsc PASS
+- Step 8 Code Review: COMPLETE (2026-07-01) - APPROVED; applied logger.warn to catch block
+- Step 9 Documentation: COMPLETE (2026-07-01) - systemPatterns.md + techContext.md updated
+
 ### Completed Steps
 - Architecture Design: COMPLETE (2026-06-30) — memory-bank/creative/TASK-019-webhook-delivery-architecture.md
 - UI/UX Design: COMPLETE (2026-06-30) — memory-bank/creative/TASK-019-webhook-delivery-uiux.md
@@ -252,6 +270,6 @@ Tests follow the existing patterns in `systemPatterns.md` Testing Patterns: **Je
 (none yet)
 
 ### Resumption Notes
-**Can Resume**: YES
-**Resume From**: Step 0.5 Git Setup
-**Notes**: Phase 1 build starting fresh
+**Can Resume**: NO
+**Resume From**: N/A
+**Notes**: Phase 1 complete. Run /banyan-build TASK-019 for Phase 2.

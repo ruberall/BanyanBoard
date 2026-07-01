@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-30 (TASK-019 Phase 1: added envBoolean transformer, service-layer allowlist validation, webhook URL validation patterns; Webhook Delivery Pattern updated with concrete implementation details)
+**Last updated**: 2026-07-01 (TASK-019 Phase 2: Fire-and-Forget Trigger Pattern updated with second 'Done' fire point for automation trigger evaluation)
 
 ## Guiding Principles
 
@@ -168,10 +168,11 @@ triggerDoneColorRule(boardId, cardId): Promise<void>
 - **Why not `retryWithBackoff`**: `retryWithBackoff` throws on exhaustion and offers no hook for per-attempt side effects. The manual loop keeps DB writes and retry delay inside a single readable flow.
 - **Implementation**: `backend/src/services/workflow.service.ts`
 
-## Fire-and-Forget Trigger Pattern (TASK-017 Phase 3)
+## Fire-and-Forget Trigger Pattern (TASK-017 Phase 3, extended TASK-019 Phase 2)
 
-`CardService.moveCard` fires Rule #2 without awaiting it:
+`CardService.moveCard` fires two independent background side effects when the destination column is 'Done'. Both are fire-and-forget — neither is awaited, and neither blocks the card move response.
 
+**Fire point 1 — Rule #2 Done-color (WorkflowService)**:
 ```typescript
 // In moveCard, after confirming destination column name === 'Done':
 if (this.workflowService && destinationColumnName === 'Done') {
@@ -181,9 +182,21 @@ if (this.workflowService && destinationColumnName === 'Done') {
 }
 ```
 
-- **Why fire-and-forget**: The Done-color action is a background side effect. The card move response must not be delayed by retry timing (up to ~WORKFLOW_RULE2_BASE_DELAY_MS * 3 seconds).
-- **`.catch()` is mandatory**: `triggerDoneColorRule` always resolves, but the `.catch()` guards against any unexpected future regression that causes it to throw. Without it, an unhandled rejection would crash the Node process.
-- **Observable outcome**: failures are recorded in `workflow_rule_triggers.trigger_error` and `workflow_action_deliveries.delivery_error` — the card move itself always succeeds.
+**Fire point 2 — Automation trigger evaluation (AutomationService)**:
+```typescript
+// Immediately after the WorkflowService block above:
+if (this.automationService && destColName === 'Done') {
+  this.automationService.evaluateCardMovedToDone(boardId, card).catch((err) => {
+    logger.warn({ err, cardId: card.id }, 'automation.evaluate.trigger_failed');
+  });
+}
+```
+
+- **Two fire points are intentional**: Rule #2 (workflow color) and automation trigger evaluation are independent concerns. Adding a second fire-and-forget block is the correct pattern — do not collapse them into a single call.
+- **Why fire-and-forget**: Both are background side effects. The card move response must not be delayed by retry timing or trigger fan-out.
+- **`.catch()` is mandatory on both**: Both `triggerDoneColorRule` and `evaluateCardMovedToDone` always resolve, but `.catch()` guards against unexpected future regressions that cause either to throw. Without it, an unhandled rejection would crash the Node process.
+- **`AutomationService` is an optional 5th constructor param** on `CardService`; tests that don't exercise automation can skip wiring it. This follows the same Optional DI Pattern established by `WorkflowService`.
+- **Observable outcome**: workflow failures recorded in `workflow_rule_triggers`; automation trigger fan-out failures logged at warn level with event key `automation.trigger_execution.insert_failed`; the card move itself always succeeds.
 - **Implementation**: `backend/src/services/card.service.ts`
 
 ## `trigger_error` Observability Contract (TASK-017 Phase 3)
@@ -241,6 +254,7 @@ if (!ALLOWED_TRIGGER_TYPES.includes(input.triggerType)) {
 - Validation throws `ValidationError` (400) before any DB call
 - Keeps invalid enum values from silently persisting and surfacing as runtime errors later
 - **Implementation**: `backend/src/services/automation.service.ts`
+- **Related**: `AutomationService.evaluateCardMovedToDone(boardId, card)` queries `findEnabledRulesByBoardAndTrigger(boardId, 'card.moved.done')` and fans out to `trigger_executions` — one row per matching rule; failures are caught per-rule and logged at warn with `automation.trigger_execution.insert_failed`; method always resolves (`Promise<void>`)
 
 ## Webhook URL Validation Pattern (TASK-019 Phase 1)
 

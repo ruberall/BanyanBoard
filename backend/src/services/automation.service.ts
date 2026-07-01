@@ -1,5 +1,6 @@
 import { WorkflowError, NotFoundError } from '../errors';
 import type { AutomationRepository, AutomationRule, DeliveryPage } from '../repositories/automation.repository';
+import { logger } from '../logger';
 
 function validateWebhookUrl(url: string): void {
   try {
@@ -49,5 +50,20 @@ export class AutomationService {
 
   async listDeliveries(boardId: string, limit?: number, cursor?: string): Promise<DeliveryPage> {
     return this.repo.findDeliveriesByBoard(boardId, limit, cursor);
+  }
+
+  async evaluateCardMovedToDone(boardId: string, card: { id: string; title: string }): Promise<void> {
+    const rules = await this.repo.findEnabledRulesByBoardAndTrigger(boardId, 'card.moved.done');
+    for (const rule of rules) {
+      try {
+        await this.repo.insertTriggerExecution({
+          automation_rule_id: rule.id,
+          board_id: boardId,
+          card_id: card.id,
+        });
+      } catch (err) {
+        logger.warn({ err, ruleId: rule.id, boardId, cardId: card.id }, 'automation.trigger_execution.insert_failed');
+      }
+    }
   }
 }
