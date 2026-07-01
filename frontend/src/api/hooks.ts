@@ -10,8 +10,14 @@ import {
   moveCard,
   updateCard,
   deleteCard,
+  listAutomationRules,
+  createAutomationRule,
+  patchAutomationRuleEnabled,
+  deleteAutomationRule,
+  listWebhookDeliveries,
 } from '@/api/endpoints'
-import type { PaginatedResponse, Board, BoardWithColumns, Card, Label, ApiError } from '@/types'
+import type { PaginatedResponse, Board, BoardWithColumns, Card, Label, ApiError, AutomationRule, WebhookDelivery } from '@/types'
+import type { DeliveryPage } from '@/api/endpoints'
 
 const DONE_COLUMN_NAME = 'Done'
 const DONE_CARD_COLOR = '#d4edda'
@@ -131,6 +137,64 @@ function findCardColumn(qc: QueryClient, cardId: string, columnIds: string[]): s
     if (cards?.some((c) => c.id === cardId)) return colId
   }
   return columnIds[0] ?? ''
+}
+
+// Automation hooks
+
+export function useAutomationRules(boardId: string) {
+  return useQuery<AutomationRule[]>({
+    queryKey: queryKeys.automationRules.byBoard(boardId),
+    queryFn: () => listAutomationRules(boardId),
+    enabled: !!boardId,
+  })
+}
+
+export function useWebhookDeliveries(boardId: string, opts?: { enabled?: boolean }) {
+  return useQuery<WebhookDelivery[]>({
+    queryKey: queryKeys.webhookDeliveries.byBoard(boardId),
+    queryFn: async () => {
+      const page = await listWebhookDeliveries(boardId)
+      return page.data
+    },
+    enabled: opts?.enabled !== false && !!boardId,
+    refetchInterval: opts?.enabled !== false ? 30_000 : false,
+    staleTime: 0,
+  })
+}
+
+type CreateRuleVars = { boardId: string; triggerType: string; webhookUrl: string; enabled?: boolean }
+
+export function useCreateAutomationRule() {
+  const qc = useQueryClient()
+  return useMutation<AutomationRule, Error, CreateRuleVars>({
+    mutationFn: (data) =>
+      createAutomationRule(data.boardId, {
+        trigger_type: data.triggerType,
+        webhook_url: data.webhookUrl,
+        enabled: data.enabled ?? true,
+      }),
+    onSuccess: (_data, vars) => qc.invalidateQueries({ queryKey: queryKeys.automationRules.byBoard(vars.boardId) }),
+  })
+}
+
+type DeleteRuleVars = { boardId: string; ruleId: string }
+
+export function useDeleteAutomationRule() {
+  const qc = useQueryClient()
+  return useMutation<void, Error, DeleteRuleVars>({
+    mutationFn: ({ boardId, ruleId }) => deleteAutomationRule(boardId, ruleId),
+    onSuccess: (_data, vars) => qc.invalidateQueries({ queryKey: queryKeys.automationRules.byBoard(vars.boardId) }),
+  })
+}
+
+type PatchRuleVars = { boardId: string; ruleId: string; enabled: boolean }
+
+export function usePatchAutomationRuleEnabled() {
+  const qc = useQueryClient()
+  return useMutation<AutomationRule, Error, PatchRuleVars>({
+    mutationFn: ({ boardId, ruleId, enabled }) => patchAutomationRuleEnabled(boardId, ruleId, enabled),
+    onSuccess: (_data, vars) => qc.invalidateQueries({ queryKey: queryKeys.automationRules.byBoard(vars.boardId) }),
+  })
 }
 
 export function useMoveCard(setBannerError: (m: string | null) => void) {

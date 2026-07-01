@@ -1,6 +1,6 @@
 # System Patterns
 
-**Last updated**: 2026-06-28 (TASK-018 Phase 1: added useDeleteCard optimistic delete pattern with removeQueries for detail cache)
+**Last updated**: 2026-07-01 (TASK-019 Phase 2: Fire-and-Forget Trigger Pattern updated with second 'Done' fire point for automation trigger evaluation)
 
 ## Guiding Principles
 
@@ -168,10 +168,11 @@ triggerDoneColorRule(boardId, cardId): Promise<void>
 - **Why not `retryWithBackoff`**: `retryWithBackoff` throws on exhaustion and offers no hook for per-attempt side effects. The manual loop keeps DB writes and retry delay inside a single readable flow.
 - **Implementation**: `backend/src/services/workflow.service.ts`
 
-## Fire-and-Forget Trigger Pattern (TASK-017 Phase 3)
+## Fire-and-Forget Trigger Pattern (TASK-017 Phase 3, extended TASK-019 Phase 2)
 
-`CardService.moveCard` fires Rule #2 without awaiting it:
+`CardService.moveCard` fires two independent background side effects when the destination column is 'Done'. Both are fire-and-forget — neither is awaited, and neither blocks the card move response.
 
+**Fire point 1 — Rule #2 Done-color (WorkflowService)**:
 ```typescript
 // In moveCard, after confirming destination column name === 'Done':
 if (this.workflowService && destinationColumnName === 'Done') {
@@ -181,9 +182,21 @@ if (this.workflowService && destinationColumnName === 'Done') {
 }
 ```
 
-- **Why fire-and-forget**: The Done-color action is a background side effect. The card move response must not be delayed by retry timing (up to ~WORKFLOW_RULE2_BASE_DELAY_MS * 3 seconds).
-- **`.catch()` is mandatory**: `triggerDoneColorRule` always resolves, but the `.catch()` guards against any unexpected future regression that causes it to throw. Without it, an unhandled rejection would crash the Node process.
-- **Observable outcome**: failures are recorded in `workflow_rule_triggers.trigger_error` and `workflow_action_deliveries.delivery_error` — the card move itself always succeeds.
+**Fire point 2 — Automation trigger evaluation (AutomationService)**:
+```typescript
+// Immediately after the WorkflowService block above:
+if (this.automationService && destColName === 'Done') {
+  this.automationService.evaluateCardMovedToDone(boardId, card).catch((err) => {
+    logger.warn({ err, cardId: card.id }, 'automation.evaluate.trigger_failed');
+  });
+}
+```
+
+- **Two fire points are intentional**: Rule #2 (workflow color) and automation trigger evaluation are independent concerns. Adding a second fire-and-forget block is the correct pattern — do not collapse them into a single call.
+- **Why fire-and-forget**: Both are background side effects. The card move response must not be delayed by retry timing or trigger fan-out.
+- **`.catch()` is mandatory on both**: Both `triggerDoneColorRule` and `evaluateCardMovedToDone` always resolve, but `.catch()` guards against unexpected future regressions that cause either to throw. Without it, an unhandled rejection would crash the Node process.
+- **`AutomationService` is an optional 5th constructor param** on `CardService`; tests that don't exercise automation can skip wiring it. This follows the same Optional DI Pattern established by `WorkflowService`.
+- **Observable outcome**: workflow failures recorded in `workflow_rule_triggers`; automation trigger fan-out failures logged at warn level with event key `automation.trigger_execution.insert_failed`; the card move itself always succeeds.
 - **Implementation**: `backend/src/services/card.service.ts`
 
 ## `trigger_error` Observability Contract (TASK-017 Phase 3)
@@ -195,15 +208,73 @@ if (this.workflowService && destinationColumnName === 'Done') {
 - **Purpose**: allows operators to query `WHERE trigger_status = 'failed'` and read `trigger_error` to understand the failure root cause without joining to the deliveries table for the common diagnostic case
 - **Implementation**: `backend/src/repositories/workflow.repository.ts` `insertTrigger(ruleId, boardId, cardId, status, error?)`
 
-## Webhook Delivery Pattern
+## Webhook Delivery Pattern (TASK-019 Phase 1)
 
-When a trigger with webhook configuration fires:
+Data model for webhook automation (three tables, migration `20260630120000_add-automation-webhooks.js`):
 
-1. Trigger execution completes first (decoupled from delivery)
-2. Webhook delivery queued as separate async job
-3. Delivery attempts: max 3, 30-second backoff between attempts
-4. Delivery record: `{ rule_id, attempt_count, status, http_response_code, error, created_at }`
-5. Status lifecycle: `pending` → `delivered` | `failed` → `exhausted`
+- `automation_rules` — stores the rule definition (`board_id`, `trigger_type`, `webhook_url`, `enabled`)
+- `trigger_executions` — one row per firing of a rule (`rule_id`, `status`, `executed_at`, `error`)
+- `webhook_deliveries` — one row per HTTP delivery attempt (`execution_id`, `attempt`, `status`, `http_status`, `error`, `delivered_at`)
+
+Status lifecycle: `pending` → `delivered` | `failed` → `exhausted`
+
+Retry configuration is injected from `config.ts` (not hardcoded):
+- `WEBHOOK_MAX_ATTEMPTS` — max delivery attempts (default 3)
+- `WEBHOOK_BACKOFF_MS` — flat backoff between attempts (default 30 000 ms)
+- `WEBHOOK_REQUEST_TIMEOUT_MS` — per-request HTTP timeout (default 5 000 ms)
+- `WEBHOOK_BLOCK_PRIVATE_RANGES` — block SSRF via private-IP ranges (default `true`)
+
+## `envBoolean` Zod Transformer Pattern (TASK-019 Phase 1)
+
+`z.coerce.boolean()` incorrectly coerces the string `'false'` to `true` (any non-empty string → `true`). Use a custom transformer instead:
+
+```typescript
+const envBoolean = z.string().optional().transform((v) => {
+  return !['false', '0', 'no', ''].includes((v ?? '').toLowerCase());
+});
+```
+
+- Maps `'false'`, `'0'`, `'no'`, `''`, and `undefined` to `false`; any other value to `true`
+- Applied to all boolean config fields: `RUN_MIGRATIONS_ON_START`, `OTEL_SDK_DISABLED`, `SESSION_SECURE`, `WEBHOOK_BLOCK_PRIVATE_RANGES`
+- **Implementation**: `backend/src/config.ts`
+
+## Service-Layer Allowlist Validation Pattern (TASK-019 Phase 1)
+
+Enum-constrained fields (e.g., `trigger_type`) are validated against a constant allowlist in the service layer before any DB write:
+
+```typescript
+const ALLOWED_TRIGGER_TYPES = ['card.moved', 'card.created'] as const;
+
+if (!ALLOWED_TRIGGER_TYPES.includes(input.triggerType)) {
+  throw new ValidationError(`Unsupported trigger_type: ${input.triggerType}`);
+}
+```
+
+- Allowlist is a `const` array at the top of the service file (single source of truth)
+- Validation throws `ValidationError` (400) before any DB call
+- Keeps invalid enum values from silently persisting and surfacing as runtime errors later
+- **Implementation**: `backend/src/services/automation.service.ts`
+- **Related**: `AutomationService.evaluateCardMovedToDone(boardId, card)` queries `findEnabledRulesByBoardAndTrigger(boardId, 'card.moved.done')` and fans out to `trigger_executions` — one row per matching rule; failures are caught per-rule and logged at warn with `automation.trigger_execution.insert_failed`; method always resolves (`Promise<void>`)
+
+## Webhook URL Validation Pattern (TASK-019 Phase 1)
+
+Webhook URLs are validated at the service layer using the WHATWG `URL` constructor plus a scheme allow-check before any DB write:
+
+```typescript
+try {
+  const parsed = new URL(input.webhookUrl);
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new ValidationError('webhookUrl must use http or https');
+  }
+} catch {
+  throw new ValidationError('webhookUrl is not a valid URL');
+}
+```
+
+- `new URL()` throws on malformed URLs — catch maps to `ValidationError` (400)
+- Explicit protocol check prevents non-HTTP schemes (`ftp:`, `file:`, etc.)
+- Private-range SSRF blocking is a separate runtime concern (`WEBHOOK_BLOCK_PRIVATE_RANGES` config flag)
+- **Implementation**: `backend/src/services/automation.service.ts`
 
 ## WorkflowService Optional DI Pattern (TASK-017 Phase 2)
 
@@ -458,6 +529,9 @@ When `credentials: true`, browsers reject `Access-Control-Allow-Origin: *`. `bac
 | `messages` | `id` uuid PK gen_random_uuid(), `message` varchar(255) NOT NULL, `created_at` timestamptz DEFAULT now(), `recipient_user_id` uuid FK → users CASCADE DELETE |
 | `workflow_rule_triggers` | `id` uuid PK, `rule_id` varchar NOT NULL, `board_id` FK → boards CASCADE DELETE, `card_id` FK → cards SET NULL, `triggered_at` timestamptz DEFAULT now(), `trigger_status` varchar CHECK IN ('success','failed'), `trigger_error` text |
 | `workflow_action_deliveries` | `id` uuid PK, `trigger_id` FK → workflow_rule_triggers CASCADE DELETE, `attempt` int NOT NULL, `attempted_at` timestamptz DEFAULT now(), `delivery_status` varchar CHECK IN ('pending','success','failed'), `delivery_error` text |
+| `automation_rules` | `id` uuid PK gen_random_uuid(), `board_id` FK → boards CASCADE DELETE, `trigger_type` varchar NOT NULL, `webhook_url` text NOT NULL, `enabled` boolean NOT NULL DEFAULT true, `created_at` timestamptz DEFAULT now() |
+| `trigger_executions` | `id` uuid PK gen_random_uuid(), `rule_id` FK → automation_rules CASCADE DELETE, `status` varchar CHECK IN ('pending','success','failed'), `executed_at` timestamptz DEFAULT now(), `error` text |
+| `webhook_deliveries` | `id` uuid PK gen_random_uuid(), `execution_id` FK → trigger_executions CASCADE DELETE, `attempt` int NOT NULL, `status` varchar CHECK IN ('pending','delivered','failed','exhausted'), `http_status` int, `error` text, `delivered_at` timestamptz |
 
 ## Query Patterns
 

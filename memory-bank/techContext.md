@@ -60,18 +60,21 @@ No clever abstractions. No microservices. One Express app.
 │   │   │   ├── auth.ts           # createAuthRouter — POST /register (auto-login), /login, /logout; GET /me
 │   │   │   ├── boards.ts         # createBoardsRouter — CRUD for /boards; accepts optional WorkflowService param
 │   │   │   ├── cards.ts          # createCardsRouter(db, eventService, workflowService?) — workflowService optional param added Phase 3; routes card CRUD and moves
-│   │   │   └── feed.ts           # createFeedRouter — GET /boards/:boardId/events (SSE activity feed)
+│   │   │   ├── feed.ts           # createFeedRouter — GET /boards/:boardId/events (SSE activity feed)
+│   │   │   └── automation.ts     # createAutomationRouter (automation-rules CRUD) + createWebhookDeliveriesRouter (delivery history); both use mergeParams: true (TASK-019)
 │   │   ├── services/
 │   │   │   ├── auth.service.ts   # AuthService — register, login, getMe (bcrypt cost 12, email-enum-safe)
 │   │   │   ├── board.service.ts  # BoardService — input validation + business logic; accepts optional WorkflowService; calls applyBoardRules in getBoardById
-│   │   │   ├── card.service.ts   # CardService — moveCard fires Done-color trigger fire-and-forget when destination column = 'Done' (Phase 3); accepts optional WorkflowService as 4th constructor param
-│   │   │   └── workflow.service.ts # WorkflowService — applyBoardRules (Rule #1 stale-move via Promise.allSettled); returns WorkflowWarning[]; triggerDoneColorRule (Rule #2 Done-color, Phase 3) — manual retry loop, always resolves, inserts trigger row after all attempts with final status + last delivery error
+│   │   │   ├── card.service.ts   # CardService — moveCard fires Done-color trigger fire-and-forget when destination column = 'Done' (Phase 3); accepts optional WorkflowService as 4th constructor param, optional AutomationService as 5th constructor param (TASK-019 Phase 2)
+│   │   │   ├── workflow.service.ts # WorkflowService — applyBoardRules (Rule #1 stale-move via Promise.allSettled); returns WorkflowWarning[]; triggerDoneColorRule (Rule #2 Done-color, Phase 3) — manual retry loop, always resolves, inserts trigger row after all attempts with final status + last delivery error
+│   │   │   └── automation.service.ts # AutomationService — createRule (URL + allowlist validation), listRules, updateRuleEnabled, deleteRule, listDeliveries; ALLOWED_TRIGGER_TYPES allowlist; evaluateCardMovedToDone(boardId, card) fans out to trigger_executions for all matching enabled rules, always resolves (TASK-019)
 │   │   ├── repositories/
 │   │   │   ├── user.repository.ts  # UserRepository — SQL + User/PublicUser types (no password_hash in PublicUser)
 │   │   │   ├── board.repository.ts # BoardRepository — SQL + Board/Column types
 │   │   │   ├── card.repository.ts  # CardRepository — SQL + Card types; getColumnName() + setSuppressed() added (Phase 2)
 │   │   │   ├── event.repository.ts # EventRepository — insert/findRecentByBoard/findAfterById for card_events
-│   │   │   └── workflow.repository.ts # WorkflowRepository — insertTrigger, insertDelivery (RETURNING id), updateDeliveryStatus, findStaleCards, moveCardToStale, setCardColor (Phase 3)
+│   │   │   ├── workflow.repository.ts # WorkflowRepository — insertTrigger, insertDelivery (RETURNING id), updateDeliveryStatus, findStaleCards, moveCardToStale, setCardColor (Phase 3)
+│   │   │   └── automation.repository.ts # AutomationRepository — CRUD for automation_rules; listDeliveries with cursor pagination; domain types: AutomationRule, TriggerExecution, WebhookDelivery, DeliveryPage (TASK-019)
 │   │   ├── middleware/
 │   │   │   ├── requireAuth.ts    # Synchronous session guard; throws UnauthorizedError if no userId
 │   │   │   └── cors.ts           # CORS with credentials: true; reflects origin for wildcard dev config
@@ -140,6 +143,10 @@ All config via environment variables. See `.env.example` for the full list.
 | `WORKFLOW_STALE_AGE_DAYS` | Number of calendar days before a card is considered stale (Rule #1) | `2` |
 | `WORKFLOW_RULE2_BASE_DELAY_MS` | Base delay in ms for Rule #2 exponential-backoff retry (attempt 2: base, attempt 3: 2×base) | `200` |
 | `WORKFLOW_RULE2_MAX_ATTEMPTS` | Maximum retry attempts for Rule #2 done-color action | `3` |
+| `WEBHOOK_MAX_ATTEMPTS` | Maximum HTTP delivery attempts per webhook trigger | `3` |
+| `WEBHOOK_BACKOFF_MS` | Flat backoff delay (ms) between webhook delivery attempts | `30000` |
+| `WEBHOOK_REQUEST_TIMEOUT_MS` | Per-request HTTP timeout (ms) for outbound webhook calls | `5000` |
+| `WEBHOOK_BLOCK_PRIVATE_RANGES` | Block webhook URLs that resolve to private/loopback IP ranges (SSRF protection) | `true` |
 
 ### Frontend Variables
 | Variable | Purpose | Default |
@@ -186,6 +193,7 @@ React Router v6 (`BrowserRouter`) wraps the app in `main.tsx`. Routes are declar
 - **Local**: Managed by Docker Compose (`postgres` service); data persisted in Docker volume
 - **Default board columns** (TASK-017): `DEFAULT_COLUMNS` in `board.repository.ts` is now 4 columns — `['To Do', 'In Progress', 'Stale', 'Done']`; new boards always seed all four; existing boards received the Stale column via migration `20260628120000_add-workflow-foundation.js`
 - **Performance index** (TASK-017 Phase 2): `cards(column_id, created_at, stale_suppressed)` — supports the stale-candidate query in `WorkflowRepository.findStaleCards`; added via migration `20260629000000_add-workflow-indexes.js`
+- **Webhook automation tables** (TASK-019 Phase 1): `automation_rules`, `trigger_executions`, `webhook_deliveries` — added via migration `20260630120000_add-automation-webhooks.js`
 
 ## Frontend Auth
 
@@ -240,6 +248,11 @@ All endpoints are prefixed by the Express mount path. The app currently exposes:
 | `GET` | `/boards/:boardId/events` | Yes | SSE activity feed for a board; streams `EventRow` frames; supports `Last-Event-ID` header for missed-event replay | `text/event-stream` (long-lived) or `401` |
 | `POST` | `/boards` | Yes | Create board (`{ name }` body) | `201 Board` or `400` |
 | `DELETE` | `/boards/:id` | Yes | Delete board | `204` or `404` |
+| `POST` | `/boards/:boardId/automation-rules` | Yes | Create automation rule (`{ triggerType, webhookUrl }`) | `201 AutomationRule` or `400` |
+| `GET` | `/boards/:boardId/automation-rules` | Yes | List automation rules for a board | `200 AutomationRule[]` |
+| `PATCH` | `/boards/:boardId/automation-rules/:ruleId` | Yes | Toggle rule enabled (`{ enabled: boolean }`) | `200 AutomationRule` or `404` |
+| `DELETE` | `/boards/:boardId/automation-rules/:ruleId` | Yes | Delete automation rule | `204` or `404` |
+| `GET` | `/boards/:boardId/webhook-deliveries` | Yes | List webhook delivery history with cursor pagination | `200 DeliveryPage` |
 
 Error shape for all non-2xx responses: `{ error: string, message: string }`.
 

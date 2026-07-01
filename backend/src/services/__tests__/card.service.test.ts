@@ -26,6 +26,7 @@ import { CardRepository } from '../../repositories/card.repository';
 import type { Card } from '../../repositories/card.repository';
 import type { EventService } from '../event.service';
 import type { WorkflowService } from '../workflow.service';
+import { AutomationService } from '../automation.service';
 import { NotFoundError } from '../../errors';
 
 const BASE_CARD: Card = {
@@ -532,6 +533,155 @@ describe('CardService', () => {
       await expect(svc.moveCard('card-uuid-1', 'col-done', null)).resolves.toMatchObject({
         column_id: 'col-done',
       });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 2 (TASK-019): automation evaluation trigger fire-and-forget in moveCard
+  //
+  // When moveCard is called with a destination column named 'Done', CardService
+  // must call automationService.evaluateCardMovedToDone(boardId, card) fire-and-forget.
+  // The card move response must not be blocked or delayed by the evaluation.
+  //
+  // These tests FAIL until CardService.moveCard:
+  //   - Accepts automationService as an optional 5th constructor parameter
+  //   - Detects destColName === 'Done' and calls evaluateCardMovedToDone fire-and-forget
+  //   - Uses .catch((err) => logger.warn(...)) to swallow rejections
+  //   - Passes card (with .id and .title) and boardId correctly
+  //   - Does NOT call evaluateCardMovedToDone when destination column is not 'Done'
+  //   - Does NOT call evaluateCardMovedToDone when automationService is not injected
+  // ---------------------------------------------------------------------------
+
+  describe('moveCard — automation evaluation trigger (Phase 2, TASK-019)', () => {
+    /** Build an AutomationService mock with only evaluateCardMovedToDone as a spy */
+    function makeMockAutomationService(): jest.Mocked<Pick<AutomationService, 'evaluateCardMovedToDone'>> {
+      return {
+        evaluateCardMovedToDone: jest.fn().mockResolvedValue(undefined),
+      } as unknown as jest.Mocked<Pick<AutomationService, 'evaluateCardMovedToDone'>>;
+    }
+
+    it('calls evaluateCardMovedToDone with boardId and card when moving to Done column', async () => {
+      // Arrange — destination column name is 'Done'
+      const db = makeMockDb([
+        { rows: [{ id: 'col-done', board_id: 'board-uuid-1', name: 'Done' }] },
+      ]);
+      const r = makeMockRepo();
+      const mockAutomation = makeMockAutomationService();
+      const svc = new CardService(r, db, undefined, undefined, mockAutomation as unknown as AutomationService);
+
+      r.findCardById.mockResolvedValueOnce(BASE_CARD);
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      const movedCard = { ...BASE_CARD, column_id: 'col-done', position: 1.0 };
+      r.moveCard.mockResolvedValueOnce(movedCard);
+      r.getColumnName.mockResolvedValueOnce('In Progress'); // source column — not Stale
+
+      // Act
+      const result = await svc.moveCard('card-uuid-1', 'col-done', null);
+
+      // Assert — move succeeded
+      expect(result.column_id).toBe('col-done');
+
+      // evaluateCardMovedToDone called with correct boardId and card shape
+      expect(mockAutomation.evaluateCardMovedToDone).toHaveBeenCalledTimes(1);
+      expect(mockAutomation.evaluateCardMovedToDone).toHaveBeenCalledWith(
+        'board-uuid-1',
+        expect.objectContaining({ id: movedCard.id, title: movedCard.title }),
+      );
+    });
+
+    it('does NOT call evaluateCardMovedToDone when destination column is not Done', async () => {
+      // Arrange — destination column name is 'In Progress'
+      const db = makeMockDb([
+        { rows: [{ id: 'col-inprogress', board_id: 'board-uuid-1', name: 'In Progress' }] },
+      ]);
+      const r = makeMockRepo();
+      const mockAutomation = makeMockAutomationService();
+      const svc = new CardService(r, db, undefined, undefined, mockAutomation as unknown as AutomationService);
+
+      r.findCardById.mockResolvedValueOnce(BASE_CARD);
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      r.moveCard.mockResolvedValueOnce({ ...BASE_CARD, column_id: 'col-inprogress', position: 1.0 });
+      r.getColumnName.mockResolvedValueOnce('To Do'); // source column — not Stale
+
+      // Act
+      await svc.moveCard('card-uuid-1', 'col-inprogress', null);
+
+      // Assert — NOT triggered for non-Done columns
+      expect(mockAutomation.evaluateCardMovedToDone).not.toHaveBeenCalled();
+    });
+
+    it('does NOT call evaluateCardMovedToDone when automationService is not injected', async () => {
+      // Arrange — no automationService; destination is Done
+      const db = makeMockDb([
+        { rows: [{ id: 'col-done', board_id: 'board-uuid-1', name: 'Done' }] },
+      ]);
+      const r = makeMockRepo();
+      // CardService constructed without automationService (only 2 params)
+      const svc = new CardService(r, db);
+
+      r.findCardById.mockResolvedValueOnce(BASE_CARD);
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      r.moveCard.mockResolvedValueOnce({ ...BASE_CARD, column_id: 'col-done', position: 1.0 });
+      r.getColumnName.mockResolvedValueOnce('To Do');
+
+      // Act + Assert — must not throw; no AutomationService to call
+      await expect(svc.moveCard('card-uuid-1', 'col-done', null)).resolves.toMatchObject({
+        column_id: 'col-done',
+      });
+    });
+
+    it('move response resolves even when evaluateCardMovedToDone rejects (fire-and-forget regression)', async () => {
+      // Arrange — evaluateCardMovedToDone rejects; card move must still succeed
+      const db = makeMockDb([
+        { rows: [{ id: 'col-done', board_id: 'board-uuid-1', name: 'Done' }] },
+      ]);
+      const r = makeMockRepo();
+      const mockAutomation = makeMockAutomationService();
+      mockAutomation.evaluateCardMovedToDone.mockRejectedValueOnce(new Error('eval error'));
+      const svc = new CardService(r, db, undefined, undefined, mockAutomation as unknown as AutomationService);
+
+      r.findCardById.mockResolvedValueOnce(BASE_CARD);
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      const movedCard = { ...BASE_CARD, column_id: 'col-done', position: 1.0 };
+      r.moveCard.mockResolvedValueOnce(movedCard);
+      r.getColumnName.mockResolvedValueOnce('In Progress');
+
+      // Act + Assert — must not throw; fire-and-forget rejection does not block response
+      await expect(svc.moveCard('card-uuid-1', 'col-done', null)).resolves.toMatchObject({
+        column_id: 'col-done',
+      });
+    });
+
+    it('calls both triggerDoneColorRule AND evaluateCardMovedToDone when both services injected', async () => {
+      // Arrange — both workflowService and automationService injected, destination is Done
+      const db = makeMockDb([
+        { rows: [{ id: 'col-done', board_id: 'board-uuid-1', name: 'Done' }] },
+      ]);
+      const r = makeMockRepo();
+      const mockWorkflow: jest.Mocked<Pick<WorkflowService, 'triggerDoneColorRule'>> = {
+        triggerDoneColorRule: jest.fn().mockResolvedValue(undefined),
+      } as unknown as jest.Mocked<Pick<WorkflowService, 'triggerDoneColorRule'>>;
+      const mockAutomation = makeMockAutomationService();
+      const svc = new CardService(
+        r,
+        db,
+        undefined,
+        mockWorkflow as unknown as WorkflowService,
+        mockAutomation as unknown as AutomationService,
+      );
+
+      r.findCardById.mockResolvedValueOnce(BASE_CARD);
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      const movedCard = { ...BASE_CARD, column_id: 'col-done', position: 1.0 };
+      r.moveCard.mockResolvedValueOnce(movedCard);
+      r.getColumnName.mockResolvedValueOnce('In Progress');
+
+      // Act
+      await svc.moveCard('card-uuid-1', 'col-done', null);
+
+      // Assert — both services are called once each
+      expect(mockWorkflow.triggerDoneColorRule).toHaveBeenCalledTimes(1);
+      expect(mockAutomation.evaluateCardMovedToDone).toHaveBeenCalledTimes(1);
     });
   });
 });

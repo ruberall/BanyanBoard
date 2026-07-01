@@ -1,5 +1,5 @@
 import { request } from './client'
-import type { Board, BoardWithColumns, Card, PaginatedResponse, User } from '@/types'
+import type { Board, BoardWithColumns, Card, PaginatedResponse, User, AutomationRule, WebhookDelivery } from '@/types'
 
 // Board endpoints
 
@@ -79,4 +79,46 @@ export function moveCard(
   return request<Card>('PATCH', `/cards/${cardId}/move`, {
     body: JSON.stringify(moveData),
   })
+}
+
+// Automation Rules endpoints
+
+export function listAutomationRules(boardId: string): Promise<AutomationRule[]> {
+  return request<AutomationRule[]>('GET', `/boards/${boardId}/automation-rules`)
+}
+
+export function createAutomationRule(
+  boardId: string,
+  data: { trigger_type: string; webhook_url: string; enabled?: boolean },
+): Promise<AutomationRule> {
+  return request<AutomationRule>('POST', `/boards/${boardId}/automation-rules`, {
+    body: JSON.stringify(data),
+  })
+}
+
+export function patchAutomationRuleEnabled(
+  boardId: string,
+  ruleId: string,
+  enabled: boolean,
+): Promise<AutomationRule> {
+  return request<AutomationRule>('PATCH', `/boards/${boardId}/automation-rules/${ruleId}`, {
+    body: JSON.stringify({ enabled }),
+  })
+}
+
+export function deleteAutomationRule(boardId: string, ruleId: string): Promise<void> {
+  return request<void>('DELETE', `/boards/${boardId}/automation-rules/${ruleId}`)
+}
+
+// Webhook Deliveries endpoints
+
+export interface DeliveryPage {
+  data: WebhookDelivery[]
+  hasMore: boolean
+  nextCursor?: string
+}
+
+export function listWebhookDeliveries(boardId: string, limit?: number): Promise<DeliveryPage> {
+  const params = limit ? `?limit=${limit}` : ''
+  return request<DeliveryPage>('GET', `/boards/${boardId}/webhook-deliveries${params}`)
 }

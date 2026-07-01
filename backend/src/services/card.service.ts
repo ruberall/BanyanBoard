@@ -4,6 +4,7 @@ import { NotFoundError } from '../errors';
 import type { Queryable } from '../db/queryable';
 import type { EventService } from './event.service';
 import type { WorkflowService } from './workflow.service';
+import type { AutomationService } from './automation.service';
 
 export class CardService {
   constructor(
@@ -11,6 +12,7 @@ export class CardService {
     private readonly db: Queryable,
     private readonly eventService?: EventService,
     private readonly workflowService?: WorkflowService,
+    private readonly automationService?: AutomationService,
   ) {}
 
   async createCard(columnId: string, input: CardInput, actorId?: string | null): Promise<Card> {
@@ -114,6 +116,16 @@ export class CardService {
     if (this.workflowService && destColName === 'Done') {
       this.workflowService.triggerDoneColorRule(boardId, card.id).catch((err) => {
         logger.warn({ err, cardId: card.id }, 'workflow.rule2.trigger_failed');
+      });
+    }
+
+    // Automation trigger evaluation: fire-and-forget when card is moved to the Done column.
+    if (this.automationService && destColName === 'Done') {
+      this.automationService.evaluateCardMovedToDone(boardId, {
+        ...card,
+        toColumnName: destColName,
+      }).catch((err) => {
+        logger.warn({ err, cardId: card.id }, 'automation.evaluate.trigger_failed');
       });
     }
 

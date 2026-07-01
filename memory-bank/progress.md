@@ -2,6 +2,108 @@
 
 ---
 
+## Task Archive: TASK-019
+
+**Task**: Webhook Delivery for Workflow Rules
+**Status**: ✅ ARCHIVED
+**Date**: 2026-07-01
+**Archive**: `memory-bank/archive/archive-TASK-019.md`
+
+---
+
+## 2026-07-01 - TASK-019: Webhook Delivery — REFLECTION_COMPLETE
+
+**Task**: Webhook Delivery for Workflow Rules (FEAT-016)
+**Phase**: Reflection — COMPLETE
+**Reflection**: `memory-bank/reflection/reflection-TASK-019.md`
+
+### Evaluation Summary
+- **Task Quality**: Good — all ACs met, 590 total tests (311 backend + 279 frontend), 0 regressions, security properties correct (SSRF, URL masking, traceparent, error boundary)
+- **Ecosystem Effectiveness**: Highly Effective — Level 4 workflow correctly scoped; 4-phase build kept context manageable; code review sub-agent caught 9 blocking defects across 7 invocations
+- **Notable findings**: Phase 3 missing traceparent injection; Phase 4 raw URL exposure in RulesList + unconditional polling + error message echoing server detail — all caught by code review before commit
+
+### Pattern Extraction
+- 2 learnings added to `agent-rules/_learned/security.md` (evidence count: 4) — outbound HTTP security checklist; UI URL masking
+- 1 learning added to `agent-rules/_learned/testing-patterns.md` (evidence count: 16) — per-step DB write assertion in fake-timer retry tests
+- 1 learning added to `agent-rules/_learned/architecture-foundation.md` (evidence count: 6) — separate firing table when identity models diverge
+
+---
+
+## 2026-07-01 - TASK-019: Webhook Delivery — Phase 4 COMPLETE (ALL PHASES DONE)
+
+**Task**: Webhook Delivery for Workflow Rules (FEAT-016)
+**Phase**: Phase 4 — UI settings panel
+
+### What Was Built
+- `BoardSettingsModal`: native `<dialog>` element; `showModal()`/`close()` via `useEffect`; jsdom fallback for tests; wrapped in `SettingsErrorBoundary`
+- `SettingsErrorBoundary`: class-based React error boundary; prevents settings modal errors from crashing `BoardPage`; accessible fallback dialog
+- `AutomationTab`: orchestration component owning `useAutomationRules` data fetch; composes `RulesList`, `NewRuleForm`, `DeliveryHistoryPanel`
+- `NewRuleForm`: webhook URL validation on blur+submit; generic error message in `onError` (never echoes server message to avoid URL credential exposure)
+- `RulesList`: `maskWebhookUrl()` renders `${host}/***` only — never exposes raw URL; enable toggle + delete
+- `DeliveryHistoryPanel`: `StatusBadge` for WCAG AA non-color-only status; `refetchInterval` conditional on `settingsOpen` prop
+- `StatusBadge`: WCAG 2.1 AA — text label + decorative SVG icon; `aria-label="Status: {label}"`; SVG `aria-hidden="true"`
+- `BoardPage`: gear button (`aria-haspopup="dialog"`), `isSettingsOpen` state, `gearButtonRef` focus return
+- 39 new frontend tests; 279/279 total pass; tsc clean; Code Review APPROVED (2 iterations)
+
+### Issues Encountered
+- Code Review iter 1: `refetchInterval` was unconditional (always polling); `RulesList` displayed raw webhook URL (credential risk); `NewRuleForm.onError` echoed `err.message` (could expose URL); no `ErrorBoundary` around modal — all 4 fixed before commit
+
+---
+
+## 2026-07-01 - TASK-019: Webhook Delivery — Phase 3 COMPLETE
+
+**Task**: Webhook Delivery for Workflow Rules (FEAT-016)
+**Phase**: Phase 3 — Webhook delivery + retry
+
+### What Was Built
+- `WebhookTransport`: Node built-in `fetch` + `AbortController`; discriminated `TransportResult`; W3C `traceparent` injection via `@opentelemetry/api` (no-op when SDK disabled); logs host-only
+- `WebhookDispatcher`: SSRF guard (`isPrivateHost()` covers RFC-1918, loopback, link-local); manual `for` loop retry with per-attempt `repo.updateDeliveryAttempt`; full `pending → failed → exhausted | delivered` lifecycle; outer try/catch no-throw guarantee
+- `AutomationService` extended: optional `dispatcher?: WebhookDispatcher` 2nd param; `evaluateCardMovedToDone` now uses `Promise.allSettled` fan-out; builds `WebhookPayload` envelope and fire-and-forgets `dispatcher.dispatch()`
+- `CardService` updated: passes `toColumnName: destColName` to `evaluateCardMovedToDone`
+- `routes/cards.ts`: `createCardsRouter` accepts optional `automationService` 4th param
+- `routes/index.ts`: full wiring chain `AutomationRepository → WebhookTransport → WebhookDispatcher → AutomationService → createCardsRouter`
+- 41 new tests (9 transport + 24 dispatcher + 8 service wiring); 311/311 total pass; TypeScript clean; Code Review APPROVED (2 iterations — traceparent injection added in iteration 2)
+
+### Issues Encountered
+- Code Review iter 1: `traceparent` header missing from outbound `fetch` call; resolved by installing `@opentelemetry/api` and wiring `propagation.inject(context.active(), headers)` before the fetch
+- SSRF log key was `webhook.dispatch.exhausted` instead of `webhook.dispatch.blocked` — corrected
+
+---
+
+## 2026-07-01 - TASK-019: Webhook Delivery — Phase 2 COMPLETE
+
+**Task**: Webhook Delivery for Workflow Rules (FEAT-016)
+**Phase**: Phase 2 — Trigger evaluation engine
+
+### What Was Built
+- `AutomationService.evaluateCardMovedToDone(boardId, card)`: queries enabled rules by board + trigger type, inserts one `trigger_executions` row per matching rule, wraps each insertion in try/catch with `logger.warn` on failure, always resolves
+- `CardService` updated: optional `automationService?: AutomationService` as 5th constructor param; fire-and-forget call in `moveCard` when `destColName === 'Done'`, following Fire-and-Forget Trigger Pattern
+- 13 new tests (8 AutomationService unit + 5 CardService integration); 271/271 total pass; TypeScript clean; Code Review APPROVED
+
+### Issues Encountered
+- None — straightforward implementation; code review recommended adding `logger.warn` to the silent catch block (applied before commit)
+
+---
+
+## 2026-06-30 - TASK-019: Webhook Delivery — Phase 1 COMPLETE
+
+**Task**: Webhook Delivery for Workflow Rules (FEAT-016)
+**Phase**: Phase 1 — Data model + CRUD API
+
+### What Was Built
+- DB migration (`20260630120000_add-automation-webhooks.js`): 3 new tables — `automation_rules`, `trigger_executions`, `webhook_deliveries`; CHECK constraint on `status`; partial index on `(board_id, trigger_type) WHERE enabled = true`
+- `AutomationRepository` (9 methods): full parameterized SQL, RETURNING on all writes, ID-based cursor pagination returning `DeliveryPage { data, hasMore, nextCursor }` envelope
+- `AutomationService`: webhook URL validation (`new URL()` + scheme), `trigger_type` allowlist (`ALLOWED_TRIGGER_TYPES`), `NotFoundError` on PATCH/DELETE for missing rule
+- Two route factories: `createAutomationRouter` (POST/GET/PATCH/DELETE on automation-rules) and `createWebhookDeliveriesRouter` (GET with cursor pagination); both `mergeParams: true`
+- `WEBHOOK_*` config fields (max attempts, backoff, timeout, block private ranges); `envBoolean` Zod fix for all boolean env vars
+- 258/258 tests passing; TypeScript clean; Code Review APPROVED
+
+### Issues Encountered
+- `z.coerce.boolean()` bug: `Boolean('false') === true`; fixed with custom `envBoolean` transformer
+- Code Review (iteration 1) required fixes: cursor pagination (timestamp → ID-based), PATCH/DELETE 404 guards, trigger_type allowlist, limit NaN guard; all resolved in iteration 2
+
+---
+
 ## Task Archive: TASK-018
 
 **Task**: Delete Card UI (FEAT-015)
