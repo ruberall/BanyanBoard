@@ -2,7 +2,7 @@
 
 ## Summary
 
-- **Total Features**: 16
+- **Total Features**: 17
 - **Released Versions**: 0
 - **Active Versions**: 0
 - **Planning Versions**: 1
@@ -39,6 +39,7 @@
   - FEAT-014: Workflow Automation (complete) [Level 4]
   - FEAT-015: Delete Card UI (complete) [Level 2]
   - FEAT-016: Webhook Delivery for Workflow Rules (complete) [Level 4]
+  - FEAT-017: Card Activity Feed (in_progress) [Level 2]
 
 ---
 
@@ -298,3 +299,16 @@ HTTP 400 for synchronous rule failures; stored as `delivery_error` JSON for asyn
 - **Branch**: feature/FEAT-013-activity-feed-user-attribution
 - **Created**: 2026-06-27
 - **Completed**: 2026-06-27
+
+---
+
+### FEAT-017: Card Activity Feed
+
+- **Version**: next
+- **Status**: in_progress
+- **Priority**: medium
+- **Complexity**: Level 2 (override — evaluated as Level 3 due to new CardDetailModal UI; user judged no dedicated creative/design pass needed)
+- **Description**: Per-card activity view, reusing existing durable event persistence rather than a new store. Add `EventRepository.findByCardId` to query the existing `card_events`-backed table (already populated by `card.moved` and other events via `event.service.ts` — no new `activityRepository` needed). Add `GET /cards/:id/activity` returning JSON entries shaped `{ id, type, message, createdAt }`. Add an Activity section (loading / empty / error states) inside a new `CardDetailModal` component, which does not yet exist in the frontend and must be created as part of this feature. Activity entries must persist across sessions/days (already satisfied by existing DB-backed persistence — no in-memory/session-scoped cache).
+- **Linked Tasks**: TASK-020 (PLANNING_COMPLETE)
+- **Branch**: feature/FEAT-017-card-activity-feed
+- **Created**: 2026-07-02

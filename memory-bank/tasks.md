@@ -21,3 +21,4 @@
 | TASK-017 | Workflow Automation | ARCHIVE | COMPLETE | FEAT-014 |
 | TASK-018 | Delete Card UI | ARCHIVE | COMPLETE | FEAT-015 |
 | TASK-019 | Webhook Delivery for Workflow Rules | ARCHIVE | COMPLETE | FEAT-016 |
+| TASK-020 | Card Activity Feed | PLAN | PLANNING_COMPLETE | FEAT-017 |
