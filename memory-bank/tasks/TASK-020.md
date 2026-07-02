@@ -1,11 +1,15 @@
 # TASK-020: Card Activity Feed
 
 **Complexity**: Level 2 (inherited from FEAT-017)
-**Status**: REFLECTION_COMPLETE
+**Status**: COMPLETE
 **Reflection**: memory-bank/reflection/reflection-TASK-020.md
+**Archived**: memory-bank/archive/archive-TASK-020.md
+**Completed**: 2026-07-02
 **Roadmap**: FEAT-017
 **Branch**: feature/FEAT-017-card-activity-feed
 **Worktree**: .claude-worktrees/FEAT-017
+**Merge Status**: merged
+**Merge Commit**: 5d64656
 
 ## Task Description
 
@@ -191,7 +195,7 @@ Specification is concrete — proceed to implementation planning. The one MEDIUM
 ## Execution State
 
 **Build Status**: IDLE
-**Current Phase**: REFLECT → ARCHIVE
+**Current Phase**: COMPLETE
 **Can Resume**: NO
 
 ### Active Sub-Agents

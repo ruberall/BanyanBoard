@@ -2,6 +2,16 @@
 
 ---
 
+## Task Archive: TASK-020
+
+**Task**: Card Activity Feed (FEAT-017)
+**Status**: ✅ ARCHIVED
+**Date**: 2026-07-02
+**Archive**: `memory-bank/archive/archive-TASK-020.md`
+**Merged**: `feature/FEAT-017-card-activity-feed` → `main` (commit `5d64656`, squashed)
+
+---
+
 ## 2026-07-02 - TASK-020: Card Activity Feed — REFLECTION_COMPLETE
 
 **Task**: Card Activity Feed (FEAT-017)
