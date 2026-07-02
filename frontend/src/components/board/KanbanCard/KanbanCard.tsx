@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities'
 import type { Card, Label } from '@/types'
 import { LabelColorPicker } from '@/components/board/LabelColorPicker/LabelColorPicker'
 import { CardColorPicker } from '@/components/board/CardColorPicker/CardColorPicker'
+import { CardDetailModal } from '@/components/board/CardDetailModal/CardDetailModal'
 import styles from './KanbanCard.module.css'
 
 interface KanbanCardProps {
@@ -25,6 +26,7 @@ export function KanbanCard({ card, overlay, onLabelColorChange, onCardColorChang
   const { setNodeRef, transform, transition, isDragging, attributes, listeners } = useSortable({ id: card.id })
   const [pickerState, setPickerState] = useState<PickerState | null>(null)
   const [colorPickerOpen, setColorPickerOpen] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
   const [prevDragging, setPrevDragging] = useState(false)
 
   // React derived-state pattern: close picker the moment a drag starts so the
@@ -108,7 +110,14 @@ export function KanbanCard({ card, overlay, onLabelColorChange, onCardColorChang
         >
           🎨
         </button>
-        <h3 className={styles.title} title={card.title}>{card.title}</h3>
+        <button
+          type="button"
+          className={styles.title}
+          title={card.title}
+          onClick={() => setDetailOpen(true)}
+        >
+          {card.title}
+        </button>
         {onDelete && (
           <button
             type="button"
@@ -138,6 +147,14 @@ export function KanbanCard({ card, overlay, onLabelColorChange, onCardColorChang
       )}
       {card.description !== null && (
         <p className={styles.description}>{card.description}</p>
+      )}
+      {detailOpen && (
+        <CardDetailModal
+          open={detailOpen}
+          cardId={card.id}
+          cardTitle={card.title}
+          onClose={() => setDetailOpen(false)}
+        />
       )}
     </article>
   )

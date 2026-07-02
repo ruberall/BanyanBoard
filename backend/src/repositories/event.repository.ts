@@ -70,6 +70,18 @@ export class EventRepository {
     return result.rows;
   }
 
+  async findByCardId(cardId: string, limit: number): Promise<EventRow[]> {
+    const result = await this.db.query<EventRow>(
+      `SELECT id, board_id, card_id, actor_id, event_type, from_column_id, to_column_id, payload, occurred_at
+       FROM card_events
+       WHERE card_id = $1
+       ORDER BY occurred_at DESC
+       LIMIT $2`,
+      [cardId, limit],
+    );
+    return result.rows;
+  }
+
   /**
    * Find events for a board that occurred after the event with the given ID.
    * Used for Last-Event-ID replay support in the SSE feed.

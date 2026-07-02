@@ -10,6 +10,9 @@
  *   1. insert()              — persists an event row and returns the created record
  *   2. findRecentByBoard()   — returns events ordered by occurred_at DESC, limited to N
  *   3. findRecentByBoard()   — returns empty array when no events exist for the board
+ *   4. findByCardId()        — returns events for a card ordered by occurred_at DESC
+ *   5. findByCardId()        — respects the limit parameter
+ *   6. findByCardId()        — returns empty array when no events exist for the card
  */
 
 // ---------------------------------------------------------------------------
@@ -143,6 +146,77 @@ describe('EventRepository', () => {
 
         // Act
         const results = await repo.findRecentByBoard('board-with-no-events', 20);
+
+        // Assert
+        expect(results).toEqual([]);
+      });
+    });
+
+    describe('findByCardId(cardId, limit)', () => {
+      it('returns events for the card ordered newest-first', async () => {
+        // Arrange — DB returns 2 event rows already ordered by occurred_at DESC
+        const olderRow = {
+          ...fixEventRow,
+          id: 'event-uuid-older',
+          occurred_at: new Date('2026-06-17T00:00:00Z'),
+        };
+        const newerRow = {
+          ...fixEventRow,
+          id: 'event-uuid-newer',
+          occurred_at: new Date('2026-06-18T00:00:00Z'),
+        };
+        const mockDb = makeMockDb([
+          { rows: [newerRow, olderRow] },
+        ]);
+        const { EventRepository } = await import('../event.repository');
+        const repo = new EventRepository(mockDb);
+
+        // Act
+        const results = await repo.findByCardId(CARD_ID, 50);
+
+        // Assert — correct order and count
+        expect(results).toHaveLength(2);
+        expect(results[0].id).toBe('event-uuid-newer');
+        expect(results[1].id).toBe('event-uuid-older');
+
+        // SELECT query must filter by card_id, order by occurred_at DESC
+        expect(mockDb.query).toHaveBeenCalledTimes(1);
+        const [sql, values] = mockDb.query.mock.calls[0] as [string, unknown[]];
+        expect(sql.toUpperCase()).toContain('SELECT');
+        expect(sql.toUpperCase()).toMatch(/WHERE.*card_id/i);
+        expect(sql.toUpperCase()).toMatch(/ORDER BY.*occurred_at.*DESC/i);
+        expect(values).toContain(CARD_ID);
+      });
+
+      it('respects the limit parameter', async () => {
+        // Arrange
+        const mockDb = makeMockDb([
+          { rows: [fixEventRow] },
+        ]);
+        const { EventRepository } = await import('../event.repository');
+        const repo = new EventRepository(mockDb);
+
+        // Act
+        await repo.findByCardId(CARD_ID, 5);
+
+        // Assert — LIMIT param passed through to the query
+        expect(mockDb.query).toHaveBeenCalledTimes(1);
+        const [sql, values] = mockDb.query.mock.calls[0] as [string, unknown[]];
+        expect(sql.toUpperCase()).toContain('LIMIT');
+        expect(values).toContain(CARD_ID);
+        expect(values).toContain(5);
+      });
+
+      it('returns an empty array when no events exist for the card', async () => {
+        // Arrange — DB returns no rows
+        const mockDb = makeMockDb([
+          { rows: [] },
+        ]);
+        const { EventRepository } = await import('../event.repository');
+        const repo = new EventRepository(mockDb);
+
+        // Act
+        const results = await repo.findByCardId('card-with-no-events', 50);
 
         // Assert
         expect(results).toEqual([]);

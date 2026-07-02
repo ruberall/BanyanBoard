@@ -608,6 +608,14 @@ Each frame carries the full `EventRow` serialized as JSON; the `id` field enable
 
 **`EventRepository.findAfterById`** (added in Phase 2): selects events for a board whose `occurred_at` is greater than the anchor event's `occurred_at` (correlated subquery), ordered `ASC` to deliver chronological replay.
 
+### Card-Scoped Activity Read Endpoint (Phase 2 — TASK-020)
+
+`GET /cards/:id/activity` (`backend/src/routes/cards.ts`) is a plain REST GET — not SSE — for reading a single card's event history. It complements the board-scoped SSE feed (`GET /boards/:boardId/events`) rather than replacing it: the feed is real-time and board-wide; this endpoint is on-demand and card-scoped (e.g. for a card detail view).
+
+- 404s via the existing `service.getCardById(id)` call (reuses `NotFoundError`) before querying activity — mirrors `GET /:id`'s error behavior.
+- Reads via `EventRepository.findByCardId(cardId, limit)` — no new repository; `DEFAULT_ACTIVITY_LIMIT = 50` constant in the route (not query-param configurable in this phase; revisit if pagination is needed later).
+- `projectActivityRow(row): ActivityItem` — a pure projection to `{ id, type, message, createdAt }`, following the same style as `projectEventRow` in `feed.ts`. Unlike `projectEventRow` (which returns the full event shape for SSE clients), this projection also **derives a human-readable `message` string** from `payload` per `event_type` (`card.moved` → `"{actor} moved this card from {from} to {to}"`, `card.created` → `"{actor} created this card"`), with `'Someone'`/`'a column'` fallbacks for null/missing payload fields — needed because legacy or malformed payloads must not throw.
+
 ### Frontend SSE Type-Guard Discrimination Pattern (Phase 2 — TASK-016)
 
 `useActivityFeed` receives raw SSE frames as `unknown`-ish JSON. Two guards run before the frame is accepted into state:

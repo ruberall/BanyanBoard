@@ -104,6 +104,13 @@ export interface AutomationRule {
   created_at: string
 }
 
+export interface CardActivityEntry {
+  id: string
+  type: string
+  message: string
+  createdAt: string
+}
+
 export interface WebhookDelivery {
   id: string
   trigger_execution_id: string

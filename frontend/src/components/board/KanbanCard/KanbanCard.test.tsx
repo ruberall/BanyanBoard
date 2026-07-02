@@ -26,12 +26,46 @@
  *  - Delete button renders with aria-label matching "Delete card: <title>" (AC-ENTRY-1, AC-A11Y-1)
  *  - Clicking the delete button calls onDelete with the card's id (AC-HAPPY-1)
  *  - Delete button is absent when onDelete prop is not provided
+ *
+ * Phase 4 (TASK-020) — Card title opens CardDetailModal (AC-ENTRY-1).
+ *
+ * Covers:
+ *  - Clicking the card title opens CardDetailModal (dialog with the card's title)
  */
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { Mock } from 'vitest'
 import type { Card } from '@/types'
 import { KanbanCard } from '@/components/board/KanbanCard/KanbanCard'
+import * as hooks from '@/api/hooks'
+
+// ---------------------------------------------------------------------------
+// Mock useCardActivity so CardDetailModal (rendered when the title is clicked)
+// does not attempt a real network call.
+// ---------------------------------------------------------------------------
+vi.mock('@/api/hooks', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/hooks')>()
+  return {
+    ...actual,
+    useCardActivity: vi.fn(),
+  }
+})
+
+const mockedUseCardActivity = hooks.useCardActivity as Mock
+
+function renderWithClient(ui: React.ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>)
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockedUseCardActivity.mockReturnValue({ data: [], isLoading: false, isError: false, error: null })
+})
 
 // ---------------------------------------------------------------------------
 // Sample data fixtures
@@ -371,5 +405,33 @@ describe('KanbanCard — delete button (Phase 5 / TASK-018)', () => {
     render(<KanbanCard card={makeCard({ title: 'Read-only Card' })} />)
 
     expect(screen.queryByRole('button', { name: /delete card/i })).not.toBeInTheDocument()
+  })
+})
+
+// ===========================================================================
+// Phase 4 (TASK-020) — Card title opens CardDetailModal
+//
+// Acceptance criteria covered:
+//  - AC-ENTRY-1: clicking a card's title opens CardDetailModal for that card,
+//    displaying an "Activity" section
+// ===========================================================================
+
+describe('KanbanCard — title click opens CardDetailModal (Phase 4 / TASK-020)', () => {
+  it('AC-ENTRY-1: clicking the card title opens CardDetailModal showing the Activity section', async () => {
+    const user = userEvent.setup()
+
+    renderWithClient(<KanbanCard card={makeCard({ id: 'card-7', title: 'Clickable Title' })} />)
+
+    // No modal/Activity section before the title is clicked
+    expect(screen.queryByRole('heading', { name: /activity/i })).not.toBeInTheDocument()
+
+    // Exact-match the accessible name so this doesn't also match the drag
+    // handle button, whose aria-label ("Reorder card: Clickable Title")
+    // contains the same substring.
+    const titleTrigger = screen.getByRole('button', { name: 'Clickable Title' })
+    await user.click(titleTrigger)
+
+    // CardDetailModal opens for this card, showing a visible "Activity" heading
+    expect(screen.getByRole('heading', { name: /activity/i })).toBeInTheDocument()
   })
 })

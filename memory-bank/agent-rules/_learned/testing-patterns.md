@@ -1,10 +1,10 @@
 ---
 name: "Learned: Testing Patterns"
-globs: ["*.test.*", "*.test.tsx", "*.test.ts", "*.spec.*"]
-topics: ["testing-patterns", "typescript", "test-fixtures"]
+globs: ["*.test.*", "*.test.tsx", "*.test.ts", "*.spec.*", "memory-bank/uat/**", "memory-bank/e2e-journeys/**"]
+topics: ["testing-patterns", "typescript", "test-fixtures", "uat", "browser-automation"]
 priority: medium
-evidence_count: 16
-last_updated: 2026-07-01
+evidence_count: 17
+last_updated: 2026-07-02
 auto_generated: true
 ---
 
@@ -20,6 +20,7 @@ auto_generated: true
 - When adding a new export to a wholesale-mocked module (`vi.mock('@/api/module')`), grep for all test files using that mock and add an explicit stub for the new export in each — auto-mocked undefined exports silently break component renders.
 - Before adding `vi.fn()` or `vi.spyOn` calls to an existing test file, verify `vi` is included in the vitest import statement — component test files often import only `{ describe, it, expect }` and lack `vi`.
 - For async retry loops with fixed backoff, use Jest fake timers and assert the delivery row state after each individual attempt (not only after the terminal state) to verify that per-step DB writes occur rather than a single terminal write.
+- Verify a UAT/UX-walker's own before/after DOM-state claim about a keyboard or timing-sensitive interaction (e.g., "ESC closed the modal") with a direct state check (element presence, `dialog.open` attribute) rather than trusting the walker's self-reported comparison — synthetic key events can silently fail to register as trusted in walker automation, producing false negatives.
 
 ## Evidence
 
@@ -35,3 +36,4 @@ auto_generated: true
 | Wholesale vi.mock gap: new hook export → undefined in dependent tests (BoardPage, KanbanBoard) | [reflection-TASK-018.md](../reflection/reflection-TASK-018.md) | 2026-06-28 |
 | Missing `vi` import in existing component test file (KanbanCard.test.tsx) | [reflection-TASK-018.md](../reflection/reflection-TASK-018.md) | 2026-06-28 |
 | WebhookDispatcher per-step DB write assertion — fake timers across 30s backoff, state checked after each attempt | [reflection-TASK-019.md](../reflection/reflection-TASK-019.md) | 2026-07-01 |
+| UX-walker ESC-key false negative recurred across two walker runs; resolved via direct `dialog.open` state check | [reflection-TASK-020.md](../reflection/reflection-TASK-020.md) | 2026-07-02 |

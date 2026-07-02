@@ -20,9 +20,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { createElement } from 'react'
 
-import { useBoards, useCreateBoard } from '@/api/hooks'
+import { useBoards, useCreateBoard, useCardActivity } from '@/api/hooks'
 import { queryKeys } from '@/api/queryKeys'
-import type { Board, PaginatedResponse } from '@/types'
+import type { Board, CardActivityEntry, PaginatedResponse } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Fetch helpers (mirrors client.test.ts style)
@@ -206,5 +206,41 @@ describe('useCreateBoard()', () => {
     await waitFor(() => expect(result.current.isError).toBe(true))
 
     expect(result.current.error).toBeTruthy()
+  })
+})
+
+// ===========================================================================
+// useCardActivity()
+// ===========================================================================
+
+describe('useCardActivity()', () => {
+  it('calls GET /cards/:id/activity via getCardActivity and returns data', async () => {
+    const entries: CardActivityEntry[] = [
+      { id: 'e1', type: 'card.moved', message: 'Alice moved this card from To Do to Done', createdAt: '2026-07-01T00:00:00Z' },
+    ]
+    mockFetchOk(entries)
+
+    const { Wrapper } = makeWrapper()
+    const { result } = renderHook(() => useCardActivity('card-1'), { wrapper: Wrapper })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toEqual(entries)
+
+    const mockFetchImpl = vi.mocked(fetch)
+    const lastCallUrl = mockFetchImpl.mock.calls[mockFetchImpl.mock.calls.length - 1][0] as string
+    expect(lastCallUrl).toContain('/cards/card-1/activity')
+  })
+
+  it('does not fetch when enabled: false is passed', () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { Wrapper } = makeWrapper()
+    const { result } = renderHook(() => useCardActivity('card-1', { enabled: false }), { wrapper: Wrapper })
+
+    expect(result.current.isLoading).toBe(false)
+    expect(result.current.isFetching).toBe(false)
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })

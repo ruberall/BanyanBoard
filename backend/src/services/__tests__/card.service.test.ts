@@ -285,6 +285,33 @@ describe('CardService', () => {
         expect.objectContaining({ actorId: null }),
       );
     });
+
+    it('passes real fromColumnName/toColumnName to emitCardMoved (bug found via UX walk: was hardcoded null)', async () => {
+      // Arrange
+      const mockEventService: jest.Mocked<Pick<EventService, 'emitCardMoved'>> = {
+        emitCardMoved: jest.fn().mockResolvedValue(undefined),
+      };
+      const r = makeMockRepo();
+      r.getColumnName.mockResolvedValueOnce('To Do');
+      const db = makeMockDb([{ rows: [{ id: 'col-uuid-2', board_id: 'board-uuid-1', name: 'In Progress' }] }]);
+      const svc = new CardService(r, db, mockEventService as unknown as EventService);
+
+      r.findCardById.mockResolvedValueOnce({ ...BASE_CARD, column_id: 'col-uuid-1' });
+      r.findCardsByColumnId.mockResolvedValueOnce([]);
+      const movedCard = { ...BASE_CARD, column_id: 'col-uuid-2', position: 1.0 };
+      r.moveCard.mockResolvedValueOnce(movedCard);
+
+      // Act
+      await svc.moveCard('card-uuid-1', 'col-uuid-2', null, 'actor-user-uuid-1');
+
+      // Assert — real column names, not null
+      expect(mockEventService.emitCardMoved).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fromColumnName: 'To Do',
+          toColumnName: 'In Progress',
+        }),
+      );
+    });
   });
 
   // ---------------------------------------------------------------------------

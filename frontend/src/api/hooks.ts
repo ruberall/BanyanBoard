@@ -15,9 +15,9 @@ import {
   patchAutomationRuleEnabled,
   deleteAutomationRule,
   listWebhookDeliveries,
+  getCardActivity,
 } from '@/api/endpoints'
-import type { PaginatedResponse, Board, BoardWithColumns, Card, Label, ApiError, AutomationRule, WebhookDelivery } from '@/types'
-import type { DeliveryPage } from '@/api/endpoints'
+import type { PaginatedResponse, Board, BoardWithColumns, Card, Label, ApiError, AutomationRule, WebhookDelivery, CardActivityEntry } from '@/types'
 
 const DONE_COLUMN_NAME = 'Done'
 const DONE_CARD_COLOR = '#d4edda'
@@ -159,6 +159,14 @@ export function useWebhookDeliveries(boardId: string, opts?: { enabled?: boolean
     enabled: opts?.enabled !== false && !!boardId,
     refetchInterval: opts?.enabled !== false ? 30_000 : false,
     staleTime: 0,
+  })
+}
+
+export function useCardActivity(cardId: string, opts?: { enabled?: boolean }) {
+  return useQuery<CardActivityEntry[]>({
+    queryKey: queryKeys.cardActivity.byCard(cardId),
+    queryFn: () => getCardActivity(cardId),
+    enabled: opts?.enabled !== false && !!cardId,
   })
 }
 
