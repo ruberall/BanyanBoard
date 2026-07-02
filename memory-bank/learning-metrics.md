@@ -23,6 +23,7 @@
 | TASK-017 | 2026-06-28 | 4 | 2 | 2 | error-handling + architecture-patterns created; testing-patterns + api-design amended (Level 4) |
 | TASK-018 | 2026-06-28 | 2 | 0 | 1 | testing-patterns amended: wholesale vi.mock gap + missing vi import (Level 2) |
 | TASK-019 | 2026-07-01 | 4 | 0 | 3 | security (+2) + testing-patterns + architecture-foundation amended; 4-phase Level 4 webhook delivery |
+| TASK-020 | 2026-07-02 | 2 | 0 | 2 | data-integrity + testing-patterns amended (Level 2 cap); immutable event-payload gotcha + UAT walker ESC false-negative pattern |
 
 ## Consolidation History
 
@@ -39,19 +40,20 @@
 | 2026-06-27 | TASK-016 archive | 14 | 13 | 1 | 0 | 0 | 0 |
 | 2026-06-28 | TASK-017 archive | 15 | 14 | 1 | 0 | 0 | 0 |
 | 2026-07-01 | TASK-019 archive | 14 | 14 | 0 | 0 | 1 | 6 |
+| 2026-07-02 | TASK-020 archive | 14 | 14 | 0 | 0 | 1 | 0 |
 
 ## Rule Effectiveness
 
 | File | Evidence Count | Priority | Last Updated | Status |
 |------|---------------|----------|--------------|--------|
-| testing-patterns.md | 16 | medium | 2026-07-01 | active (pruned 16→10 bullets) |
+| testing-patterns.md | 17 | medium | 2026-07-02 | active (pruned 16→10 bullets, TASK-020 +1) |
 | architecture-foundation.md | 6 | medium | 2026-07-01 | active (merged: architecture-patterns) |
 | api-design.md | 4 | medium | 2026-06-28 | active (promoted) |
 | security.md | 4 | medium | 2026-07-01 | active (promoted) |
 | react-query-patterns.md | 3 | medium | 2026-06-27 | active (promoted) |
+| data-integrity.md | 3 | medium | 2026-07-02 | active (promoted, TASK-020) |
 | error-handling.md | 1 | low | 2026-06-28 | active |
 | observability-standards.md | 1 | low | 2026-06-13 | active |
-| data-integrity.md | 2 | low | 2026-06-27 | active |
 | data-validation.md | 1 | low | 2026-06-27 | active |
 | frontend-accessibility.md | 2 | low | 2026-06-27 | active |
 | docker-compose.md | 2 | low | 2026-06-22 | active (merged: docker-dev-environment) |

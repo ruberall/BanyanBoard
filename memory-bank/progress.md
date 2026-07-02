@@ -2,6 +2,125 @@
 
 ---
 
+## 2026-07-02 - TASK-020: Card Activity Feed — REFLECTION_COMPLETE
+
+**Task**: Card Activity Feed (FEAT-017)
+**Phase**: Reflection — COMPLETE
+**Reflection**: `memory-bank/reflection/reflection-TASK-020.md`
+
+### Evaluation Summary
+- **Task Quality**: Success — all 5 ACs implemented and verified; UAT's one Required finding (UAT-R-01) triaged as a historical-data artifact, not a live code defect, per orchestrator live verification
+- **Ecosystem Effectiveness**: Highly Effective — 4-phase build kept each phase reviewable; code review caught a real accessibility defect before commit; in-build UX-ingest live-walk caught a pre-existing TASK-012 bug earlier than the formal UAT cycle would have
+- **Notable findings**: axe-core injection failed in all 4 browser-automation runs this task's lifecycle (2 UX-ingest, 2 UAT walkers) — flagged as a High Priority recurring ecosystem gap, zero deterministic a11y coverage currently exists
+
+### Pattern Extraction
+- 1 learning added to `agent-rules/_learned/data-integrity.md` (evidence count: 3) — immutable event-payload gotcha: bug fixes to write-once audit-log data are forward-only
+- 1 learning added to `agent-rules/_learned/testing-patterns.md` (evidence count: 17) — verify UAT/UX-walker keyboard/timing claims via direct DOM state check, not the walker's self-reported comparison
+
+### Recommendation
+Ready to archive. UAT-R-01 (3 historical event rows with permanently incorrect message text) is an explicit, documented, non-blocking product decision — not an open code defect.
+
+---
+
+## 2026-07-02 - TASK-020: Card Activity Feed — Post-build fix (found via UX walk)
+
+**Task**: Card Activity Feed (FEAT-017)
+**Trigger**: `/banyan-ux-ingest --live-walk` observed `card.moved` activity entries rendering as "X moved this card from **a column** to **a column**" instead of real column names.
+
+### Root Cause
+`CardService.moveCard` (`backend/src/services/card.service.ts`) hardcoded `fromColumnName: null, toColumnName: null` in its `EventService.emitCardMoved` call — a pre-existing bug from TASK-012 (Realtime Activity Feed), invisible until TASK-020 rendered `payload.fromColumnName`/`toColumnName` as human-readable message text. The `'a column'` fallback added during TASK-020 Phase 2 code review masked the symptom (avoiding a literal `"undefined"`) without surfacing that the underlying data was missing.
+
+### Fix
+Reused values already fetched earlier in `moveCard`: `sourceColumnName` (via `CardRepository.getColumnName`, already queried for stale-suppression) and `destColName` (already queried for the Done-color/automation triggers) — no new queries needed.
+
+### Verification
+- New test: `card.service.test.ts` — "passes real fromColumnName/toColumnName to emitCardMoved"
+- Full backend suite: 319/319 passed, 0 regressions
+- `tsc` build: clean
+- Committed to `feature/FEAT-017-card-activity-feed` (`eebac6e`)
+
+---
+
+## 2026-07-02 - TASK-020: Card Activity Feed — Phase 4 COMPLETE (ALL PHASES DONE)
+
+**Task**: Card Activity Feed (FEAT-017)
+**Phase**: Phase 4 of 4 — Frontend: CardDetailModal component + KanbanCard wiring
+
+### What Was Built
+- `CardDetailModal` (`frontend/src/components/board/CardDetailModal/`): native `<dialog>` pattern copied from `BoardSettingsModal`; Activity section with visible "Activity" `<h3>` heading and loading (`LoadingSpinner`) / error (`ErrorBanner`) / empty ("No activity yet.") / populated (message + formatted `createdAt`) states, backed by `useCardActivity(cardId, { enabled: open })`
+- `KanbanCard.tsx`: card title changed from static `<h3>` to a `<button>` (local `detailOpen` state, matching the existing `pickerState`/`colorPickerOpen` local-state precedent) that opens `CardDetailModal`; drag-handle listeners remain isolated to the drag-handle button only
+- 5 new tests: 4 for `CardDetailModal` states, 1 for the `KanbanCard` title-click entry point (AC-ENTRY-1)
+
+### Verification
+- Target files: 31/31 passing
+- Full frontend suite: 286/286 passed, 0 regressions
+- `npm run build` (tsc -b + vite build): clean
+
+### Issues Encountered
+- Code Review iteration 1: **BLOCKING** — Activity section used `aria-label="Activity"` on a non-interactive `<div>` with no visible heading, deviating from the project's established visible-heading convention (`BoardSettingsModal`'s `<h2>Board Settings</h2>`) and creating a real accessibility gap for sighted users. Fixed by adding a visible `<h3>Activity</h3>` (the CSS class `.sectionTitle` already existed, unused, from an earlier version) and updating the two colliding test queries (`getByText(/activity/i)`) to `getByRole('heading', { name: /activity/i })`, resolving the ambiguity with the "No activity yet." empty-state text that also matched `/activity/i`. Re-verified: 31/31 target tests, 286/286 full suite, clean build.
+
+### End-to-End Flow Complete
+This was the final implementation phase for FEAT-017. The full entry-to-success flow is now wired: click a card's title (Board page) → `CardDetailModal` opens → `GET /cards/:id/activity` fetches history from the durable `card_events` table → Activity section renders loading/empty/error/populated states → closing and reopening (or reloading) re-fetches the same durable history, satisfying AC-HAPPY-2 (persistence across sessions/days).
+
+---
+
+## 2026-07-02 - TASK-020: Card Activity Feed — Phase 3 COMPLETE
+
+**Task**: Card Activity Feed (FEAT-017)
+**Phase**: Phase 3 of 4 — Frontend: types, endpoint, query key, useCardActivity hook
+
+### What Was Built
+- `CardActivityEntry` type in `frontend/src/types/index.ts`: `{ id, type, message, createdAt }`, matching the Phase 2 backend response shape
+- `getCardActivity(cardId)` in `frontend/src/api/endpoints.ts` — GET `/cards/:id/activity`, mirrors `getCard`
+- `cardActivity.byCard(cardId)` query key in `frontend/src/api/queryKeys.ts`, mirrors `webhookDeliveries`
+- `useCardActivity(cardId, opts?)` in `frontend/src/api/hooks.ts` — mirrors `useWebhookDeliveries` minus polling (plain on-open fetch, not a live feed)
+- 2 new tests in `frontend/src/api/__tests__/hooks.test.ts` (fetch success, `enabled: false` skip)
+- Incidental fix: removed a pre-existing unused `DeliveryPage` type import from `hooks.ts` that was blocking `tsc -b` — confirmed safe (still defined/used in `endpoints.ts`)
+
+### Verification
+- `hooks.test.ts`: 9/9 passing
+- Full frontend suite: 281/281 passed, 0 regressions
+- `npm run build` (tsc -b + vite build): clean
+- Code review: APPROVED, 0 blocking issues
+
+---
+
+## 2026-07-02 - TASK-020: Card Activity Feed — Phase 2 COMPLETE
+
+**Task**: Card Activity Feed (FEAT-017)
+**Phase**: Phase 2 of 4 — Backend: GET /cards/:id/activity route + message projection
+
+### What Was Built
+- `GET /cards/:id/activity` on `createCardsRouter` (`backend/src/routes/cards.ts`) — 404s via existing `service.getCardById`, then `EventRepository.findByCardId(cardId, 50)`, projected via new `projectActivityRow` to `{ id, type, message, createdAt }`
+- Message derivation from `payload` per `event_type` (`card.moved`, `card.created`), with `'Someone'`/`'a column'` fallbacks for missing actor/column names
+- 4 new tests in `backend/src/routes/__tests__/cards.routes.test.ts` (moved-message shape, created-message + null-actor fallback, empty array, 404 short-circuit)
+
+### Verification
+- `cards.routes.test.ts`: 34/34 passing
+- Full backend suite: 318 passed, 32 skipped (pre-existing DB-gated), 0 failures, 0 regressions
+- `tsc` build: clean
+- Code review: APPROVED, 0 blocking issues; 1 non-blocking suggestion applied (fallback for missing `fromColumnName`/`toColumnName` to avoid literal `"undefined"` in message text on legacy payloads)
+- `systemPatterns.md` updated with the new Card-Scoped Activity Read Endpoint pattern (distinguishing it from the existing board-scoped SSE feed)
+
+---
+
+## 2026-07-02 - TASK-020: Card Activity Feed — Phase 1 COMPLETE
+
+**Task**: Card Activity Feed (FEAT-017)
+**Phase**: Phase 1 of 4 — Backend: EventRepository.findByCardId
+
+### What Was Built
+- `EventRepository.findByCardId(cardId, limit)` in `backend/src/repositories/event.repository.ts` — mirrors `findRecentByBoard`: parameterized SQL, `WHERE card_id = $1`, `ORDER BY occurred_at DESC`, `LIMIT $2`. Reuses the existing `card_events` table and `EventRow` type — no new repository/table.
+- 3 new tests in `backend/src/repositories/__tests__/event.repository.test.ts` (ordering, limit, empty result), extending the existing describe block.
+
+### Verification
+- Full backend suite: 314 passed, 32 skipped (pre-existing DB-gated integration tests), 0 failures
+- `tsc` build: clean
+- Code review: APPROVED, 0 blocking issues (Guiding Principles #5 parameterized SQL, #11 domain types at repository layer both verified)
+- No lint script configured for backend (pre-existing project state, not introduced by this phase)
+
+---
+
 ## Task Archive: TASK-019
 
 **Task**: Webhook Delivery for Workflow Rules

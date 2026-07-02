@@ -5,10 +5,56 @@ import { CardService } from '../services/card.service';
 import type { EventService } from '../services/event.service';
 import type { WorkflowService } from '../services/workflow.service';
 import type { AutomationService } from '../services/automation.service';
+import { EventRepository } from '../repositories/event.repository';
+import type { EventRow } from '../repositories/event.repository';
 import { asyncHandler } from '../lib/asyncHandler';
 import { ValidationError } from '../errors';
 
 const VALID_PATCH_FIELDS = new Set(['title', 'description', 'due_date', 'labels', 'color']);
+
+const DEFAULT_ACTIVITY_LIMIT = 50;
+
+// ---------------------------------------------------------------------------
+// ActivityItem — normalized shape returned by GET /cards/:id/activity
+// ---------------------------------------------------------------------------
+
+export interface ActivityItem {
+  id: string;
+  type: string;
+  message: string;
+  createdAt: Date;
+}
+
+/**
+ * Project a raw EventRow from the DB into the ActivityItem shape used by
+ * the card activity timeline. Derives a human-readable message per
+ * event_type from fields snapshotted in the payload jsonb.
+ */
+export function projectActivityRow(row: EventRow): ActivityItem {
+  const actorName = (row.payload?.['actor_display_name'] as string | null | undefined) ?? 'Someone';
+
+  let message: string;
+  switch (row.event_type) {
+    case 'card.moved': {
+      const fromColumnName = (row.payload?.['fromColumnName'] as string | null | undefined) ?? 'a column';
+      const toColumnName = (row.payload?.['toColumnName'] as string | null | undefined) ?? 'a column';
+      message = `${actorName} moved this card from ${fromColumnName} to ${toColumnName}`;
+      break;
+    }
+    case 'card.created':
+      message = `${actorName} created this card`;
+      break;
+    default:
+      message = row.event_type;
+  }
+
+  return {
+    id: row.id,
+    type: row.event_type,
+    message,
+    createdAt: row.occurred_at,
+  };
+}
 
 function validateCardInput(body: Record<string, unknown>, requireTitle: boolean): void {
   const title = body['title'];
@@ -104,11 +150,18 @@ export function createCardsRouter(
 ): Router {
   const repo = new CardRepository(db);
   const service = new CardService(repo, db, eventService, workflowService, automationService);
+  const eventRepo = new EventRepository(db);
   const router = Router();
 
   router.get('/:id', asyncHandler(async (req, res) => {
     const card = await service.getCardById(req.params.id);
     res.json(card);
+  }));
+
+  router.get('/:id/activity', asyncHandler(async (req, res) => {
+    await service.getCardById(req.params.id);
+    const rows = await eventRepo.findByCardId(req.params.id, DEFAULT_ACTIVITY_LIMIT);
+    res.json(rows.map(projectActivityRow));
   }));
 
   // MUST be registered before PATCH /:id — prevents Express matching "move" as a card UUID

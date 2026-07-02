@@ -1,10 +1,11 @@
 # TASK-020: Card Activity Feed
 
 **Complexity**: Level 2 (inherited from FEAT-017)
-**Status**: PLANNING_COMPLETE
+**Status**: REFLECTION_COMPLETE
+**Reflection**: memory-bank/reflection/reflection-TASK-020.md
 **Roadmap**: FEAT-017
 **Branch**: feature/FEAT-017-card-activity-feed
-**Worktree**: N/A
+**Worktree**: .claude-worktrees/FEAT-017
 
 ## Task Description
 
@@ -176,10 +177,10 @@ Specification is concrete — proceed to implementation planning. The one MEDIUM
 
 ## Implementation Roadmap
 
-- [ ] Phase 1: Backend — `EventRepository.findByCardId`
-- [ ] Phase 2: Backend — `GET /cards/:id/activity` route + message projection
-- [ ] Phase 3: Frontend — types, endpoint, query key, `useCardActivity` hook
-- [ ] Phase 4: Frontend — `CardDetailModal` component + `KanbanCard` wiring (entry-to-success flow complete)
+- [x] Phase 1: Backend — `EventRepository.findByCardId`
+- [x] Phase 2: Backend — `GET /cards/:id/activity` route + message projection
+- [x] Phase 3: Frontend — types, endpoint, query key, `useCardActivity` hook
+- [x] Phase 4: Frontend — `CardDetailModal` component + `KanbanCard` wiring (entry-to-success flow complete)
 
 ## Creative Phases
 
@@ -190,13 +191,39 @@ Specification is concrete — proceed to implementation planning. The one MEDIUM
 ## Execution State
 
 **Build Status**: IDLE
-**Current Phase**: BUILD
-**Current Step**: Planning complete
-**Last Completed**: Step 6 - Finalize Plan
+**Current Phase**: REFLECT → ARCHIVE
 **Can Resume**: NO
 
 ### Active Sub-Agents
-(none)
+- Reflection Agent: COMPLETE
 
 ### Completed Steps
+- [Reflect] Step 3 Reflection Agent: COMPLETE - reflection-TASK-020.md written, both dimensions evaluated
+- [Reflect] Step 3.5 Pattern Extraction: COMPLETE - 2 learnings extracted, both amended existing files (data-integrity.md evidence_count 2→3, testing-patterns.md evidence_count 16→17); learning-log.md and learning-metrics.md updated
+
+### Completed Steps
+- [Phase 4] Step 3 Test Writer: COMPLETE - 4 tests in new CardDetailModal.test.tsx, 1 test added to KanbanCard.test.tsx, verified RED
+- [Phase 4] Step 4 Coding Agent: COMPLETE - CardDetailModal created, KanbanCard title-click wired, 31/31 target tests, full suite 286/286, build clean
+- [Phase 4] Step 8 Code Reviewer: COMPLETE - 1 BLOCKING issue found (Activity section aria-label with no visible heading) - fixed (visible <h3>Activity</h3>, test queries updated to getByRole('heading')), re-verified 31/31 + 286/286 + clean build
+- [Phase 4] Step 9-10 Documentation/Memory Bank: COMPLETE - progress.md entry added (all-phases-done summary), tasks.md BUILD_COMPLETE, task header Status: BUILD_COMPLETE
+- [Phase 3] Step 3 Test Writer: COMPLETE - 2 tests added to hooks.test.ts (useCardActivity), CardActivityEntry type added, verified RED
+- [Phase 3] Step 4 Coding Agent: COMPLETE - getCardActivity/queryKeys.cardActivity/useCardActivity implemented, 9/9 file tests, full suite 281/281, build clean; also removed a pre-existing unused DeliveryPage import that was blocking tsc -b
+- [Phase 3] Step 8 Code Reviewer: COMPLETE - APPROVED, 0 blocking issues
+- [Phase 3] Step 9-10 Documentation/Memory Bank: COMPLETE - progress.md entry added, tasks.md Phase 3/4, Implementation Roadmap Phase 3 marked [x] (no systemPatterns.md change needed - pure plumbing mirroring an existing documented pattern)
+- [Phase 2] Step 3 Test Writer: COMPLETE - 4 tests added to cards.routes.test.ts (GET /:id/activity), verified RED (route not registered)
+- [Phase 2] Step 4 Coding Agent: COMPLETE - GET /:id/activity route + projectActivityRow implemented in cards.ts, 34/34 file tests passing, full suite 318/318, build clean
+- [Phase 2] Step 7 Integration Verification: COMPLETE - re-ran full suite independently, 318 passed / 32 skipped, 0 failures; no lint script (pre-existing)
+- [Phase 2] Step 8 Code Reviewer: COMPLETE - APPROVED, 0 blocking; applied 1 non-blocking fix (fromColumnName/toColumnName fallback)
+- [Phase 2] Step 9 Documentation: COMPLETE - systemPatterns.md updated with Card-Scoped Activity Read Endpoint pattern
+- [Phase 2] Step 10 Memory Bank: COMPLETE - tasks/TASK-020.md Phase 2 marked [x], progress.md entry added
+- [Phase 1] Git Setup: COMPLETE - worktree .claude-worktrees/FEAT-017 created on feature/FEAT-017-card-activity-feed
+- [Phase 1] Step 3 Test Writer: COMPLETE - 3 tests added to event.repository.test.ts (findByCardId), verified RED (TS2339)
+- [Phase 1] Step 4 Coding Agent: COMPLETE - findByCardId implemented in event.repository.ts, 6/6 tests passing, build clean
+- [Phase 1] Step 7 Integration Verification: COMPLETE - full backend suite 314 passed / 32 skipped (pre-existing DB-gated skips), tsc build clean; no lint script configured in backend (pre-existing, not introduced by this change)
+- [Phase 1] Step 8 Code Reviewer: COMPLETE - APPROVED, 0 blocking issues
+- [Phase 1] Step 9 Documentation: COMPLETE - progress.md updated (no systemPatterns.md change needed; findByCardId mirrors an already-documented pattern)
+- [Phase 1] Step 10 Memory Bank: COMPLETE - tasks/TASK-020.md Phase 1 marked [x], progress.md entry added
+- [Phase 1] Step 11 Git Completion: COMPLETE - committed 28186ac to feature/FEAT-017-card-activity-feed
+
+### Active Sub-Agents
 (none)

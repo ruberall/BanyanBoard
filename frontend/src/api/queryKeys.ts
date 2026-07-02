@@ -20,4 +20,7 @@ export const queryKeys = {
     all: ['webhook-deliveries'] as const,
     byBoard: (boardId: string) => ['webhook-deliveries', 'board', boardId] as const,
   },
+  cardActivity: {
+    byCard: (cardId: string) => ['card-activity', 'card', cardId] as const,
+  },
 }

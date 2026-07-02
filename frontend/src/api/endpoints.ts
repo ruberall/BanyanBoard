@@ -1,5 +1,5 @@
 import { request } from './client'
-import type { Board, BoardWithColumns, Card, PaginatedResponse, User, AutomationRule, WebhookDelivery } from '@/types'
+import type { Board, BoardWithColumns, Card, PaginatedResponse, User, AutomationRule, WebhookDelivery, CardActivityEntry } from '@/types'
 
 // Board endpoints
 
@@ -47,6 +47,10 @@ export function updateCard(
 
 export function deleteCard(cardId: string): Promise<void> {
   return request<void>('DELETE', `/cards/${cardId}`)
+}
+
+export function getCardActivity(cardId: string): Promise<CardActivityEntry[]> {
+  return request<CardActivityEntry[]>('GET', `/cards/${cardId}/activity`)
 }
 
 // Auth endpoints

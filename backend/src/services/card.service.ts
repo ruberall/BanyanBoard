@@ -103,8 +103,11 @@ export class CardService {
 
     // Stale suppression: best-effort UPDATE when card was moved FROM the Stale column.
     // Query the source column name inside try/catch so any failure is non-fatal.
+    // Also reused below for the card.moved event payload (fromColumnName) so the
+    // activity feed shows real column names instead of nulls.
+    let sourceColumnName: string | null = null;
     try {
-      const sourceColumnName = await this.repo.getColumnName(existingCard.column_id);
+      sourceColumnName = await this.repo.getColumnName(existingCard.column_id);
       if (sourceColumnName === 'Stale') {
         await this.repo.setSuppressed(id, true);
       }
@@ -138,9 +141,9 @@ export class CardService {
           actorId:        actorId ?? null,
           actorEmail:     null,
           fromColumnId:   existingCard.column_id,
-          fromColumnName: null,
+          fromColumnName: sourceColumnName,
           toColumnId:     card.column_id,
-          toColumnName:   null,
+          toColumnName:   destColName,
         });
       } catch (err) {
         logger.warn({ err, cardId: id }, 'card.moved.event_emission_failed');

@@ -697,3 +697,128 @@ describe('PATCH /cards/:id/move — event emission (Phase 1)', () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// GET /cards/:id/activity (TASK-020 Phase 2)
+//
+// Behavior under test:
+//   1. 404s via service.getCardById (same NotFoundError path as GET /:id) if
+//      the card itself does not exist.
+//   2. Otherwise queries EventRepository.findByCardId and projects rows to
+//      { id, type, message, createdAt }, message derived from payload per
+//      event_type (card.moved / card.created).
+//   3. Returns [] (200, not an error) when the card has no events.
+//
+// Tests will FAIL until the Coding Agent adds this route + projection to
+// backend/src/routes/cards.ts.
+// ---------------------------------------------------------------------------
+
+describe('GET /cards/:id/activity', () => {
+  const stubPool = { query: jest.fn() } as any;
+  const agent = makeAuthenticatedAgent(stubPool);
+
+  beforeAll(async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixUserRow], rowCount: 1 }); // AuthService.login: findByEmail
+    const loginRes = await agent.post('/auth/login').send({ email: USER_EMAIL, password: USER_PASSWORD });
+    if (loginRes.status !== 200) {
+      throw new Error(`Login failed in beforeAll: ${loginRes.status} ${JSON.stringify(loginRes.body)}`);
+    }
+    stubPool.query.mockReset();
+  });
+
+  afterEach(() => {
+    stubPool.query.mockReset();
+  });
+
+  const EVENT_ID_1 = 'event-uuid-1111-2222-3333-444444444444';
+  const EVENT_ID_2 = 'event-uuid-2222-3333-4444-555555555555';
+
+  function fixEventRow(overrides: Partial<Record<string, unknown>> = {}) {
+    return {
+      id: EVENT_ID_1,
+      board_id: 'board-uuid-aaaa',
+      card_id: CARD_ID,
+      actor_id: USER_ID,
+      event_type: 'card.moved',
+      from_column_id: 'col-from-uuid',
+      to_column_id: COL_ID,
+      payload: {
+        cardTitle: 'Write tests',
+        fromColumnName: 'To Do',
+        toColumnName: 'In Progress',
+        actorEmail: USER_EMAIL,
+        actor_display_name: 'Jane Doe',
+      },
+      occurred_at: '2026-06-16T00:00:00.000Z',
+      ...overrides,
+    };
+  }
+
+  it('returns 200 with events mapped to { id, type, message, createdAt } and the moved-card message derived from payload', async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 })       // service.getCardById
+      .mockResolvedValueOnce({ rows: [fixEventRow()], rowCount: 1 }); // EventRepository.findByCardId
+
+    const res = await agent.get(`/cards/${CARD_ID}/activity`);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0]).toEqual({
+      id: EVENT_ID_1,
+      type: 'card.moved',
+      message: 'Jane Doe moved this card from To Do to In Progress',
+      createdAt: '2026-06-16T00:00:00.000Z',
+    });
+  });
+
+  it('derives the correct message for a card.created event, falling back to "Someone" when actor_display_name is null', async () => {
+    const createdRow = fixEventRow({
+      id: EVENT_ID_2,
+      event_type: 'card.created',
+      from_column_id: null,
+      to_column_id: null,
+      payload: {
+        cardTitle: 'Write tests',
+        columnId: COL_ID,
+        columnName: 'To Do',
+        actor_display_name: null,
+      },
+    });
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [createdRow], rowCount: 1 });
+
+    const res = await agent.get(`/cards/${CARD_ID}/activity`);
+
+    expect(res.status).toBe(200);
+    expect(res.body[0]).toMatchObject({
+      id: EVENT_ID_2,
+      type: 'card.created',
+      message: 'Someone created this card',
+    });
+  });
+
+  it('returns 200 with an empty array (not an error) when the card has no recorded events', async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [fixCard], rowCount: 1 })  // service.getCardById
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 });         // EventRepository.findByCardId
+
+    const res = await agent.get(`/cards/${CARD_ID}/activity`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  it('returns 404 when the card does not exist (activity is never queried)', async () => {
+    stubPool.query
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 }); // service.getCardById → NotFoundError
+
+    const res = await agent.get('/cards/nonexistent-id/activity');
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('NOT_FOUND');
+    expect(stubPool.query).toHaveBeenCalledTimes(1); // never reaches findByCardId
+  });
+});

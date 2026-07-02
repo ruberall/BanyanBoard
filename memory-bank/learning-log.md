@@ -2,6 +2,29 @@
 
 ---
 
+## 2026-07-02 - Consolidation (during TASK-020 archive)
+
+- Files before: 14, Files after: 14
+- Merged: 0 files
+- Expired: 0 bullets (0 files deleted) — no rules older than 90 days
+- Promoted: 1 file (`data-integrity.md` low → medium; evidence_count reached threshold of 3 ≥ 3)
+- Pruned: 0 files (no file exceeds 15-bullet max)
+
+---
+
+## 2026-07-02 - TASK-020 Reflection
+
+### Extracted Patterns
+- **data-integrity** → amended `agent-rules/_learned/data-integrity.md` (evidence count: 2 → 3)
+  - Write-once event/audit table payloads are captured immutably at emit time; a formatting bug fix is forward-only and requires an explicit backfill-or-accept decision for existing rows
+- **testing-patterns** → amended `agent-rules/_learned/testing-patterns.md` (evidence count: 16 → 17)
+  - Verify a UAT/UX-walker's keyboard/timing-interaction claim via direct DOM state check, not the walker's self-reported before/after comparison
+
+### systemPatterns.md Updates
+- None (no novel architecture pattern — both learnings are process/testing guidance, not system design)
+
+---
+
 ## 2026-07-01 - Consolidation (during TASK-019 archive)
 
 - Files before: 14, Files after: 14
