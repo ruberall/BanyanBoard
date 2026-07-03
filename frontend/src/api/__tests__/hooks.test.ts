@@ -20,9 +20,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { createElement } from 'react'
 
-import { useBoards, useCreateBoard, useCardActivity } from '@/api/hooks'
+import { useBoards, useCreateBoard, useCardActivity, useUpdateCardTitle } from '@/api/hooks'
 import { queryKeys } from '@/api/queryKeys'
-import type { Board, CardActivityEntry, PaginatedResponse } from '@/types'
+import type { Board, Card, CardActivityEntry, PaginatedResponse } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Fetch helpers (mirrors client.test.ts style)
@@ -242,5 +242,85 @@ describe('useCardActivity()', () => {
     expect(result.current.isLoading).toBe(false)
     expect(result.current.isFetching).toBe(false)
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+// ===========================================================================
+// useUpdateCardTitle() (TASK-021)
+// ===========================================================================
+
+describe('useUpdateCardTitle()', () => {
+  it('calls PATCH /cards/:id via updateCard with the given title and returns the updated card', async () => {
+    const updated: Card = {
+      id: 'card-1',
+      column_id: 'col-1',
+      title: 'Renamed Card',
+      description: null,
+      due_date: null,
+      labels: [],
+      position: 1,
+      color: null,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    }
+    mockFetchOk(updated)
+
+    const { Wrapper } = makeWrapper()
+    const { result } = renderHook(() => useUpdateCardTitle('card-1'), { wrapper: Wrapper })
+
+    act(() => {
+      result.current.mutate({ title: 'Renamed Card' })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toEqual(updated)
+
+    const mockFetchImpl = vi.mocked(fetch)
+    const [url, init] = mockFetchImpl.mock.calls[mockFetchImpl.mock.calls.length - 1]
+    expect(url as string).toContain('/cards/card-1')
+    expect((init as RequestInit).method).toBe('PATCH')
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({ title: 'Renamed Card' })
+  })
+
+  it('invalidates cards queries on success so board columns refetch the new title', async () => {
+    const updated: Card = {
+      id: 'card-1',
+      column_id: 'col-1',
+      title: 'Renamed Card',
+      description: null,
+      due_date: null,
+      labels: [],
+      position: 1,
+      color: null,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    }
+    mockFetchOk(updated)
+
+    const { client, Wrapper } = makeWrapper()
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries')
+    const { result } = renderHook(() => useUpdateCardTitle('card-1'), { wrapper: Wrapper })
+
+    act(() => {
+      result.current.mutate({ title: 'Renamed Card' })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.cards.all })
+  })
+
+  it('surfaces an error when the PATCH fails', async () => {
+    mockFetchError(500, { message: 'Server error' })
+
+    const { Wrapper } = makeWrapper()
+    const { result } = renderHook(() => useUpdateCardTitle('card-1'), { wrapper: Wrapper })
+
+    act(() => {
+      result.current.mutate({ title: 'Renamed Card' })
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
   })
 })

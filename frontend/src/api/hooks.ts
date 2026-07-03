@@ -95,6 +95,16 @@ export function useUpdateCard(columnId: string) {
   })
 }
 
+export function useUpdateCardTitle(cardId: string) {
+  const qc = useQueryClient()
+  return useMutation<Card, ApiError, { title: string }>({
+    mutationFn: ({ title }) => updateCard(cardId, { title }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.cards.all })
+    },
+  })
+}
+
 type DeleteCardCtx = { prevCards: Card[] | undefined }
 
 export function useDeleteCard(columnId: string) {

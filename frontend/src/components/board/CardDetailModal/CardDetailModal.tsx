@@ -1,5 +1,5 @@
-import { useRef, useEffect } from 'react'
-import { useCardActivity } from '@/api/hooks'
+import { useRef, useEffect, useState } from 'react'
+import { useCardActivity, useUpdateCardTitle } from '@/api/hooks'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner/LoadingSpinner'
 import { ErrorBanner } from '@/components/common/ErrorBanner/ErrorBanner'
 import styles from './CardDetailModal.module.css'
@@ -14,6 +14,48 @@ interface CardDetailModalProps {
 export function CardDetailModal({ open, cardId, cardTitle, onClose }: CardDetailModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const { data, isLoading, isError, error } = useCardActivity(cardId, { enabled: open })
+
+  const [displayTitle, setDisplayTitle] = useState(cardTitle)
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState(cardTitle)
+  const [titleValidationError, setTitleValidationError] = useState<string | null>(null)
+  const updateTitle = useUpdateCardTitle(cardId)
+
+  function handleEditTitleClick() {
+    setTitleDraft(displayTitle)
+    setTitleValidationError(null)
+    setIsEditingTitle(true)
+  }
+
+  function handleCancelTitleClick() {
+    setTitleValidationError(null)
+    setIsEditingTitle(false)
+  }
+
+  function handleSaveTitleClick() {
+    const trimmed = titleDraft.trim()
+    if (trimmed === '') {
+      setTitleValidationError('Title is required')
+      return
+    }
+    setTitleValidationError(null)
+    updateTitle.mutate(
+      { title: trimmed },
+      {
+        onSuccess: () => {
+          setDisplayTitle(trimmed)
+          setIsEditingTitle(false)
+        },
+      },
+    )
+  }
+
+  const titleMutationError =
+    updateTitle.isError
+      ? updateTitle.error instanceof Error
+        ? updateTitle.error.message
+        : 'Failed to update title'
+      : null
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -60,7 +102,49 @@ export function CardDetailModal({ open, cardId, cardTitle, onClose }: CardDetail
   return (
     <dialog ref={dialogRef} className={styles.dialog} aria-labelledby="card-detail-title">
       <div className={styles.header}>
-        <h2 id="card-detail-title" className={styles.title}>{cardTitle}</h2>
+        {isEditingTitle ? (
+          <div className={styles.titleEditGroup}>
+            <label htmlFor="card-detail-title-input" className={styles.visuallyHidden}>
+              Card title
+            </label>
+            <input
+              id="card-detail-title-input"
+              type="text"
+              className={styles.titleInput}
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              autoFocus
+            />
+            <button
+              type="button"
+              className={styles.saveBtn}
+              onClick={handleSaveTitleClick}
+              disabled={updateTitle.isPending}
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              className={styles.cancelBtn}
+              onClick={handleCancelTitleClick}
+              disabled={updateTitle.isPending}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className={styles.titleGroup}>
+            <h2 id="card-detail-title" className={styles.title}>{displayTitle}</h2>
+            <button
+              type="button"
+              className={styles.editTitleBtn}
+              onClick={handleEditTitleClick}
+              aria-label="Edit title"
+            >
+              ✎
+            </button>
+          </div>
+        )}
         <button
           type="button"
           className={styles.closeBtn}
@@ -70,6 +154,16 @@ export function CardDetailModal({ open, cardId, cardTitle, onClose }: CardDetail
           ×
         </button>
       </div>
+      {titleValidationError !== null && (
+        <span role="alert" className={styles.titleError}>
+          {titleValidationError}
+        </span>
+      )}
+      {titleValidationError === null && titleMutationError !== null && (
+        <span role="alert" className={styles.titleError}>
+          {titleMutationError}
+        </span>
+      )}
       <div className={styles.body}>
         <h3 className={styles.sectionTitle}>Activity</h3>
         {isLoading ? (

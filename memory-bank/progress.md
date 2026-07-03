@@ -2,6 +2,22 @@
 
 ---
 
+## 2026-07-03 - TASK-021: Add edit card title capability — BUILD_COMPLETE
+
+**Task**: Add edit card title capability (Level 1, no roadmap feature)
+**Phase**: Build — COMPLETE (single phase)
+
+### Summary
+Backend and repository already fully supported title updates (`PATCH /cards/:id`, `VALID_PATCH_FIELDS` already included `title`) — this was purely a frontend gap. Added `useUpdateCardTitle(cardId)` hook reusing the existing `updateCard` endpoint, and a click-to-edit UI in `CardDetailModal` (Edit title button → input + Save/Cancel, mirroring `CreateCardForm`'s validation/error pattern). No backend or repository changes.
+
+### Verification
+- 297/297 frontend tests passing (was 286; +11 new: 8 `CardDetailModal` edit-title tests, 3 `useUpdateCardTitle` hook tests)
+- `tsc -b`: clean
+- `eslint src`: clean
+- Backend untouched — no backend re-verification needed
+
+---
+
 ## Task Archive: TASK-020
 
 **Task**: Card Activity Feed (FEAT-017)

@@ -1,5 +1,5 @@
 /**
- * Tests for CardDetailModal component (TASK-020 Phase 4).
+ * Tests for CardDetailModal component (TASK-020 Phase 4, TASK-021 edit-title).
  *
  * CardDetailModal wraps a native <dialog> element (BoardSettingsModal pattern)
  * and renders an "Activity" section backed by useCardActivity(cardId, { enabled: open }).
@@ -16,9 +16,18 @@
  *  - Error state renders ErrorBanner with role="alert"
  *  - Populated state renders each entry's message and a formatted createdAt,
  *    in the order returned by the hook (backend already orders DESC)
+ *
+ * Edit-title (TASK-021):
+ *  - Clicking "Edit title" swaps the heading for an editable input + Save/Cancel
+ *  - Save calls useUpdateCardTitle(cardId).mutate with the trimmed value
+ *  - Cancel discards the draft and restores the original title, no mutation call
+ *  - Empty/whitespace-only title shows an inline validation error, no mutation call
+ *  - Mutation failure shows an inline error and keeps edit mode open for retry
+ *  - Mutation success exits edit mode and displays the new title
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { Mock } from 'vitest'
 
@@ -34,10 +43,12 @@ vi.mock('@/api/hooks', async (importOriginal) => {
   return {
     ...actual,
     useCardActivity: vi.fn(),
+    useUpdateCardTitle: vi.fn(),
   }
 })
 
 const mockedUseCardActivity = hooks.useCardActivity as Mock
+const mockedUseUpdateCardTitle = hooks.useUpdateCardTitle as Mock
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -69,6 +80,16 @@ function makeEntry(overrides: Partial<CardActivityEntry> = {}): CardActivityEntr
   }
 }
 
+function makeMutationMock(overrides: Record<string, unknown> = {}) {
+  return {
+    mutate: vi.fn(),
+    isPending: false,
+    isError: false,
+    error: null,
+    ...overrides,
+  }
+}
+
 function renderModal(props: { open?: boolean; cardId?: string; cardTitle?: string; onClose?: () => void } = {}) {
   const client = makeQueryClient()
   return render(
@@ -85,6 +106,7 @@ function renderModal(props: { open?: boolean; cardId?: string; cardTitle?: strin
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockedUseUpdateCardTitle.mockReturnValue(makeMutationMock())
 })
 
 // ===========================================================================
@@ -159,5 +181,126 @@ describe('CardDetailModal — Activity populated state', () => {
     const messages = screen.getAllByText(/moved this card|created this card/i)
     expect(messages[0]).toHaveTextContent('Someone moved this card from Doing to Done')
     expect(messages[1]).toHaveTextContent('Someone created this card')
+  })
+})
+
+// ===========================================================================
+// Edit title (TASK-021)
+// ===========================================================================
+
+describe('CardDetailModal — Edit title', () => {
+  beforeEach(() => {
+    mockedUseCardActivity.mockReturnValue(makeQueryMock({ data: [] }))
+  })
+
+  it('shows the title as a heading with an "Edit title" button, not editable by default', () => {
+    renderModal({ cardTitle: 'My Card' })
+
+    expect(screen.getByRole('heading', { name: 'My Card' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /edit title/i })).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /card title/i })).not.toBeInTheDocument()
+  })
+
+  it('clicking "Edit title" swaps the heading for an input pre-filled with the current title', async () => {
+    const user = userEvent.setup()
+    renderModal({ cardTitle: 'My Card' })
+
+    await user.click(screen.getByRole('button', { name: /edit title/i }))
+
+    const input = screen.getByRole('textbox', { name: /card title/i })
+    expect(input).toBeInTheDocument()
+    expect(input).toHaveValue('My Card')
+    expect(screen.queryByRole('heading', { name: 'My Card' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^save$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^cancel$/i })).toBeInTheDocument()
+  })
+
+  it('Cancel discards the draft, restores the heading, and does not call mutate', async () => {
+    const mutate = vi.fn()
+    mockedUseUpdateCardTitle.mockReturnValue(makeMutationMock({ mutate }))
+    const user = userEvent.setup()
+    renderModal({ cardTitle: 'My Card' })
+
+    await user.click(screen.getByRole('button', { name: /edit title/i }))
+    await user.clear(screen.getByRole('textbox', { name: /card title/i }))
+    await user.type(screen.getByRole('textbox', { name: /card title/i }), 'Changed but discarded')
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }))
+
+    expect(mutate).not.toHaveBeenCalled()
+    expect(screen.getByRole('heading', { name: 'My Card' })).toBeInTheDocument()
+  })
+
+  it('Save with an empty/whitespace-only title shows a validation error and does not call mutate', async () => {
+    const mutate = vi.fn()
+    mockedUseUpdateCardTitle.mockReturnValue(makeMutationMock({ mutate }))
+    const user = userEvent.setup()
+    renderModal({ cardTitle: 'My Card' })
+
+    await user.click(screen.getByRole('button', { name: /edit title/i }))
+    await user.clear(screen.getByRole('textbox', { name: /card title/i }))
+    await user.type(screen.getByRole('textbox', { name: /card title/i }), '   ')
+    await user.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(mutate).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert')).toHaveTextContent(/title is required/i)
+  })
+
+  it('Save with a valid title calls mutate with the trimmed value', async () => {
+    const mutate = vi.fn()
+    mockedUseUpdateCardTitle.mockReturnValue(makeMutationMock({ mutate }))
+    const user = userEvent.setup()
+    renderModal({ cardId: 'card-42', cardTitle: 'My Card' })
+
+    await user.click(screen.getByRole('button', { name: /edit title/i }))
+    await user.clear(screen.getByRole('textbox', { name: /card title/i }))
+    await user.type(screen.getByRole('textbox', { name: /card title/i }), '  Renamed Card  ')
+    await user.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(mutate).toHaveBeenCalledTimes(1)
+    const [vars] = mutate.mock.calls[0]
+    expect(vars).toEqual({ title: 'Renamed Card' })
+  })
+
+  it('on mutation success, exits edit mode and displays the new title', async () => {
+    const mutate = vi.fn((_vars, opts?: { onSuccess?: () => void }) => opts?.onSuccess?.())
+    mockedUseUpdateCardTitle.mockReturnValue(makeMutationMock({ mutate }))
+    const user = userEvent.setup()
+    renderModal({ cardTitle: 'My Card' })
+
+    await user.click(screen.getByRole('button', { name: /edit title/i }))
+    await user.clear(screen.getByRole('textbox', { name: /card title/i }))
+    await user.type(screen.getByRole('textbox', { name: /card title/i }), 'Renamed Card')
+    await user.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(screen.getByRole('heading', { name: 'Renamed Card' })).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /card title/i })).not.toBeInTheDocument()
+  })
+
+  it('on mutation failure, shows an inline error and keeps edit mode open for retry', async () => {
+    const mutate = vi.fn()
+    mockedUseUpdateCardTitle.mockReturnValue(
+      makeMutationMock({ mutate, isError: true, error: new Error('Network error') }),
+    )
+    const user = userEvent.setup()
+    renderModal({ cardTitle: 'My Card' })
+
+    await user.click(screen.getByRole('button', { name: /edit title/i }))
+    await user.clear(screen.getByRole('textbox', { name: /card title/i }))
+    await user.type(screen.getByRole('textbox', { name: /card title/i }), 'Renamed Card')
+    await user.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(mutate).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('alert')).toHaveTextContent(/network error/i)
+    expect(screen.getByRole('textbox', { name: /card title/i })).toBeInTheDocument()
+  })
+
+  it('Save button is disabled while the mutation is pending', async () => {
+    mockedUseUpdateCardTitle.mockReturnValue(makeMutationMock({ isPending: true }))
+    const user = userEvent.setup()
+    renderModal({ cardTitle: 'My Card' })
+
+    await user.click(screen.getByRole('button', { name: /edit title/i }))
+
+    expect(screen.getByRole('button', { name: /^save$/i })).toBeDisabled()
   })
 })
