@@ -65,6 +65,14 @@
   - [ ] Clicking delete still deletes the card and does not also open `CardDetailModal`
   - [ ] None of the above actions are blocked or altered by the new title-click handler
 
+### Step 8: Editing the card title does not break the modal or its other actions (regression, TASK-021)
+- **Action**: Open a card's `CardDetailModal`, click "Edit title", change the title, click "Save"; then close the modal and, on the same card, open the label-color picker and pick a color
+- **Verify**:
+  - [ ] After Save, the modal heading immediately shows the new title (no reload needed)
+  - [ ] Reopening the card's modal shows the updated title, and the Activity section still loads correctly (loading → populated/empty/error as appropriate) — the title edit did not disturb the Activity fetch
+  - [ ] The card's title on the board (`KanbanCard`) reflects the new title after the modal closes
+  - [ ] The label-color picker (a separate, pre-existing interaction) still opens and applies a color normally after a title edit — the two features do not interfere with each other
+
 ---
 
 ## errors
