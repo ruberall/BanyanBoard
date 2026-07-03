@@ -19,6 +19,13 @@ dist/
 # Playwright generated output
 frontend/playwright-report/
 frontend/test-results/
+test-results/
 
 # UAT run artifacts (screenshots, raw walker JSON) — default artifact_git_policy: ignore
 memory-bank/uat/artifacts/
+
+# Build test iteration logs
+memory-bank/.test-logs/
+
+# Local Claude Code settings
+.claude/

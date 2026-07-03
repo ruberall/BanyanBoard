@@ -19,8 +19,8 @@
 - **Description**: Working local kanban board — full stack from Docker Compose to drag-and-drop UI. Delivers the core loop: create a board, add cards, move them across fixed columns.
 - **Features**:
   - FEAT-001: Express API with TypeScript Scaffold (complete) [Level 3]
-  - FEAT-002: Board & Column API (planned) [Level 2]
-  - FEAT-003: Card Management API (planned) [Level 2]
+  - FEAT-002: Board & Column API (complete) [Level 2]
+  - FEAT-003: Card Management API (complete) [Level 2]
   - FEAT-004: Card Move & Ordering (complete) [Level 2]
   - FEAT-005: React Frontend Scaffold (complete) [Level 3]
   - FEAT-006: User Authentication (complete) [Level 3]
@@ -30,7 +30,7 @@
 - **Status**: planning
 - **Features**:
   - FEAT-007: Pagination for list endpoints (complete) [Level 2]
-  - FEAT-008: E2E Test Suite for Board Flow (in_progress) [Level 2]
+  - FEAT-008: E2E Test Suite for Board Flow (complete) [Level 2]
   - FEAT-009: Realtime Activity Feed (complete) [Level 3]
   - FEAT-010: Card Labels (complete) [Level 3]
   - FEAT-011: Card Color Picker (complete) [Level 3]
@@ -89,11 +89,10 @@
 ### FEAT-004: Card Move & Ordering
 
 - **Version**: v0.1.0
-- **Status**: planned
+- **Status**: complete
 - **Priority**: high
 - **Complexity**: Level 2
 - **Description**: API endpoint to move a card to a different column and update its sort position within that column. Uses a float/fractional ordering strategy to avoid rewriting all positions on every move. Includes position field on cards schema and a PATCH /cards/:id/move endpoint.
-- **Status**: complete
 - **Linked Tasks**: TASK-008 (COMPLETE)
 - **Completed**: 2026-06-16
 - **Branch**: feature/FEAT-004-card-move-ordering
@@ -118,11 +117,10 @@
 ### FEAT-007: Pagination for list endpoints
 
 - **Version**: next
-- **Status**: planned
+- **Status**: complete
 - **Priority**: medium
 - **Complexity**: Level 2
 - **Description**: Add `?page=1&limit=20` query parameter support to list endpoints (initially `GET /boards`). Returns a paginated envelope `{ data, total, page, limit }`. Uses LIMIT/OFFSET at the repository layer. Validates `page` ≥ 1, `limit` 1–100, with sensible defaults (page=1, limit=20).
-- **Status**: complete
 - **Linked Tasks**: TASK-006 (COMPLETE)
 - **Completed**: 2026-06-16
 - **Branch**: feature/FEAT-007-pagination-list-endpoints
@@ -203,11 +201,10 @@
 ### FEAT-006: User Authentication
 
 - **Version**: v0.1.0
-- **Status**: planned
+- **Status**: complete
 - **Priority**: medium
 - **Complexity**: Level 3
 - **Description**: Session-based auth for the Express API. Register and login with email + password (bcrypt). Express-session with PostgreSQL session store. Auth middleware protecting all board/card routes. React login/register pages and session state management on the frontend. Users DB schema and migration.
-- **Status**: complete
 - **Linked Tasks**: TASK-011 (COMPLETE)
 - **Branch**: feature/FEAT-006-user-authentication
 - **Created**: 2026-06-13
@@ -269,22 +266,24 @@ HTTP 400 for synchronous rule failures; stored as `delivery_error` JSON for asyn
 - **Priority**: medium
 - **Complexity**: Level 2
 - **Description**: Enable users to delete a card by clicking an X icon visible on each card in the kanban board. Uses the existing `DELETE /cards/:id` backend endpoint. Requires a new `useDeleteCard` mutation hook, an X button in the `KanbanCard` component, and wiring in `KanbanColumn`.
-- **Linked Tasks**: TASK-018
+- **Linked Tasks**: TASK-018 (COMPLETE)
 - **Branch**: feature/FEAT-015-delete-card-ui
 - **Created**: 2026-06-28
+- **Completed**: 2026-06-28
 
 ---
 
 ### FEAT-016: Webhook Delivery for Workflow Rules
 
 - **Version**: next
-- **Status**: planned
+- **Status**: complete
 - **Priority**: high
 - **Complexity**: Level 4
 - **Description**: Extend workflow automation so that trigger rules can optionally POST a JSON payload to a user-configured webhook URL when the trigger fires. Webhook delivery retries up to 3 times on failure. Delivery status is tracked in a separate `webhook_deliveries` table, decoupled from trigger execution status, following the Webhook Delivery Pattern in `systemPatterns.md`. Users configure rules and webhook URLs via a Board Settings → Automation tab in the frontend. Four implementation phases: (1) Data model + CRUD API for `automation_rules`, `trigger_executions`, and `webhook_deliveries`; (2) Trigger evaluation engine (event listeners, rule matching, execution dispatch); (3) Webhook dispatcher + retry logic + delivery record lifecycle (pending → delivered | failed → exhausted); (4) UI settings panel (rule creation form, webhook URL input, delivery history).
-- **Linked Tasks**: TASK-019
-- **Branch**: feature/FEAT-016-webhook-delivery
+- **Linked Tasks**: TASK-019 (COMPLETE)
+- **Branch**: feature/FEAT-016-webhook-delivery (merged → main, commit 89995f5)
 - **Created**: 2026-06-30
+- **Completed**: 2026-07-01
 
 ---
 
