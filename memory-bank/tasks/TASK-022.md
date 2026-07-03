@@ -1,7 +1,7 @@
 # TASK-022: Characterization Tests Card Workflow
 
 **Complexity**: Level 3 (inherited from FEAT-018)
-**Status**: PLANNING_COMPLETE
+**Status**: CREATIVE_COMPLETE
 **Roadmap**: FEAT-018
 **Branch**: feature/FEAT-018-characterization-tests-card-workflow
 **Worktree**: [set during /banyan-build git setup]
@@ -134,7 +134,7 @@ No new runtime interactions — these are read-only test suites exercising exist
 - **REST API**: No — no new or modified endpoints; `GET /cards/:id/activity` is characterized, not changed
 
 ### Creative Phases Required
-- [ ] Algorithm design — Type: Algorithm (test-architecture decisions: extraction decision, notification/recipient mapping confirmation, DB seeding/teardown + failure-induction strategy)
+- [x] Algorithm design — Type: Algorithm (test-architecture decisions: extraction decision, notification/recipient mapping confirmation, DB seeding/teardown + failure-induction strategy) → `memory-bank/creative/TASK-022-characterization-test-strategy-algorithm.md`
 
 ### Work Items
 
@@ -195,15 +195,18 @@ No new runtime interactions — these are read-only test suites exercising exist
 
 ## Creative Phases
 
-- [ ] Algorithm design → **REQUIRED** (Level 3 + LOW-confidence field on notification/recipient mapping triggers mandatory creative per /banyan-plan Step 3.3) — test-architecture decisions: pure/impure split and extraction strategy, notification/recipient mapping confirmation, real-DB seeding/teardown strategy for two independent integration suites, exhaustive error-path enumeration per function
+- [x] Algorithm design → COMPLETE — `memory-bank/creative/TASK-022-characterization-test-strategy-algorithm.md`
+  - **Decision 1 (extraction)**: Extract `WorkflowService`'s inline message-building logic to a new `backend/src/services/workflow.messages.ts` pure util (Phase 1), verified behavior-preserving via the full existing backend suite
+  - **Decision 2 (notification/recipient mapping)**: "Notification text" = `WorkflowWarning.message`; "recipient" = `card_id`/`board_id` on `workflow_rule_triggers`/`workflow_action_deliveries` rows — documented as an interpretation, not a literal match, to be called out explicitly in the final report
+  - **Decision 3 (DB seeding strategy)**: Direct repository-method fixture builders matching `workflow-foundation.integration.test.ts`'s existing convention, no new fixture-factory abstraction; genuine-failure induction via real constraint violations / missing-Stale-column boards, with the exact SQL-level mechanism for a couple of failure cases flagged as needing verification during Phase 1/3 (not blocking); test-scoped `WorkflowConfig` with a small retry base delay to avoid wall-clock cost
 
 ---
 
 ## Execution State
 
 **Build Status**: IDLE
-**Current Phase**: PLAN → CREATIVE
-**Last Completed**: Step 6 - Finalize Plan
+**Current Phase**: CREATIVE → BUILD
+**Last Completed**: Algorithm Design Creative Phase
 **Can Resume**: NO
 
 ### Active Sub-Agents
@@ -217,3 +220,5 @@ No new runtime interactions — these are read-only test suites exercising exist
 - Step 3.3: Creative phase REQUIRED (Level 3 + LOW confidence on notification/recipient mapping)
 - Step 4-5: Codebase analysis + Implementation Plan written (Requirements, Component Analysis, Implementation Strategy, Dependencies & Risks, documented deviation from systemPatterns.md file-organization convention, Observability N/A, API N/A, 4 Work Items)
 - Step 6: Validation gate passed (NFR: Test Method concrete, Success Metrics concrete, Observable Location concrete); Status set to PLANNING_COMPLETE
+- Creative Step 3: Algorithm Design creative phase COMPLETE (performed inline by orchestrator) — Output: `memory-bank/creative/TASK-022-characterization-test-strategy-algorithm.md`; all 3 flagged questions resolved (extraction: yes, extract to `workflow.messages.ts`; notification/recipient mapping confirmed with explicit interpretation caveat; DB seeding: repo-direct fixtures, no new abstraction)
+- Creative Step 5: Status set to CREATIVE_COMPLETE

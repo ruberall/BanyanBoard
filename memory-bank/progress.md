@@ -2,6 +2,22 @@
 
 ---
 
+## 2026-07-03 - TASK-022: Characterization Tests Card Workflow — CREATIVE_COMPLETE
+
+**Task**: Characterization Tests Card Workflow (FEAT-018)
+**Phase**: Creative — COMPLETE (Algorithm Design)
+**Document**: `memory-bank/creative/TASK-022-characterization-test-strategy-algorithm.md`
+
+### Decisions
+- Extract `WorkflowService`'s inline warning/message-building logic to a new `workflow.messages.ts` pure util (Phase 1), verified behavior-preserving via the full existing suite
+- "Notification text and recipient" mapped to `WorkflowWarning.message` + `card_id`/`board_id` on tracking tables — documented explicitly as an interpretation since no literal recipient mechanism exists in this codebase
+- DB seeding via direct repository-method fixtures (matching `workflow-foundation.integration.test.ts`'s existing convention), no new fixture-factory abstraction; genuine-failure induction via real constraint violations; test-scoped small retry-backoff config to avoid wall-clock cost
+
+### Next
+`/banyan-build TASK-022` — Phase 1 (extraction + verification), then Phases 2-4 (the three characterization suites)
+
+---
+
 ## Task Archive: TASK-020
 
 **Task**: Card Activity Feed (FEAT-017)
