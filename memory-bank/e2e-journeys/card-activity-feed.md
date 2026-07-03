@@ -56,6 +56,15 @@
 
 **Cleanup**: Delete any card created in Step 4 for this test run (via the card's delete button) to avoid polluting the board.
 
+### Step 7: Title-click does not break existing card interactions (regression)
+- **Action**: On a card, exercise each of the other pre-existing interactive elements that sit alongside the now-clickable title: drag the card to another column via the drag handle, open the label-color picker and pick a color, open the card-color picker and pick a color, and click the delete (×) button on a different disposable card
+- **Verify**:
+  - [ ] Dragging the card still works and does not also open `CardDetailModal`
+  - [ ] Opening the label-color picker does not also open `CardDetailModal`
+  - [ ] Opening the card-color picker does not also open `CardDetailModal`
+  - [ ] Clicking delete still deletes the card and does not also open `CardDetailModal`
+  - [ ] None of the above actions are blocked or altered by the new title-click handler
+
 ---
 
 ## errors
