@@ -24,6 +24,7 @@
 | TASK-018 | 2026-06-28 | 2 | 0 | 1 | testing-patterns amended: wholesale vi.mock gap + missing vi import (Level 2) |
 | TASK-019 | 2026-07-01 | 4 | 0 | 3 | security (+2) + testing-patterns + architecture-foundation amended; 4-phase Level 4 webhook delivery |
 | TASK-020 | 2026-07-02 | 2 | 0 | 2 | data-integrity + testing-patterns amended (Level 2 cap); immutable event-payload gotcha + UAT walker ESC false-negative pattern |
+| TASK-021 | 2026-07-03 | 1 | 0 | 1 | api-design amended (Level 1 cap); grep existing PATCH endpoint before assuming backend work is needed |
 
 ## Consolidation History
 
@@ -48,7 +49,7 @@
 |------|---------------|----------|--------------|--------|
 | testing-patterns.md | 17 | medium | 2026-07-02 | active (pruned 16→10 bullets, TASK-020 +1) |
 | architecture-foundation.md | 6 | medium | 2026-07-01 | active (merged: architecture-patterns) |
-| api-design.md | 4 | medium | 2026-06-28 | active (promoted) |
+| api-design.md | 5 | medium | 2026-07-03 | active (promoted, TASK-021) |
 | security.md | 4 | medium | 2026-07-01 | active (promoted) |
 | react-query-patterns.md | 3 | medium | 2026-06-27 | active (promoted) |
 | data-integrity.md | 3 | medium | 2026-07-02 | active (promoted, TASK-020) |

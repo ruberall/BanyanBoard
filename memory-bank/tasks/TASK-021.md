@@ -1,10 +1,11 @@
 # TASK-021: Add edit card title capability
 
 **Complexity**: Level 1
-**Status**: BUILD_COMPLETE
+**Status**: REFLECTION_COMPLETE
 **Roadmap**: N/A
 **Branch**: task/021-add-edit-card-title
 **Worktree**: C:\Users\uberallr\projects\BanyanBoard (Level 1 uses direct branch on main checkout, not a separate worktree)
+**Reflection**: memory-bank/reflection/reflection-TASK-021.md
 
 ## Task Description
 
@@ -42,8 +43,8 @@ Add edit card title capability. Backend `PATCH /cards/:id` already supports titl
 
 ## Execution State
 
-**Build Status**: COMPLETE
-**Current Phase**: BUILD_COMPLETE
+**Build Status**: IDLE
+**Current Phase**: REFLECT → ARCHIVE
 **Can Resume**: NO
 
 ### Active Sub-Agents
@@ -51,3 +52,4 @@ Add edit card title capability. Backend `PATCH /cards/:id` already supports titl
 
 ### Completed Steps
 - Phase 1: COMPLETE — tests written first (TDD), implementation added, 297/297 frontend tests passing, `tsc -b` clean, `eslint src` clean
+- Reflection: COMPLETE — reflection-TASK-021.md written, both dimensions evaluated; 1 learning extracted (api-design.md amended, evidence_count 4→5)

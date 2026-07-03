@@ -22,4 +22,4 @@
 | TASK-018 | Delete Card UI | ARCHIVE | COMPLETE | FEAT-015 |
 | TASK-019 | Webhook Delivery for Workflow Rules | ARCHIVE | COMPLETE | FEAT-016 |
 | TASK-020 | Card Activity Feed | ARCHIVE | COMPLETE | FEAT-017 |
-| TASK-021 | Add edit card title capability | BUILD | BUILD_COMPLETE | N/A |
+| TASK-021 | Add edit card title capability | REFLECT | REFLECTION_COMPLETE | N/A |

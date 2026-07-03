@@ -18,6 +18,24 @@ Backend and repository already fully supported title updates (`PATCH /cards/:id`
 
 ---
 
+## 2026-07-03 - TASK-021: Add edit card title capability — REFLECTION_COMPLETE
+
+**Task**: Add edit card title capability (Level 1, no roadmap feature)
+**Phase**: Reflection — COMPLETE
+**Reflection**: `memory-bank/reflection/reflection-TASK-021.md`
+
+### Evaluation Summary
+- **Task Quality**: Success — click-to-edit title UI delivered, reusing the already-fully-capable backend/repository; zero backend changes needed
+- **Ecosystem Effectiveness**: Moderately Effective — early complexity re-evaluation (Level 2+ → Level 1) avoided unnecessary roadmap/planning ceremony; `/banyan-build`'s phase gate and worktree check are written for Level 2-4 shape and required a manual workaround for this Level 1 task
+
+### Pattern Extraction
+- 1 learning added to `agent-rules/_learned/api-design.md` (evidence count: 4 → 5) — grep the existing generic update endpoint for the field name before assuming backend work is needed
+
+### Recommendation
+Ready to archive (optional for Level 1).
+
+---
+
 ## Task Archive: TASK-020
 
 **Task**: Card Activity Feed (FEAT-017)

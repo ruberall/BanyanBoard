@@ -2,6 +2,17 @@
 
 ---
 
+## 2026-07-03 - TASK-021 Reflection
+
+### Extracted Patterns
+- **api-design** → amended `agent-rules/_learned/api-design.md` (evidence count: 4 → 5)
+  - Before scoping a "frontend + backend" feature request, grep the existing generic update route/endpoint for the field name first — a `PATCH`-style endpoint often already accepts the field, turning an apparent multi-layer feature into a frontend-only UI addition
+
+### systemPatterns.md Updates
+- None (no novel architecture pattern — reused existing `updateCard` PATCH endpoint and mutation-hook conventions)
+
+---
+
 ## 2026-07-02 - Consolidation (during TASK-020 archive)
 
 - Files before: 14, Files after: 14
