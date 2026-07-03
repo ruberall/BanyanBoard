@@ -2,7 +2,7 @@
 
 ## Summary
 
-- **Total Features**: 17
+- **Total Features**: 18
 - **Released Versions**: 0
 - **Active Versions**: 0
 - **Planning Versions**: 1
@@ -40,6 +40,7 @@
   - FEAT-015: Delete Card UI (complete) [Level 2]
   - FEAT-016: Webhook Delivery for Workflow Rules (complete) [Level 4]
   - FEAT-017: Card Activity Feed (complete) [Level 2]
+  - FEAT-018: Characterization Tests Card Workflow (in_progress) [Level 3]
 
 ---
 
@@ -312,3 +313,16 @@ HTTP 400 for synchronous rule failures; stored as `delivery_error` JSON for asyn
 - **Branch**: feature/FEAT-017-card-activity-feed (merged → main 2026-07-02)
 - **Created**: 2026-07-02
 - **Completed**: 2026-07-02
+
+---
+
+### FEAT-018: Characterization Tests Card Workflow
+
+- **Version**: next
+- **Status**: in_progress
+- **Priority**: medium
+- **Complexity**: Level 3
+- **Description**: Author characterization tests for the entire Card Workflow Automation feature — the status-change handler (`WorkflowService.applyBoardRules` stale-rule + `triggerDoneColorRule`, and `CardService.moveCard`'s fire-and-forget trigger) AND the `GET /cards/:id/activity` endpoint. Exercise the REAL code — no mocks, stubs, spies, or fakes; a mock captures the mock's behavior, not the code's, which defeats characterization. For every public function/handler, capture what it CURRENTLY does, exactly (never what it SHOULD do) — use exact equality (`toBe`), never `toContain`, for all string output. Cover: entry ordering, JSON shape, timestamp format, 404 body, empty-feed shape, notification text and recipient, and every error path. Split by how each function reaches its result: **Pure** (no I/O, e.g. the message formatter) — import and call directly; if private, extract it to a util — goes in `tests/characterization/card-workflow.test.ts`. **DB-backed** — run against a real test DB with seeded rows — goes in `card-workflow.integration.test.ts` + `card-activity.integration.test.ts` (both under `tests/characterization/`, require a real `DATABASE_URL`). Report: pure vs DB functions covered, cases per function, anything extracted, anything skipped and why.
+- **Linked Tasks**: TASK-022 (INITIALIZED)
+- **Branch**: feature/FEAT-018-characterization-tests-card-workflow
+- **Created**: 2026-07-03
