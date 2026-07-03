@@ -1,10 +1,10 @@
 # TASK-022: Characterization Tests Card Workflow
 
 **Complexity**: Level 3 (inherited from FEAT-018)
-**Status**: CREATIVE_COMPLETE
+**Status**: BUILD (Phase 1 of 4 complete)
 **Roadmap**: FEAT-018
 **Branch**: feature/FEAT-018-characterization-tests-card-workflow
-**Worktree**: [set during /banyan-build git setup]
+**Worktree**: .claude-worktrees/FEAT-018
 
 ## Task Description
 
@@ -188,7 +188,7 @@ No new runtime interactions — these are read-only test suites exercising exist
 
 ## Implementation Roadmap
 
-- [ ] Phase 1: Codebase inventory + (if needed) behavior-preserving extraction of private pure functions to a util module, verified via existing test suites still passing
+- [x] Phase 1: Codebase inventory + (if needed) behavior-preserving extraction of private pure functions to a util module, verified via existing test suites still passing
 - [ ] Phase 2: Pure characterization tests — `tests/characterization/card-workflow.test.ts`
 - [ ] Phase 3: DB-backed characterization tests — `tests/characterization/card-workflow.integration.test.ts`
 - [ ] Phase 4: DB-backed characterization tests — `tests/characterization/card-activity.integration.test.ts` + final report (pure vs DB functions covered, cases per function, anything extracted, anything skipped and why)
@@ -205,8 +205,8 @@ No new runtime interactions — these are read-only test suites exercising exist
 ## Execution State
 
 **Build Status**: IDLE
-**Current Phase**: CREATIVE → BUILD
-**Last Completed**: Algorithm Design Creative Phase
+**Current Phase**: BUILD (Phase 1 of 4 complete)
+**Last Completed**: Phase 1 - Extraction + regression verification
 **Can Resume**: NO
 
 ### Active Sub-Agents
@@ -222,3 +222,8 @@ No new runtime interactions — these are read-only test suites exercising exist
 - Step 6: Validation gate passed (NFR: Test Method concrete, Success Metrics concrete, Observable Location concrete); Status set to PLANNING_COMPLETE
 - Creative Step 3: Algorithm Design creative phase COMPLETE (performed inline by orchestrator) — Output: `memory-bank/creative/TASK-022-characterization-test-strategy-algorithm.md`; all 3 flagged questions resolved (extraction: yes, extract to `workflow.messages.ts`; notification/recipient mapping confirmed with explicit interpretation caveat; DB seeding: repo-direct fixtures, no new abstraction)
 - Creative Step 5: Status set to CREATIVE_COMPLETE
+- Build Step 0.5: Git Setup COMPLETE — worktree `.claude-worktrees/FEAT-018` created on branch `feature/FEAT-018-characterization-tests-card-workflow`, backend deps installed
+- Build Step 0.6: Phase Gate PASSED — Implementation Roadmap populated, creative phase complete with matching doc
+- Build Phase 1 Step 4 (Coding Agent role, performed inline): COMPLETE — created `backend/src/services/workflow.messages.ts` (`staleColumnMissingWarning`, `staleMoveFailedWarning`); updated `workflow.service.ts`'s two call sites to use them
+- Build Phase 1 Step 7 (Integration Verification): COMPLETE — `npx tsc --noEmit` clean; full backend suite identical to pre-extraction baseline (319 passed / 32 skipped / 351 total, 0 failures) — extraction confirmed behavior-preserving; no backend lint script exists (pre-existing gap)
+- Build Phase 1 Step 8 (Code Review, self-performed): APPROVED — pure extraction, no I/O introduced, no logging changes, matches Guiding Principles

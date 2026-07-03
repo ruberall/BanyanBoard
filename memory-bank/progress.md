@@ -2,6 +2,24 @@
 
 ---
 
+## 2026-07-03 - TASK-022 Phase 1: Extraction + regression verification — COMPLETE
+
+**Task**: Characterization Tests Card Workflow (FEAT-018)
+**Phase**: Build Phase 1 of 4 — COMPLETE
+
+### Summary
+Per creative Decision 1, extracted `WorkflowService`'s inline warning-message-building logic (two call sites in `applyBoardRules`) into a new pure `backend/src/services/workflow.messages.ts` module (`staleColumnMissingWarning()`, `staleMoveFailedWarning(cardId, errMessage)`). `workflow.service.ts` now imports and calls these instead of constructing the `WorkflowWarning` objects inline. No behavior change.
+
+### Verification
+- `npx tsc --noEmit`: clean
+- Full backend suite: 319 passed / 32 skipped / 351 total, 0 failures — **identical** to the pre-extraction baseline run, confirming the refactor is behavior-preserving
+- No backend lint script exists (pre-existing gap, not introduced by this task)
+
+### Next
+Phase 2 — pure characterization tests in `backend/tests/characterization/card-workflow.test.ts` (direct-call `projectActivityRow` + the two new `workflow.messages.ts` functions)
+
+---
+
 ## 2026-07-03 - TASK-022: Characterization Tests Card Workflow — CREATIVE_COMPLETE
 
 **Task**: Characterization Tests Card Workflow (FEAT-018)

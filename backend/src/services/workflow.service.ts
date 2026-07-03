@@ -1,6 +1,7 @@
 import type { Column } from '../repositories/board.repository';
 import type { WorkflowRepository, StaleCard } from '../repositories/workflow.repository';
 import { logger } from '../logger';
+import { staleColumnMissingWarning, staleMoveFailedWarning } from './workflow.messages';
 
 // Shape of a recorded delivery attempt — assembled before inserting rows.
 interface DeliveryRecord {
@@ -51,10 +52,7 @@ export class WorkflowService {
 
     if (!staleColumn) {
       logger.warn({ boardId, reason: 'no_stale_column' }, 'workflow.rule1.skipped');
-      warnings.push({
-        code:    'WORKFLOW_STALE_COL_MISSING',
-        message: 'Stale column not found on board; skipping stale-move rule',
-      });
+      warnings.push(staleColumnMissingWarning());
       return warnings;
     }
 
@@ -85,10 +83,7 @@ export class WorkflowService {
         const cardId = staleCards[i].id;
         const err = result.reason as Error;
         logger.warn({ err, cardId, boardId }, 'workflow.stale_move.failed');
-        warnings.push({
-          code:    'WORKFLOW_ACTION_FAILED',
-          message: `Stale rule failed for card ${cardId}: ${err.message}`,
-        });
+        warnings.push(staleMoveFailedWarning(cardId, err.message));
       }
     }
 
